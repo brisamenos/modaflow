@@ -1,11 +1,12 @@
-﻿// ===== IMPORTAR ESTOQUE CSV =====
+// ===== IMPORTAR ESTOQUE CSV =====
 async function renderImportarCSV() {
   renderCRUDPage({title:'Importar Estoque CSV', addBtn:null, content:''});
   document.getElementById('content').innerHTML = `
     <div class="card" style="max-width:900px;margin:0 auto">
       <div style="padding:24px 28px 0">
         <h3 style="margin:0 0 6px;font-size:17px;color:var(--text-1)"><i data-lucide="file-up" style="width:18px;height:18px;vertical-align:-3px;margin-right:6px"></i>Importar Estoque via CSV</h3>
-        <p style="margin:0 0 20px;color:var(--text-2);font-size:13.5px">Compatível com o formato de backup: <strong>Cód. Produto; Descrição Produto; UN; CNPJ Fornecedor; Preço Custo; Preço Venda; NCM; Cód de Barras - EAN; Tam - Grade; Qtde; Coleção; Marca; Categoria; Genero; Cor - Hexa; Cor - Descrição; SKU</strong></p>
+        <p style="margin:0 0 12px;color:var(--text-2);font-size:13.5px">Compatível com o formato de backup: <strong>Cód. Produto; Descrição Produto; UN; CNPJ Fornecedor; Preço Custo; Preço Venda; NCM; Cód de Barras - EAN; Tam - Grade; Qtde; Coleção; Marca; Categoria; Genero; Cor - Hexa; Cor - Descrição; SKU</strong></p>
+        <button class="btn btn-secondary" style="font-size:12.5px;padding:6px 14px" onclick="downloadModeloCSV()"><i data-lucide="download" style="width:14px;height:14px"></i> Baixar Modelo CSV</button>
       </div>
       <div style="padding:0 28px 24px;border-bottom:1px solid var(--border)">
         <div style="border:2px dashed var(--border-2);border-radius:var(--radius);padding:32px;text-align:center;background:var(--bg);cursor:pointer" onclick="document.getElementById('csv-file-input').click()" id="csv-drop-zone">
@@ -20,7 +21,17 @@ async function renderImportarCSV() {
   lucide.createIcons();
 }
 
-function parseCSVLine(line) {
+function downloadModeloCSV() {
+  const header = 'Cód. Produto;Descrição Produto;UN;CNPJ Fornecedor;Preço Custo;Preço Venda;NCM;Cód de Barras - EAN;Tam - Grade;Qtde;Coleção;Marca;Categoria;Genero;Cor - Hexa;Cor - Descrição;SKU';
+  const exemplo = '0001;CAMISETA EXEMPLO;UN;00.000.000/0001-00;30.00;59.90;61091000;7891234567890;M;5;VERÃO 2025;MARCA X;Camiseta;F;#FFFFFF;BRANCO;123456';
+  const blob = new Blob(['\uFEFF'+header+'\n'+exemplo], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'modelo_importacao_estoque.csv';
+  a.click();
+}
+
+
   const sep = ';';
   const result = [];
   let cur = '', inQ = false;
