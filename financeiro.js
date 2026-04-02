@@ -51,9 +51,10 @@ async function renderCaixa() {
   document.getElementById('content').innerHTML=`
     <div style="display:flex;flex-direction:column;gap:18px;padding-bottom:30px;">
       
-      <div style="display:flex; align-items:center; gap:12px; background:#fff; padding:6px 14px; border-radius:8px; width:fit-content; border:1px solid #e1e8ed;">
-        <span style="font-weight:600;font-size:13px;color:var(--text-3)">Caixa dia:</span>
-        <input type="date" value="${dataHoje}" readonly style="border:1px solid #eee; border-radius:4px; padding:4px 8px; outline:none; font-weight:600; color:var(--text); background:#fcfcfc;">
+      <div style="display:flex; align-items:center; gap:8px; background:#fff; padding:8px 16px; border-radius:8px; width:fit-content; border:1px solid #e1e8ed; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
+        <span style="font-weight:600;font-size:14px;color:#7f8c8d;">Caixa dia:</span>
+        <input type="date" value="${dataHoje}" readonly style="border:none; outline:none; padding:0; margin:0; font-weight:700; font-size:14px; font-family:var(--font-sans); color:#2c3e50; background:transparent;">
+        <i data-lucide="calendar" style="color:#bdc3c7;width:18px;height:18px;"></i>
       </div>
 
       <!-- ROW 1 -->
@@ -189,47 +190,200 @@ async function sangriaCaixa() {
 
 // ===== PAINEL FINANCEIRO =====
 async function renderPainelFinanceiro() {
-  const now=new Date(),m=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const [{data:vs},{data:desps},{data:pagar}]=await Promise.all([
-    sb.from('vendas').select('total,forma_pagamento').gte('created_at',m+'-01').eq('status','concluida'),
-    sb.from('despesas').select('valor,status').gte('data_competencia',m+'-01'),
-    sb.from('contas_pagar').select('valor,status').gte('vencimento',m+'-01')
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const m = `${year}-${month}`;
+
+  // Buscar dados do mês focado
+  const [{data:vs}, {data:desps}, {data:pagar}] = await Promise.all([
+    sb.from('vendas').select('total,forma_pagamento,created_at').gte('created_at', m+'-01').lte('created_at', m+'-31T23:59:59').eq('status','concluida'),
+    sb.from('despesas').select('valor,status,data_pagamento,vencimento').gte('vencimento', m+'-01').lte('vencimento', m+'-31'),
+    sb.from('contas_pagar').select('valor,status,data_pagamento,vencimento').gte('vencimento', m+'-01').lte('vencimento', m+'-31') // Considerado fornecedores
   ]);
-  const receita=(vs||[]).reduce((a,v)=>a+parseFloat(v.total||0),0);
-  const desp=(desps||[]).reduce((a,d)=>a+parseFloat(d.valor||0),0);
-  const pag=(pagar||[]).reduce((a,p)=>a+parseFloat(p.valor||0),0);
-  const lucro=receita-desp-pag;
 
-  const porPag={};
-  (vs||[]).forEach(v=>{porPag[v.forma_pagamento]=(porPag[v.forma_pagamento]||0)+parseFloat(v.total||0);});
+  const days = {};
+  
+  // Agrupar Vendas
+  (vs||[]).forEach(v => {
+    const d = v.created_at.split('T')[0];
+    if(!days[d]) days[d] = { aVista:0, cartao:0, crediario:0, fornecedores:0, despesas:0 };
+    let fp = v.forma_pagamento || '';
+    let val = parseFloat(v.total||0);
+    if(fp.includes('dinheiro') || fp.includes('pix') || fp.includes('transferencia')) days[d].aVista += val;
+    else if(fp.includes('cartao')) days[d].cartao += val;
+    else days[d].crediario += val;
+  });
 
-  document.getElementById('content').innerHTML=`
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-value" style="color:var(--green)">${fmt(receita)}</div><div class="stat-label">Receita</div></div>
-      <div class="stat-card"><div class="stat-value" style="color:var(--red)">${fmt(desp+pag)}</div><div class="stat-label">Despesas Totais</div></div>
-      <div class="stat-card"><div class="stat-value" style="color:${lucro>=0?'var(--green)':'var(--red)'}">${fmt(lucro)}</div><div class="stat-label">Resultado</div></div>
-      <div class="stat-card"><div class="stat-value">${receita>0?((lucro/receita)*100).toFixed(1):0}%</div><div class="stat-label">Margem Líquida</div></div>
+  // Agrupar Despesas
+  (desps||[]).forEach(d => {
+    const dataRef = d.data_pagamento || d.vencimento; // prioriza pagamento pro fluxo
+    if(dataRef && dataRef.startsWith(m)) {
+      if(!days[dataRef]) days[dataRef] = { aVista:0, cartao:0, crediario:0, fornecedores:0, despesas:0 };
+      days[dataRef].despesas += parseFloat(d.valor||0);
+    }
+  });
+
+  // Agrupar Fornecedores (Contas a Pagar)
+  (pagar||[]).forEach(p => {
+    const dataRef = p.data_pagamento || p.vencimento;
+    if(dataRef && dataRef.startsWith(m)) {
+      if(!days[dataRef]) days[dataRef] = { aVista:0, cartao:0, crediario:0, fornecedores:0, despesas:0 };
+      days[dataRef].fornecedores += parseFloat(p.valor||0);
+    }
+  });
+
+  let totVista = 0, totCartao = 0, totCred = 0, totForn = 0, totDesp = 0;
+  
+  const sortedDays = Object.keys(days).sort();
+  const rows = sortedDays.map(d => {
+    const item = days[d];
+    totVista += item.aVista;
+    totCartao += item.cartao;
+    totCred += item.crediario;
+    totForn += item.fornecedores;
+    totDesp += item.despesas;
+    
+    const rec = item.aVista + item.cartao + item.crediario;
+    const pag = item.fornecedores + item.despesas;
+    const saldo = rec - pag;
+    
+    const dStr = d.split('-').reverse().slice(0,2).join('/'); // DD/MM
+    
+    return `<tr>
+      <td style="text-align:center;">
+        <span style="display:inline-block; background:${dStr === new Date().toISOString().split('T')[0].split('-').reverse().slice(0,2).join('/') ? '#eafaf1' : '#f8f9fa'}; color:${dStr === new Date().toISOString().split('T')[0].split('-').reverse().slice(0,2).join('/') ? '#27ae60' : '#7f8c8d'}; padding:6px 14px; border-radius:6px; font-weight:700; border:1px solid ${dStr === new Date().toISOString().split('T')[0].split('-').reverse().slice(0,2).join('/') ? '#c9ebd6' : '#e1e8ed'}; font-size:12px;">
+          ${dStr}
+        </span>
+      </td>
+      <td style="color:#2ecc71;font-weight:600;text-align:center;">${fmt(item.aVista).replace('R$ ','')}</td>
+      <td style="color:#2ecc71;font-weight:600;text-align:center;">${fmt(item.cartao).replace('R$ ','')}</td>
+      <td style="color:#2ecc71;font-weight:600;text-align:center;">${fmt(item.crediario).replace('R$ ','')}</td>
+      <td style="font-weight:700;color:#27ae60;text-align:center;">${fmt(rec).replace('R$ ','')}</td>
+      <td style="color:#e74c3c;font-weight:600;text-align:center;">${fmt(item.fornecedores).replace('R$ ','')}</td>
+      <td style="color:#e74c3c;font-weight:600;text-align:center;">${fmt(item.despesas).replace('R$ ','')}</td>
+      <td style="font-weight:700;color:#c0392b;text-align:center;">${fmt(pag).replace('R$ ','')}</td>
+      <td style="color:#3498db;font-weight:700;text-align:center;">${fmt(saldo).replace('R$ ','')}</td>
+      <td style="text-align:center;"><i data-lucide="folder" style="color:#e67e22;width:18px;height:18px;cursor:pointer;"></i></td>
+    </tr>`;
+  }).join('');
+
+  const recTotal = totVista + totCartao + totCred;
+  const pagTotal = totForn + totDesp;
+  const saldoFinal = recTotal - pagTotal;
+
+  document.getElementById('topbar-actions').innerHTML = '';
+
+  const filtrosUI = `
+    <div style="display:flex;gap:12px;margin-bottom:24px;">
+      <select style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;outline:none;background:#fff;color:var(--text);font-weight:500;">
+        <option>Mês</option>
+        <option>Dia</option>
+      </select>
+      <select style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;outline:none;background:#fff;color:var(--text);font-weight:500;">
+        <option>${year}</option>
+        <option>${year-1}</option>
+      </select>
+      <select id="sel-mes-f" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;outline:none;background:#fff;color:var(--text);font-weight:500;">
+        <option>Janeiro</option><option>Fevereiro</option><option>Março</option><option>Abril</option><option>Maio</option><option>Junho</option><option>Julho</option><option>Agosto</option><option>Setembro</option><option>Outubro</option><option>Novembro</option><option>Dezembro</option>
+      </select>
+      <select style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;outline:none;background:#fff;color:var(--text);font-weight:500;">
+        <option>Todas as contas correntes</option>
+      </select>
     </div>
-    <div class="dash-grid">
-      <div class="card">
-        <div class="card-header"><h3>Receita por Forma de Pagamento</h3></div>
-        <div class="table-wrap"><table class="data-table">
-          <thead><tr><th>Forma</th><th>Total</th><th>%</th></tr></thead>
-          <tbody>${Object.entries(porPag).map(([k,v])=>`<tr><td style="text-transform:capitalize">${k}</td><td>${fmt(v)}</td><td>${receita?((v/receita)*100).toFixed(1):0}%</td></tr>`).join('')||'<tr><td colspan="3" style="text-align:center;color:var(--text-2)">Sem dados</td></tr>'}</tbody>
-        </table></div>
-      </div>
-      <div class="card">
-        <div class="card-header"><h3>Resumo do Mês</h3></div>
-        <div class="card-body">
-          <div class="info-list">
-            <div class="info-row"><span class="label">Vendas</span><span class="value" style="color:var(--green)">${fmt(receita)}</span></div>
-            <div class="info-row"><span class="label">Despesas</span><span class="value" style="color:var(--red)">${fmt(desp)}</span></div>
-            <div class="info-row"><span class="label">Contas a Pagar</span><span class="value" style="color:var(--red)">${fmt(pag)}</span></div>
-            <div class="info-row"><span class="label" style="font-weight:700">Resultado</span><span class="value" style="font-size:16px;color:${lucro>=0?'var(--green)':'var(--red)'}">${fmt(lucro)}</span></div>
+  `;
+
+  document.getElementById('content').innerHTML = `
+    <div style="font-family:var(--font-sans);padding-bottom:30px;">
+      ${filtrosUI}
+
+      <!-- CARDS COLORIDOS -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:30px;">
+        
+        <!-- CARD RECEBIDO (VERDE) -->
+        <div style="background:#2ecc71;border-radius:8px;padding:20px;color:#fff;box-shadow:0 4px 10px rgba(46,204,113,0.2);">
+          <div style="font-weight:700;font-size:14px;display:flex;align-items:center;gap:6px;margin-bottom:12px;">
+            <i data-lucide="arrow-down" style="width:18px;"></i> Total recebido <i data-lucide="info" style="width:14px;opacity:0.7;"></i>
+          </div>
+          <div style="font-size:28px;font-weight:900;letter-spacing:-1px;margin-bottom:20px;">
+            ${fmt(recTotal)}
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;opacity:0.9;">
+            <div>À vista:<br>${fmt(totVista).replace('R$ ','')}</div>
+            <div>Cartão:<br>${fmt(totCartao).replace('R$ ','')}</div>
+            <div>Crediário:<br>${fmt(totCred).replace('R$ ','')}</div>
           </div>
         </div>
+
+        <!-- CARD PAGO (LARANJA) -->
+        <div style="background:#f39c12;border-radius:8px;padding:20px;color:#fff;box-shadow:0 4px 10px rgba(243,156,18,0.2);">
+          <div style="font-weight:700;font-size:14px;display:flex;align-items:center;gap:6px;margin-bottom:12px;">
+            <i data-lucide="arrow-up" style="width:18px;"></i> Total pago <i data-lucide="info" style="width:14px;opacity:0.7;"></i>
+          </div>
+          <div style="font-size:28px;font-weight:900;letter-spacing:-1px;margin-bottom:20px;">
+            ${fmt(pagTotal)}
+          </div>
+          <div style="display:flex;gap:40px;font-size:12px;font-weight:600;opacity:0.9;">
+            <div>Fornecedores:<br>${fmt(totForn).replace('R$ ','')}</div>
+            <div>Despesas:<br>${fmt(totDesp).replace('R$ ','')}</div>
+          </div>
+        </div>
+
+        <!-- CARD SALDO (AZUL) -->
+        <div style="background:#4facfe;border-radius:8px;padding:20px;color:#fff;box-shadow:0 4px 10px rgba(79,172,254,0.2);">
+          <div style="font-weight:700;font-size:14px;display:flex;align-items:center;gap:6px;margin-bottom:12px;">
+            <i data-lucide="arrow-right-circle" style="width:18px;"></i> Saldo <i data-lucide="info" style="width:14px;opacity:0.7;"></i>
+          </div>
+          <div style="font-size:28px;font-weight:900;letter-spacing:-1px;margin-bottom:20px;">
+            ${fmt(saldoFinal)}
+          </div>
+          <div style="font-size:12px;font-weight:600;opacity:0.9;">
+            ${fmt(recTotal).replace('R$ ','')} - ${fmt(pagTotal).replace('R$ ','')} = ${fmt(saldoFinal).replace('R$ ','')}
+          </div>
+        </div>
+
       </div>
-    </div>`;
+
+      <!-- TABELA -->
+      <div style="background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.02);overflow:hidden;border:1px solid #f1f2f6;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead style="background:#fff;border-bottom:2px solid #f1f2f6;">
+            <tr>
+               <th style="padding:16px;text-align:center;color:var(--text);font-weight:700;">Data</th>
+               <th style="padding:16px;text-align:center;color:#2ecc71;font-weight:700;">À Vista</th>
+               <th style="padding:16px;text-align:center;color:#2ecc71;font-weight:700;">Cartão Crédito</th>
+               <th style="padding:16px;text-align:center;color:#2ecc71;font-weight:700;">Crediário</th>
+               <th style="padding:16px;text-align:center;color:#27ae60;font-weight:800;">Total Recebido</th>
+               <th style="padding:16px;text-align:center;color:#e74c3c;font-weight:700;">Fornecedores</th>
+               <th style="padding:16px;text-align:center;color:#e74c3c;font-weight:700;">Despesas</th>
+               <th style="padding:16px;text-align:center;color:#c0392b;font-weight:800;">Total Pago</th>
+               <th style="padding:16px;text-align:center;color:#3498db;font-weight:800;">Saldo</th>
+               <th style="padding:16px;text-align:center;color:var(--text);font-weight:700;">Ação</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows || `<tr><td colspan="10" style="text-align:center;padding:24px;color:#95a5a6;">Sem movimentações para o período</td></tr>`}
+          </tbody>
+          <tfoot style="background:#fcfcfc;border-top:2px solid #eee;">
+            <tr>
+              <td style="padding:16px;text-align:center;font-weight:800;color:var(--text);">Totais</td>
+              <td style="padding:16px;text-align:center;font-weight:800;color:#2ecc71;">${fmt(totVista).replace('R$ ','')}</td>
+              <td style="padding:16px;text-align:center;font-weight:800;color:#2ecc71;">${fmt(totCartao).replace('R$ ','')}</td>
+              <td style="padding:16px;text-align:center;font-weight:800;color:#2ecc71;">${fmt(totCred).replace('R$ ','')}</td>
+              <td style="padding:16px;text-align:center;font-weight:800;color:#27ae60;">${fmt(recTotal).replace('R$ ','')}</td>
+              <td style="padding:16px;text-align:center;font-weight:800;color:#e74c3c;">${fmt(totForn).replace('R$ ','')}</td>
+              <td style="padding:16px;text-align:center;font-weight:800;color:#e74c3c;">${fmt(totDesp).replace('R$ ','')}</td>
+              <td style="padding:16px;text-align:center;font-weight:800;color:#c0392b;">${fmt(pagTotal).replace('R$ ','')}</td>
+              <td style="padding:16px;text-align:center;font-weight:800;color:#3498db;">${fmt(saldoFinal).replace('R$ ','')}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+    </div>
+  `;
+  try { document.getElementById('sel-mes-f').value = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(month)-1]; } catch(e){}
   lucide.createIcons();
 }
 
