@@ -1,40 +1,159 @@
-﻿// ===== CAIXA =====
+// ===== CAIXA =====
 async function renderCaixa() {
   const {data:caixaAberto}=await sb.from('caixas').select('*').eq('status','aberto').order('created_at',{ascending:false}).limit(1);
   const caixa=caixaAberto?.[0];
   if(!caixa){
     document.getElementById('topbar-actions').innerHTML=`<button class="btn btn-primary" onclick="abrirCaixa()"><i data-lucide="unlock"></i>Abrir Caixa</button>`;
-    document.getElementById('content').innerHTML=`<div class="card"><div class="card-body"><div class="empty-state"><i data-lucide="lock"></i><h3>Caixa fechado</h3><p>Abra o caixa para iniciar as operações do dia</p><button class="btn btn-primary" style="margin-top:12px" onclick="abrirCaixa()">Abrir Caixa</button></div></div></div>`;
+    document.getElementById('content').innerHTML=`<div class="card" style="margin-top:20px"><div class="card-body"><div class="empty-state"><i data-lucide="lock"></i><h3>Caixa fechado</h3><p>Abra o caixa para iniciar as operações do dia</p><button class="btn btn-primary" style="margin-top:12px" onclick="abrirCaixa()">Abrir Caixa</button></div></div></div>`;
     lucide.createIcons();return;
   }
+  
+  // Buscar Vendas referentes ao período do caixa atual
+  const {data:vendasData} = await sb.from('vendas').select('total,forma_pagamento').gte('created_at', caixa.created_at).eq('status','concluida');
+  const vendas = vendasData || [];
+  
+  const {data:movs} = await sb.from('movimentos_caixa').select('*').eq('caixa_id', caixa.id).order('created_at',{ascending:false});
+  const movimentos = movs || [];
+
+  // Cálculos Detalhados
+  const totalVendas = vendas.reduce((sum, v) => sum + parseFloat(v.total||0), 0);
+  const detalhe = { cartao: {qtd:0, val:0}, pix: {qtd:0, val:0}, dinheiro: {qtd:0, val:0}, crediario: {qtd:0, val:0} };
+  vendas.forEach(v => {
+    let fp = v.forma_pagamento || '';
+    let val = parseFloat(v.total||0);
+    if(fp.includes('cartao')) { detalhe.cartao.qtd++; detalhe.cartao.val += val; }
+    else if(fp.includes('pix') || fp.includes('transferencia')) { detalhe.pix.qtd++; detalhe.pix.val += val; }
+    else if(fp.includes('dinheiro')) { detalhe.dinheiro.qtd++; detalhe.dinheiro.val += val; }
+    else { detalhe.crediario.qtd++; detalhe.crediario.val += val; }
+  });
+
+  const suprimentos = movimentos.filter(m=>m.tipo==='suprimento'||m.tipo==='entrada').reduce((sum,m)=>sum+parseFloat(m.valor||0), 0);
+  const sangrias = movimentos.filter(m=>m.tipo==='sangria'||m.tipo==='saida').reduce((sum,m)=>sum+parseFloat(m.valor||0), 0);
+
+  const fundoCaixa = parseFloat(caixa.saldo_inicial||0);
+  const entradasCaixa = detalhe.dinheiro.val + suprimentos;
+  const saidasCaixa = sangrias;
+  const saldoCaixa = fundoCaixa + entradasCaixa - saidasCaixa;
+
   document.getElementById('topbar-actions').innerHTML=`
     <button class="btn btn-secondary" onclick="suprimentoCaixa()"><i data-lucide="plus-circle"></i>Suprimento</button>
     <button class="btn btn-secondary" onclick="sangriaCaixa()"><i data-lucide="minus-circle"></i>Sangria</button>
     <button class="btn btn-danger" onclick="fecharCaixa('${caixa.id}')"><i data-lucide="lock"></i>Fechar Caixa</button>`;
-  const {data:movs}=await sb.from('movimentos_caixa').select('*').eq('caixa_id',caixa.id).order('created_at',{ascending:false});
-  const entradas=(movs||[]).filter(m=>m.tipo==='entrada'||m.tipo==='suprimento').reduce((a,m)=>a+parseFloat(m.valor||0),0);
-  const saidas=(movs||[]).filter(m=>m.tipo==='saida'||m.tipo==='sangria').reduce((a,m)=>a+parseFloat(m.valor||0),0);
-  const saldoAtual=parseFloat(caixa.saldo_inicial||0)+entradas-saidas;
+
+  const cardStyle = `background:#fff;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.03);padding:24px;border:1px solid rgba(0,0,0,0.04);`;
+  const labelStyle = `font-size:13px;font-weight:700;color:#2ecc71;margin-bottom:8px;display:flex;align-items:center;gap:6px;`;
+  const labelRedStyle = `font-size:13px;font-weight:700;color:#e74c3c;margin-bottom:8px;display:flex;align-items:center;gap:6px;`;
+  const labelBlueStyle = `font-size:13px;font-weight:700;color:#3498db;margin-bottom:8px;display:flex;align-items:center;gap:6px;`;
+  const labelPurpleStyle = `font-size:13px;font-weight:700;color:#9b59b6;margin-bottom:8px;display:flex;align-items:center;gap:6px;`;
+  const valStyle = `font-size:26px;font-weight:800;letter-spacing:-0.5px;`;
+  const dataHoje = caixa.created_at.split('T')[0];
 
   document.getElementById('content').innerHTML=`
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-value">${fmt(caixa.saldo_inicial)}</div><div class="stat-label">Saldo Inicial</div></div>
-      <div class="stat-card"><div class="stat-value" style="color:var(--green)">${fmt(entradas)}</div><div class="stat-label">Total Entradas</div></div>
-      <div class="stat-card"><div class="stat-value" style="color:var(--red)">${fmt(saidas)}</div><div class="stat-label">Total Saídas</div></div>
-      <div class="stat-card"><div class="stat-value" style="color:var(--accent)">${fmt(saldoAtual)}</div><div class="stat-label">Saldo Atual</div></div>
-    </div>
-    <div class="card">
-      <div class="card-header"><h3>Movimentações</h3></div>
-      <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>Tipo</th><th>Descrição</th><th>Valor</th><th>Horário</th></tr></thead>
-        <tbody>${(movs||[]).map(m=>`<tr>
-          <td><span class="badge badge-${m.tipo==='entrada'||m.tipo==='suprimento'?'green':'red'}" style="text-transform:capitalize">${m.tipo}</span></td>
-          <td>${m.descricao||'—'}</td>
-          <td><strong style="color:${m.tipo==='entrada'||m.tipo==='suprimento'?'var(--green)':'var(--red)'}">${fmt(m.valor)}</strong></td>
-          <td>${fmtDatetime(m.created_at)}</td>
-        </tr>`).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--text-2)">Nenhuma movimentação</td></tr>'}
-        </tbody>
-      </table></div>
+    <div style="display:flex;flex-direction:column;gap:18px;padding-bottom:30px;">
+      
+      <div style="display:flex; align-items:center; gap:12px; background:#fff; padding:6px 14px; border-radius:8px; width:fit-content; border:1px solid #e1e8ed;">
+        <span style="font-weight:600;font-size:13px;color:var(--text-3)">Caixa dia:</span>
+        <input type="date" value="${dataHoje}" readonly style="border:1px solid #eee; border-radius:4px; padding:4px 8px; outline:none; font-weight:600; color:var(--text); background:#fcfcfc;">
+      </div>
+
+      <!-- ROW 1 -->
+      <div style="display:grid;grid-template-columns:1fr 1.3fr 1fr;gap:18px;">
+        <div style="${cardStyle} display:flex;flex-direction:column;justify-content:center;">
+          <div style="${labelPurpleStyle}">Vendas do dia</div>
+          <div style="display:flex;align-items:center;gap:12px;color:#9b59b6;margin-top:6px;">
+            <i data-lucide="shopping-cart" style="width:34px;height:34px;"></i>
+            <div style="${valStyle}">${fmt(totalVendas)}</div>
+          </div>
+        </div>
+
+        <div style="${cardStyle} padding:20px;">
+          <div style="${labelPurpleStyle} margin-bottom:12px;">Detalhamento do dia</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;background:#f8f9fa;padding:10px 14px;border-radius:6px;border:1px solid #f1f2f6;">
+               <div style="display:flex;align-items:center;gap:8px;color:var(--text);font-weight:600;font-size:13px;"><i data-lucide="credit-card" style="color:#3498db;width:18px;"></i> Cartão</div>
+               <div style="font-weight:700;color:var(--text-2);font-size:13px;">${detalhe.cartao.qtd} — ${fmt(detalhe.cartao.val)}</div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;background:#f8f9fa;padding:10px 14px;border-radius:6px;border:1px solid #f1f2f6;">
+               <div style="display:flex;align-items:center;gap:8px;color:var(--text);font-weight:600;font-size:13px;"><i data-lucide="smartphone" style="color:#2ecc71;width:18px;"></i> Depósito/Pix</div>
+               <div style="font-weight:700;color:var(--text-2);font-size:13px;">${detalhe.pix.qtd} — ${fmt(detalhe.pix.val)}</div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;background:#f8f9fa;padding:10px 14px;border-radius:6px;border:1px solid #f1f2f6;">
+               <div style="display:flex;align-items:center;gap:8px;color:var(--text);font-weight:600;font-size:13px;"><i data-lucide="banknote" style="color:#f1c40f;width:18px;"></i> Dinheiro</div>
+               <div style="font-weight:700;color:var(--text-2);font-size:13px;">${detalhe.dinheiro.qtd} — ${fmt(detalhe.dinheiro.val)}</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="${cardStyle} display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
+           <h3 style="color:#2c3e50;font-size:16px;margin-bottom:16px;">Status do Caixa</h3>
+           <div style="width:70px;height:70px;border-radius:50%;background:#eafaf1;display:flex;align-items:center;justify-content:center;">
+             <i data-lucide="check-circle-2" style="width:40px;height:40px;color:#2ecc71;"></i>
+           </div>
+           <p style="margin-top:14px;font-weight:600;color:var(--text-2);font-size:14px;">Aberto</p>
+        </div>
+      </div>
+
+      <!-- ROW 2 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+        <div style="${cardStyle}">
+          <div style="${labelStyle}">Total recebido (Entradas no caixa)</div>
+          <div style="display:flex;align-items:center;gap:12px;color:#2ecc71;margin-top:6px;">
+            <i data-lucide="arrow-down" style="width:30px;height:30px;"></i>
+            <div style="${valStyle}">${fmt(entradasCaixa)}</div>
+          </div>
+        </div>
+
+        <div style="${cardStyle}">
+          <div style="${labelRedStyle}">Total pago (Saídas de caixa)</div>
+          <div style="display:flex;align-items:center;gap:12px;color:#e74c3c;margin-top:6px;">
+            <i data-lucide="arrow-up" style="width:30px;height:30px;"></i>
+            <div style="${valStyle}">${fmt(saidasCaixa)}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROW 3 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;">
+        <div style="${cardStyle}">
+          <div style="${labelStyle}">Fundo de caixa <i data-lucide="info" style="width:14px;color:#bdc3c7;"></i></div>
+          <div style="display:flex;align-items:center;gap:10px;color:#2ecc71;margin-top:6px;">
+            <i data-lucide="wallet" style="width:24px;height:24px;"></i>
+            <div style="${valStyle}">${fmt(fundoCaixa)}</div>
+          </div>
+        </div>
+
+        <div style="${cardStyle}">
+          <div style="${labelBlueStyle}">Saldo do caixa <i data-lucide="info" style="width:14px;color:#bdc3c7;"></i></div>
+          <div style="display:flex;align-items:center;gap:10px;color:#3498db;margin-top:6px;">
+            <i data-lucide="arrow-right-circle" style="width:24px;height:24px;"></i>
+            <div style="${valStyle}">${fmt(saldoCaixa)}</div>
+          </div>
+        </div>
+
+        <div style="${cardStyle}">
+          <div style="${labelBlueStyle}">Total em dinheiro <i data-lucide="info" style="width:14px;color:#bdc3c7;"></i></div>
+          <div style="display:flex;align-items:center;gap:10px;color:#3498db;margin-top:6px;">
+            <i data-lucide="coins" style="width:24px;height:24px;"></i>
+            <div style="${valStyle}">${fmt(saldoCaixa)}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROW 4: Histórico de Movimentos (Opcional p/ preservar integridade) -->
+      <div class="card" style="margin-top:10px">
+        <div class="card-header"><h3>Movimentações do Caixa</h3></div>
+        <div class="table-wrap"><table class="data-table">
+          <thead><tr><th>Tipo</th><th>Descrição</th><th>Valor</th><th>Horário</th></tr></thead>
+          <tbody>${(movimentos).map(m=>`<tr>
+            <td><span class="badge badge-${m.tipo==='entrada'||m.tipo==='suprimento'?'green':'red'}" style="text-transform:capitalize">${m.tipo}</span></td>
+            <td>${m.descricao||'—'}</td>
+            <td><strong style="color:${m.tipo==='entrada'||m.tipo==='suprimento'?'var(--green)':'var(--red)'}">${fmt(m.valor)}</strong></td>
+            <td>${fmtDatetime(m.created_at)}</td>
+          </tr>`).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--text-2)">Nenhuma movimentação manual</td></tr>'}
+          </tbody>
+        </table></div>
+      </div>
+
     </div>`;
   lucide.createIcons();
 }
