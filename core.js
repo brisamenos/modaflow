@@ -45,6 +45,10 @@ function logout() {
   currentUser = null;
   document.getElementById('app').style.display = 'none';
   document.getElementById('auth-screen').style.display = 'flex';
+  const waFab = document.getElementById('wa-fab');
+  if(waFab) waFab.style.display = 'none';
+  const waWin = document.getElementById('wa-chat-window');
+  if(waWin) waWin.classList.remove('open');
 }
 
 async function checkSession() {
@@ -62,12 +66,11 @@ async function checkSession() {
 function initApp() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
+  const waFab = document.getElementById('wa-fab');
+  if(waFab) waFab.style.display = 'flex';
   const name = currentUser.nome || currentUser.email?.split('@')[0] || 'Gestor';
   document.getElementById('sidebar-user-name').textContent = name;
   document.getElementById('topnav-initial').textContent = name.charAt(0).toUpperCase();
-  // Show WhatsApp FAB
-  const wafab = document.getElementById('wa-fab');
-  if (wafab) wafab.style.display = 'flex';
   lucide.createIcons();
   navigate('dashboard');
   // Fechar dropdowns ao clicar fora

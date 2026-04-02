@@ -109,10 +109,11 @@ function toggleMobileMenu() {
   if (!overlay || !menu) return;
 
   overlay.classList.toggle('open', _mobileMenuOpen);
-  menu.style.display = _mobileMenuOpen ? 'flex' : 'none';
+  menu.style.display = _mobileMenuOpen ? 'block' : 'none';
 
   if (_mobileMenuOpen) {
     lucide.createIcons();
+    // Trap scroll
     document.body.style.overflow = 'hidden';
   } else {
     document.body.style.overflow = '';
