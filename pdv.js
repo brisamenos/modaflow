@@ -567,44 +567,85 @@ function openClientePDVModal() {
     <div class="modal-body" style="display:flex;flex-direction:column;gap:20px;padding-top:10px;">
       <div style="display:flex;border-bottom:2px solid #f1f2f6;">
         <div style="padding:10px 20px;color:#3498db;font-weight:800;border-bottom:2px solid #3498db;margin-bottom:-2px;cursor:pointer;">Cliente</div>
-        <div style="padding:10px 20px;color:#bdc3c7;font-weight:800;cursor:pointer;">Dados Complementares</div>
-        <div style="padding:10px 20px;color:#bdc3c7;font-weight:800;cursor:pointer;">Dados dos Filhos</div>
       </div>
       
       <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:400px;margin:0 auto;">
-         <label style="color:#e74c3c;font-weight:900;font-size:12px;">Celular</label>
-         <input type="text" placeholder="DDD + Numero" style="padding:10px;border:1px solid #bdc3c7;border-radius:4px;outline:none;font-weight:700;">
+         <label style="color:#e74c3c;font-weight:900;font-size:12px;">Celular *</label>
+         <input type="text" id="pdv-add-cli-cel" placeholder="DDD + Numero" style="padding:10px;border:1px solid #bdc3c7;border-radius:4px;outline:none;font-weight:700;">
          
-         <label style="color:#e74c3c;font-weight:900;font-size:12px;margin-top:6px;">Nome Completo</label>
-         <input type="text" id="add-cli-nome" style="padding:10px;border:1px solid #bdc3c7;border-radius:4px;outline:none;font-weight:700;">
+         <label style="color:#e74c3c;font-weight:900;font-size:12px;margin-top:6px;">Nome Completo *</label>
+         <input type="text" id="pdv-add-cli-nome" style="padding:10px;border:1px solid #bdc3c7;border-radius:4px;outline:none;font-weight:700;">
          
          <label style="color:#e74c3c;font-weight:900;font-size:12px;margin-top:6px;">Nome Abreviado</label>
-         <input type="text" style="padding:10px;border:1px solid #bdc3c7;border-radius:4px;outline:none;font-weight:700;">
+         <input type="text" id="pdv-add-cli-abrev" style="padding:10px;border:1px solid #bdc3c7;border-radius:4px;outline:none;font-weight:700;">
          
          <label style="color:#2c3e50;font-weight:900;font-size:12px;margin-top:6px;">Email</label>
-         <input type="email" style="padding:10px;border:1px solid #bdc3c7;border-radius:4px;outline:none;font-weight:700;">
+         <input type="email" id="pdv-add-cli-email" style="padding:10px;border:1px solid #bdc3c7;border-radius:4px;outline:none;font-weight:700;">
          
          <div style="display:flex;gap:20px;margin-top:6px;">
             <div style="display:flex;flex-direction:column;gap:6px;">
               <label style="color:#e74c3c;font-weight:900;font-size:12px;">Sexo</label>
               <div style="display:flex;gap:8px;">
-                <button style="border:1px solid #bdc3c7;background:#fff;padding:8px 12px;border-radius:4px;color:#7f8c8d;font-weight:800;">F</button>
-                <button style="border:1px solid #bdc3c7;background:#fff;padding:8px 12px;border-radius:4px;color:#7f8c8d;font-weight:800;">M</button>
+                <button type="button" onclick="this.style.background='#3498db';this.style.color='#fff';this.nextElementSibling.style.background='#fff';this.nextElementSibling.style.color='#7f8c8d';document.getElementById('pdv-add-cli-sexo').value='F'" style="border:1px solid #bdc3c7;background:#fff;padding:8px 12px;border-radius:4px;color:#7f8c8d;font-weight:800;cursor:pointer;">F</button>
+                <button type="button" onclick="this.style.background='#3498db';this.style.color='#fff';this.previousElementSibling.style.background='#fff';this.previousElementSibling.style.color='#7f8c8d';document.getElementById('pdv-add-cli-sexo').value='M'" style="border:1px solid #bdc3c7;background:#fff;padding:8px 12px;border-radius:4px;color:#7f8c8d;font-weight:800;cursor:pointer;">M</button>
+                <input type="hidden" id="pdv-add-cli-sexo" value="">
               </div>
             </div>
          </div>
          
-         <button onclick="toast('Cliente cadastrado com sucesso!');closeModalDirect();" style="width:100%;background:#3498db;color:#fff;border:none;border-radius:6px;padding:14px;font-weight:900;font-size:14px;cursor:pointer;margin-top:10px;box-shadow:0 3px 6px rgba(52,152,219,0.2);">Cadastrar Cliente</button>
+         <button onclick="salvarClientePDV()" style="width:100%;background:#3498db;color:#fff;border:none;border-radius:6px;padding:14px;font-weight:900;font-size:14px;cursor:pointer;margin-top:10px;box-shadow:0 3px 6px rgba(52,152,219,0.2);">Cadastrar Cliente</button>
       </div>
     </div>
   `, 'modal-md');
   lucide.createIcons();
 }
 
+async function salvarClientePDV() {
+  const celular = document.getElementById('pdv-add-cli-cel')?.value?.trim();
+  const nome = document.getElementById('pdv-add-cli-nome')?.value?.trim();
+  if(!celular) return toast('Celular obrigatório','error');
+  if(!nome) return toast('Nome obrigatório','error');
+  const payload = {
+    nome,
+    nome_abreviado: document.getElementById('pdv-add-cli-abrev')?.value?.trim()||null,
+    celular,
+    email: document.getElementById('pdv-add-cli-email')?.value?.trim()||null,
+    sexo: document.getElementById('pdv-add-cli-sexo')?.value||null,
+    ativo: true
+  };
+  // Verificar se já existe pelo celular
+  const {data:existing} = await sb.from('clientes').select('id,nome').eq('celular',celular).maybeSingle();
+  if(existing) {
+    cartClient = existing.id;
+    selectClientePDV(existing.id, existing.nome, celular);
+    closeModalDirect();
+    toast('Cliente já cadastrado — selecionado automaticamente','info');
+    return;
+  }
+  const {data:nc,error} = await sb.from('clientes').insert(payload).select().single();
+  if(error) return toast('Erro ao salvar: '+error.message,'error');
+  // Atualizar cache de clientes
+  if(window._pdvClientes) window._pdvClientes.push(nc);
+  cartClient = nc.id;
+  selectClientePDV(nc.id, nc.nome_abreviado||nc.nome, nc.celular);
+  closeModalDirect();
+  toast('Cliente cadastrado com sucesso!');
+}
+
 async function handleProdInput() {
   const term = document.getElementById('pdv-prod-input')?.value?.trim() || '';
   if(!term) return openProdutoPDVModal('');
   
+  // 1. Tentar buscar por EAN na tabela produto_grades
+  const {data:eanResults} = await sb.from('produto_grades').select('id,produto_id,tamanho,ean,estoque,preco_venda,cor_descricao,produtos!inner(id,nome,codigo,preco_venda,grade_id,grades(valores))').eq('ean', term);
+  if(eanResults && eanResults.length === 1) {
+    const pg = eanResults[0];
+    const preco = pg.preco_venda || pg.produtos?.preco_venda || 0;
+    addModalItemToCart(pg.produtos.id, pg.produtos.nome, preco, pg.produtos.codigo);
+    return;
+  }
+  
+  // 2. Tentar buscar por codigo do produto
   const {data} = await sb.from('produtos').select('id,codigo,nome,preco_venda,grade_id,grades(valores)').eq('ativo',true).eq('codigo', term);
   if(data && data.length === 1) {
     let vals = data[0].grades?.valores;
@@ -736,13 +777,13 @@ function addModalItemToCart(id, nome, preco, codigo) {
 
 async function loadPDVDropdowns() {
   const [{data:cl},{data:vd}] = await Promise.all([
-    sb.from('clientes').select('id,nome,celular').eq('ativo',true).order('nome'),
+    sb.from('clientes').select('id,nome,nome_abreviado,celular').eq('ativo',true).order('nome'),
     sb.from('vendedores').select('id,nome').eq('ativo',true).order('nome')
   ]);
   window._pdvClientes = cl || [];
   const cs = document.getElementById('pdv-client');
   const vs = document.getElementById('pdv-seller');
-  if(cs)(cl||[]).forEach(c=>cs.add(new Option(c.nome,c.id)));
+  if(cs)(cl||[]).forEach(c=>cs.add(new Option(c.nome_abreviado||c.nome,c.id)));
   if(vs)(vd||[]).forEach(v=>vs.add(new Option(v.nome,v.id)));
 }
 
@@ -823,6 +864,11 @@ async function finalizarVenda() {
   for(const i of cart){
     const {data:pg} = await sb.from('produto_grades').select('estoque').match({produto_id:i.id,tamanho:i.tamanho}).maybeSingle();
     if(pg) await sb.from('produto_grades').update({estoque:Math.max(0,(pg.estoque||0)-i.qty)}).match({produto_id:i.id,tamanho:i.tamanho});
+  }
+
+  // Atualizar ultima_compra do cliente
+  if(cartClient) {
+    try { await sb.from('clientes').update({ultima_compra: new Date().toISOString().split('T')[0]}).eq('id',cartClient); } catch(e) {}
   }
 
   toast(`Venda #${venda.numero_venda} concluída com sucesso!${troco>0?' Troco: '+fmt(troco):''}`, 'success');

@@ -148,7 +148,7 @@ async function executeImportCSV() {
       if(!v) return null;
       let {data}=await sb.from(table).select('id').ilike(field,v).eq('ativo',true).limit(1);
       if(data&&data[0]) return data[0].id;
-      const ins={}; ins[field]=v;
+      const ins={}; ins[field]=v; ins['ativo']=1;
       const {data:nd}=await sb.from(table).insert(ins).select('id').single();
       return nd?.id||null;
     };
@@ -212,7 +212,7 @@ async function executeImportCSV() {
           ncm:(r[iNCM]||'').toString().trim()||null,
           fornecedor_cnpj:(r[iForn]||'').toString().trim()||null,
           categoria_id:cat_id, colecao_id:col_id, fornecedor_id:forn_id,
-          custo, preco_venda:venda, margem_lucro:parseFloat(margem.toFixed(2)),
+          custo, preco_custo:custo, preco_venda:venda, margem_lucro:parseFloat(margem.toFixed(2)),
           genero, ativo:true
         };
 

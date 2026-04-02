@@ -100,7 +100,8 @@ function aplicarMigracoes(tdb) {
   sc(`CREATE TABLE IF NOT EXISTS metas_vendas (id INTEGER PRIMARY KEY AUTOINCREMENT, tipo TEXT DEFAULT 'loja', vendedor_id INTEGER, mes INTEGER, ano INTEGER, valor_meta REAL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
   sc(`CREATE TABLE IF NOT EXISTS bags (id INTEGER PRIMARY KEY AUTOINCREMENT, cliente_id INTEGER, vendedor_id INTEGER, total REAL NOT NULL, data_retorno DATE, status TEXT DEFAULT 'aberta', observacoes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
   sc(`CREATE TABLE IF NOT EXISTS bag_itens (id INTEGER PRIMARY KEY AUTOINCREMENT, bag_id INTEGER, produto_id INTEGER, produto_nome TEXT, tamanho TEXT, quantidade INTEGER NOT NULL, preco_unitario REAL NOT NULL, total REAL NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-  sc(`CREATE TABLE IF NOT EXISTS trocas (id INTEGER PRIMARY KEY AUTOINCREMENT, venda_id INTEGER, cliente_id INTEGER, produto_id INTEGER, produto_nome TEXT, tamanho TEXT, valor REAL, motivo TEXT, status TEXT DEFAULT 'pendente', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS trocas (id INTEGER PRIMARY KEY AUTOINCREMENT, venda_id INTEGER, cliente_id INTEGER, produto_id INTEGER, produto_nome TEXT, tamanho TEXT, valor REAL, motivo TEXT, status TEXT DEFAULT 'pendente', tipo TEXT DEFAULT 'troca', valor_credito REAL DEFAULT 0, data_troca DATE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS fornecedor_marcas (id INTEGER PRIMARY KEY AUTOINCREMENT, fornecedor_id INTEGER, nome TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
   sc(`CREATE TABLE IF NOT EXISTS notas_fiscais (id INTEGER PRIMARY KEY AUTOINCREMENT, numero TEXT, chave TEXT, fornecedor_id INTEGER, valor REAL NOT NULL, data_emissao DATE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
   sc(`CREATE TABLE IF NOT EXISTS duplicatas (id INTEGER PRIMARY KEY AUTOINCREMENT, nota_id INTEGER, valor REAL NOT NULL, vencimento DATE NOT NULL, status TEXT DEFAULT 'pendente', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
   sc(`CREATE TABLE IF NOT EXISTS movimentos_caixa (id INTEGER PRIMARY KEY AUTOINCREMENT, caixa_id INTEGER, tipo TEXT, descricao TEXT, valor REAL NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
@@ -137,21 +138,31 @@ function aplicarMigracoes(tdb) {
   ac('fornecedores','razao_social','TEXT'); ac('fornecedores','nome_fantasia','TEXT');
   ac('fornecedores','cnpj','TEXT'); ac('fornecedores','celular','TEXT');
   ac('fornecedores','cidade','TEXT'); ac('fornecedores','estado','TEXT');
+  ac('fornecedores','observacoes','TEXT'); ac('fornecedores','contato','TEXT');
+  ac('fornecedores','endereco','TEXT'); ac('fornecedores','site','TEXT');
+  ac('fornecedores','ie','TEXT');
   ac('produtos','sku','TEXT'); ac('produtos','marca','TEXT'); ac('produtos','colecao_id','INTEGER');
   ac('produtos','ncm_descricao','TEXT'); ac('produtos','ncm','TEXT'); ac('produtos','genero','TEXT');
   ac('produtos','unidade','TEXT'); ac('produtos','custo','REAL'); ac('produtos','margem_lucro','REAL');
-  ac('produtos','fornecedor_cnpj','TEXT');
+  ac('produtos','fornecedor_cnpj','TEXT'); ac('produtos','preco_custo','REAL'); ac('produtos','preco_venda','REAL');
   ac('produto_grades','ean','TEXT'); ac('produto_grades','cor_hexa','TEXT');
   ac('produto_grades','cor_descricao','TEXT'); ac('produto_grades','custo','REAL');
   ac('produto_grades','preco_venda','REAL'); ac('produto_grades','margem_lucro','REAL');
   ac('vendedores','cpf','TEXT'); ac('vendedores','telefone','TEXT'); ac('vendedores','email','TEXT'); ac('vendedores','meta_mensal','REAL DEFAULT 0');
   ac('categorias','ativo','INTEGER'); ac('colecoes','ativo','INTEGER'); ac('grades','ativo','INTEGER');
+  ac('trocas','tipo','TEXT DEFAULT "troca"'); ac('trocas','valor_credito','REAL DEFAULT 0'); ac('trocas','data_troca','DATE');
+  ac('bags','numero_bag','INTEGER'); ac('bags','observacoes','TEXT');
   ac('classificacoes','visao_contabil','TEXT');
   ac('classificacoes','created_at','TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
   try { tdb.exec(`UPDATE categorias SET ativo=1 WHERE ativo IS NULL`); } catch(e){}
   try { tdb.exec(`UPDATE colecoes SET ativo=1 WHERE ativo IS NULL`); } catch(e){}
   try { tdb.exec(`UPDATE grades SET ativo=1 WHERE ativo IS NULL`); } catch(e){}
   try { tdb.exec(`UPDATE fornecedores SET razao_social=nome WHERE (razao_social IS NULL OR razao_social='') AND nome IS NOT NULL`); } catch(e){}
+  // Sincronizar preco_custo com custo quando preco_custo estiver vazio
+  try { tdb.exec(`UPDATE produtos SET preco_custo=custo WHERE (preco_custo IS NULL OR preco_custo=0) AND custo IS NOT NULL AND custo>0`); } catch(e){}
+  try { tdb.exec(`UPDATE produtos SET preco_venda=0 WHERE preco_venda IS NULL`); } catch(e){}
+  // Auto-numerar bags existentes sem numero_bag
+  try { tdb.exec(`UPDATE bags SET numero_bag=id WHERE numero_bag IS NULL`); } catch(e){}
 }
 
 // =============================================
@@ -524,6 +535,13 @@ app.post('/api/:table', resolveDb, (req, res) => {
         const row = db.prepare(`SELECT COALESCE(MAX(numero_venda),0) as mx FROM "vendas"`).get();
         let n = (row?row.mx:0)+1;
         for (const item of items) { if (!item.numero_venda) item.numero_venda=n++; }
+      } catch(e) {}
+    }
+    if (table==='bags') {
+      try {
+        const row = db.prepare(`SELECT COALESCE(MAX(numero_bag),0) as mx FROM "bags"`).get();
+        let n = (row?row.mx:0)+1;
+        for (const item of items) { if (!item.numero_bag) item.numero_bag=n++; }
       } catch(e) {}
     }
     if (table==='fornecedores') {

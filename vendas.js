@@ -1,4 +1,4 @@
-﻿// ===== RELAÇÃO DE VENDAS =====
+// ===== RELAÇÃO DE VENDAS =====
 async function renderRelacaoVendas() {
   const now = new Date();
   const ini = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
@@ -119,7 +119,7 @@ async function renderConsultaVendas() {
   const {data:trocasD}=await sb.from('trocas').select('*,clientes(nome)').order('created_at',{ascending:false}).limit(20);
   document.getElementById('cv-trocas').innerHTML=`<div class="card"><div class="table-wrap"><table class="data-table">
     <thead><tr><th>Data</th><th>Cliente</th><th>Tipo</th><th>Crédito</th><th>Status</th></tr></thead>
-    <tbody>${(trocasD||[]).map(t=>`<tr><td>${fmtDate(t.created_at?.split('T')[0])}</td><td>${t.clientes?.nome||'—'}</td><td style="text-transform:capitalize">${t.tipo}</td><td>${fmt(t.valor_credito)}</td><td>${badgeStatus(t.status)}</td></tr>`).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--text-2)">Nenhuma troca</td></tr>'}</tbody>
+    <tbody>${(trocasD||[]).map(t=>`<tr><td>${fmtDate((t.data_troca||t.created_at)?.split('T')[0])}</td><td>${t.clientes?.nome||'—'}</td><td style="text-transform:capitalize">${t.tipo||'troca'}</td><td>${fmt(t.valor_credito||t.valor||0)}</td><td>${badgeStatus(t.status)}</td></tr>`).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--text-2)">Nenhuma troca</td></tr>'}</tbody>
   </table></div></div>`;
 
   const {data:excl}=await sb.from('vendas').select('*,clientes(nome)').eq('status','cancelada').order('created_at',{ascending:false}).limit(30);
@@ -149,7 +149,7 @@ async function renderBAG() {
       <div class="table-wrap"><table class="data-table">
         <thead><tr><th>#BAG</th><th>Cliente</th><th>Vendedor</th><th>Data Retorno</th><th>Total</th><th>Status</th><th>Ações</th></tr></thead>
         <tbody>${(data||[]).map(b=>`<tr>
-          <td><strong>#${b.numero_bag}</strong></td>
+          <td><strong>#${b.numero_bag||b.id}</strong></td>
           <td>${b.clientes?.nome||'—'}</td>
           <td>${b.vendedores?.nome||'—'}</td>
           <td>${fmtDate(b.data_retorno)}</td>
@@ -241,7 +241,7 @@ async function verBAG(id) {
     sb.from('bag_itens').select('*').eq('bag_id',id)
   ]);
   openModal(`
-    <div class="modal-header"><h3>BAG #${b?.numero_bag}</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
+    <div class="modal-header"><h3>BAG #${b?.numero_bag||b?.id}</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
     <div class="modal-body">
       <div class="form-row" style="margin-bottom:16px">
         <div><strong>Cliente:</strong> ${b?.clientes?.nome||'—'}</div>
@@ -266,11 +266,11 @@ async function renderTrocas() {
       <div class="table-wrap"><table class="data-table">
         <thead><tr><th>Data</th><th>Cliente</th><th>Tipo</th><th>Motivo</th><th>Crédito</th><th>Status</th><th>Ações</th></tr></thead>
         <tbody>${(data||[]).map(t=>`<tr>
-          <td>${fmtDate(t.data_troca?.split('T')[0])}</td>
+          <td>${fmtDate((t.data_troca||t.created_at)?.split('T')[0])}</td>
           <td>${t.clientes?.nome||'—'}</td>
-          <td><span class="badge badge-${t.tipo==='troca'?'blue':'yellow'}" style="text-transform:capitalize">${t.tipo}</span></td>
+          <td><span class="badge badge-${t.tipo==='troca'?'blue':'yellow'}" style="text-transform:capitalize">${t.tipo||'troca'}</span></td>
           <td>${t.motivo||'—'}</td>
-          <td>${fmt(t.valor_credito)}</td>
+          <td>${fmt(t.valor_credito||t.valor||0)}</td>
           <td>${badgeStatus(t.status)}</td>
           <td><button class="btn btn-sm btn-success" onclick="concluirTroca('${t.id}')"><i data-lucide="check"></i></button></td>
         </tr>`).join('')||'<tr><td colspan="7" style="text-align:center;color:var(--text-2)">Nenhuma troca/devolução</td></tr>'}
@@ -299,8 +299,16 @@ async function openTrocaModal() {
 }
 
 async function saveTroca() {
-  const payload={cliente_id:document.getElementById('tr-cli').value||null,tipo:document.getElementById('tr-tipo').value,motivo:document.getElementById('tr-motivo').value,valor_credito:parseFloat(document.getElementById('tr-cred').value||0)};
-  await sb.from('trocas').insert(payload);
+  const payload={
+    cliente_id:document.getElementById('tr-cli').value||null,
+    tipo:document.getElementById('tr-tipo').value,
+    motivo:document.getElementById('tr-motivo').value,
+    valor_credito:parseFloat(document.getElementById('tr-cred').value||0),
+    valor:parseFloat(document.getElementById('tr-cred').value||0),
+    data_troca:new Date().toISOString().split('T')[0]
+  };
+  const {error} = await sb.from('trocas').insert(payload);
+  if(error) return toast('Erro ao registrar troca: '+error.message,'error');
   closeModalDirect();toast('Troca registrada');renderTrocas();
 }
 
