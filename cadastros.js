@@ -2312,6 +2312,7 @@ async function salvarFornecedor(id) {
   if(!nome) return toast('Nome obrigatório','error');
   const payload = {
     razao_social: nome,
+    nome:         nome,
     email:        document.getElementById('fn-email')?.value||null,
     telefone:     document.getElementById('fn-telefone')?.value||null,
     observacoes:  document.getElementById('fn-obs')?.value||null,
@@ -2323,7 +2324,8 @@ async function salvarFornecedor(id) {
     cidade:       document.getElementById('fn-cidade')?.value||null,
     estado:       document.getElementById('fn-uf')?.value||null,
     celular:      document.getElementById('fn-celular')?.value||null,
-    site:         document.getElementById('fn-site')?.value||null
+    site:         document.getElementById('fn-site')?.value||null,
+    ativo:        1
   };
   let savedId = id;
   if(id) {
