@@ -146,7 +146,7 @@ function navigate(page) {
     metas:renderMetas,'painel-vendas':renderPainelVendas,comissoes:renderComissoes,
     'notas-fiscais':renderNotasFiscais,duplicatas:renderDuplicatas,
     'gestao-estoque':renderGestaoEstoque,'parametros-estoque':renderParametrosEstoque,'conferencia-estoque':renderConferenciaEstoque,'visao-geral-estoque':renderVisaoGeralEstoque,'visao-detalhada-estoque':renderVisaoDetalhadaEstoque,'giro-estoque':renderGiroEstoque,'curva-abc':renderCurvaABC,'transferencia-lojas':renderTransferenciaLojas,bag:renderBAG,'importar-csv':renderImportarCSV,'cadastrar-produto':renderCadastrarProduto,'cadastrar-fornecedor':renderCadastrarFornecedor,
-    caixa:renderCaixa,'painel-financeiro':renderPainelFinanceiro,
+    caixa:renderCaixa,'painel-financeiro':renderPainelFinanceiro,'caixa-mensal':renderCaixaMensal,
     despesas:renderDespesas,'contas-pagar':renderContasPagar,
     'contas-bancarias':renderContasBancarias,dre:renderDRE,
     'fluxo-caixa':renderFluxoCaixa,trocas:renderTrocas
