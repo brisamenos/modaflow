@@ -1170,7 +1170,7 @@ async function buscarListaProdutos() {
   const gen    = document.getElementById('lp-gen')?.value||'';
 
   let q = sb.from('produto_grades')
-    .select('id,tamanho,ean,estoque,custo,preco_venda,cor_descricao,cor_hexa,produto_id,produtos!inner(id,nome,codigo,sku,marca,ncm,genero,ativo,created_at,fornecedor_id,categoria_id,grade_id,categorias(nome),fornecedores(razao_social),grades(nome))')
+    .select('id,tamanho,ean,estoque,custo,preco_venda,cor_descricao,cor_hexa,produto_id,produtos!inner(id,nome,codigo,sku,marca,ncm,genero,ativo,created_at,fornecedor_id,categoria_id,grade_id,categorias(nome),grades(nome))')
     .eq('produtos.ativo', true)
     .order('produto_id');
 
@@ -1457,7 +1457,7 @@ async function carregarTabelaProdutos(filtros) {
 
   // Buscar variantes (produto_grades) com join de produtos
   let q = sb.from('produto_grades')
-    .select('id,tamanho,ean,cor_hexa,cor_descricao,estoque,custo,preco_venda,margem_lucro,produto_id,produtos!inner(id,nome,sku,codigo,marca,categoria_id,fornecedor_id,grade_id,genero,ativo,categorias(nome),fornecedores(razao_social),grades(id,nome))')
+    .select('id,tamanho,ean,cor_hexa,cor_descricao,estoque,custo,preco_venda,margem_lucro,produto_id,produtos!inner(id,nome,sku,codigo,marca,categoria_id,fornecedor_id,grade_id,genero,ativo,categorias(nome),grades(id,nome))')
     .eq('produtos.ativo', true)
     .order('produto_id');
 

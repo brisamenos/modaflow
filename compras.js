@@ -622,8 +622,9 @@ async function abrirNovaConferencia() {
 }
 
 async function exibirConferencia(conf) {
+  const fornMap = await getFornMap();
   const {data:itens} = await sb.from('conferencia_itens')
-    .select('*,produto_grades(tamanho,cor_hexa,cor_descricao,produtos(nome,preco_venda,fornecedores(razao_social)))')
+    .select('*,produto_grades(tamanho,cor_hexa,cor_descricao,produtos(nome,fornecedor_id,preco_venda))')
     .eq('conferencia_id', conf.id)
     .order('created_at',{ascending:false});
 
@@ -708,6 +709,7 @@ async function exibirConferencia(conf) {
   </div>`;
 
   document.getElementById('content').innerHTML = html;
+  window._confFornMap = fornMap; // disponibilizar para renderConferenciaItens
   setTimeout(()=>{
     lucide.createIcons();
     const inp = document.getElementById('conf-ean-input');
@@ -734,7 +736,7 @@ function renderConferenciaItens(itens) {
       const prod = pg?.produtos;
       const corHex = pg?.cor_hexa;
       const corDesc = pg?.cor_descricao||'—';
-      const marca = prod?.fornecedores?.razao_social || 'Fornecedor padrão';
+      const marca = (window._confFornMap||{})[prod?.fornecedor_id]?.razao_social || 'Fornecedor padrão';
       const dt = new Date(i.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
       const corDot = corHex
         ? `<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${corHex};border:1px solid rgba(0,0,0,.15);vertical-align:-3px;margin-right:5px;flex-shrink:0"></span>`
@@ -768,7 +770,7 @@ async function lerEANConferencia() {
 
   // Buscar produto_grade pelo EAN
   const {data:pg} = await sb.from('produto_grades')
-    .select('id,tamanho,ean,cor_hexa,cor_descricao,produtos(id,nome,preco_venda,fornecedores(razao_social))')
+    .select('id,tamanho,ean,cor_hexa,cor_descricao,produtos(id,nome,fornecedor_id,preco_venda)')
     .eq('ean', ean).maybeSingle();
 
   if(!pg) {
@@ -807,8 +809,10 @@ async function lerEANConferencia() {
 }
 
 async function recarregarItensConferencia() {
+  const fornMap = await getFornMap();
+  window._confFornMap = fornMap;
   const {data:itens} = await sb.from('conferencia_itens')
-    .select('*,produto_grades(tamanho,cor_hexa,cor_descricao,produtos(nome,preco_venda,fornecedores(razao_social)))')
+    .select('*,produto_grades(tamanho,cor_hexa,cor_descricao,produtos(nome,fornecedor_id,preco_venda))')
     .eq('conferencia_id',_confAtual.id)
     .order('created_at',{ascending:false});
 

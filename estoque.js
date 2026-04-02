@@ -160,12 +160,19 @@ async function executeImportCSV() {
       const k=cnpj.toString().trim();
       if(!k)return null;
       if(fornCache[k])return fornCache[k];
-      let {data}=await sb.from('fornecedores').select('id').eq('cnpj',k).eq('ativo',true).limit(1);
+      // busca por CNPJ exato (campo cnpj)
+      let {data}=await sb.from('fornecedores').select('id').eq('cnpj',k).limit(1);
       if(data&&data[0]){fornCache[k]=data[0].id;return data[0].id;}
-      // tenta pelo nome (quando CNPJ Fornecedor à nome em vez de CNPJ numérico)
-      let {data:d2}=await sb.from('fornecedores').select('id').ilike('razao_social',k).eq('ativo',true).limit(1);
+      // busca por nome/razao_social (quando a coluna tem nome em vez de CNPJ)
+      let {data:d2}=await sb.from('fornecedores').select('id').ilike('razao_social',k).limit(1);
       if(d2&&d2[0]){fornCache[k]=d2[0].id;return d2[0].id;}
-      const {data:nd}=await sb.from('fornecedores').insert({razao_social:k,cnpj:k.replace(/\D/g,'').length>=11?k:null}).select('id').single();
+      // cria novo fornecedor com ativo=1
+      const isCNPJ = k.replace(/\D/g,'').length>=11;
+      const {data:nd}=await sb.from('fornecedores').insert({
+        razao_social: k,
+        cnpj: isCNPJ ? k : null,
+        ativo: 1
+      }).select('id').single();
       const id=nd?.id||null; fornCache[k]=id; return id;
     };
 
@@ -359,9 +366,12 @@ async function carregarDadosVGE(tab) {
   if(!body) return;
   body.innerHTML = '<div class="loading" style="padding:32px;text-align:center">Carregando...</div>';
 
+  // Pré-carregar fornecedores (backend não suporta join aninhado produto_grades→produtos→fornecedores)
+  const fornMap = await getFornMap();
+
   // Buscar dados de produto_grades com joins
   const {data:grades} = await sb.from('produto_grades')
-    .select('estoque,custo,preco_venda,produto_id,produtos!inner(nome,ativo,custo,preco_venda,fornecedor_id,colecao_id,grade_id,categoria_id,fornecedores(cnpj,razao_social),colecoes(nome),grades(nome),categorias(nome))')
+    .select('estoque,custo,preco_venda,produto_id,produtos!inner(nome,ativo,custo,preco_venda,fornecedor_id,colecao_id,grade_id,categoria_id,colecoes(nome),grades(nome),categorias(nome))')
     .eq('produtos.ativo',true);
 
   if(!grades||!grades.length) {
@@ -375,8 +385,8 @@ async function carregarDadosVGE(tab) {
 
   if(tab==='fornecedores') {
     keyFn = g => g.produtos?.fornecedor_id||'sem-forn';
-    labelFn = g => g.produtos?.fornecedores?.razao_social||'Fornecedor padrão';
-    cnpjFn  = g => g.produtos?.fornecedores?.cnpj||'';
+    labelFn = g => fornMap[g.produtos?.fornecedor_id]?.razao_social||'Fornecedor padrão';
+    cnpjFn  = g => fornMap[g.produtos?.fornecedor_id]?.cnpj||'';
   } else if(tab==='colecao') {
     keyFn = g => g.produtos?.colecao_id||'sem-col';
     labelFn = g => g.produtos?.colecoes?.nome||'Sem coleção';
@@ -550,9 +560,12 @@ async function carregarVisaoDetalhada(tab) {
   if(!body) return;
   body.innerHTML = '<div class="loading" style="padding:32px;text-align:center">Carregando...</div>';
 
+  // Pré-carregar fornecedores (backend não suporta join aninhado)
+  const fornMap = await getFornMap();
+
   // Buscar produto_grades com todos os joins necessários
   const {data:grades} = await sb.from('produto_grades')
-    .select('estoque,preco_venda,custo,tamanho,produto_id,produtos!inner(nome,ativo,preco_venda,custo,genero,fornecedor_id,colecao_id,grade_id,categoria_id,fornecedores(cnpj,razao_social),colecoes(nome),grades(nome),categorias(nome))')
+    .select('estoque,preco_venda,custo,tamanho,produto_id,produtos!inner(nome,ativo,preco_venda,custo,genero,fornecedor_id,colecao_id,grade_id,categoria_id,colecoes(nome),grades(nome),categorias(nome))')
     .eq('produtos.ativo', true);
 
   if(!grades||!grades.length) {
@@ -582,16 +595,16 @@ async function carregarVisaoDetalhada(tab) {
       gLabel = p?.colecoes?.nome||'Sem coleção';
       gCnpj  = '';
       sKey   = p?.fornecedor_id||'sem-forn';
-      sLabel = p?.fornecedores?.razao_social||'Fornecedor padrão';
-      sCnpj  = p?.fornecedores?.cnpj||'';
+      sLabel = fornMap[p?.fornecedor_id]?.razao_social||'Fornecedor padrão';
+      sCnpj  = fornMap[p?.fornecedor_id]?.cnpj||'';
     } else if(tab==='grade-forn') {
       // Agrupado por Grade, sub por Fornecedor
       gKey   = p?.grade_id||'sem-grade';
       gLabel = p?.grades?.nome||'Sem grade';
       gCnpj  = '';
       sKey   = p?.fornecedor_id||'sem-forn';
-      sLabel = p?.fornecedores?.razao_social||'Fornecedor padrão';
-      sCnpj  = p?.fornecedores?.cnpj||'';
+      sLabel = fornMap[p?.fornecedor_id]?.razao_social||'Fornecedor padrão';
+      sCnpj  = fornMap[p?.fornecedor_id]?.cnpj||'';
     } else if(tab==='col-grade') {
       // Agrupado por Coleção, sub por Grade
       gKey   = p?.colecao_id||'sem-col';
@@ -792,9 +805,12 @@ async function carregarGiro() {
     fim = `${ano}-${String(mes).padStart(2,'0')}-${lastDay}`;
   }
 
+  // Pré-carregar fornecedores (backend não suporta join aninhado)
+  const fornMap = await getFornMap();
+
   // Buscar vendas do período com joins
   const {data:itens} = await sb.from('venda_itens')
-    .select('quantidade,total,preco_unitario,produto_id,produtos!inner(nome,custo,preco_venda,fornecedor_id,categoria_id,genero,fornecedores(razao_social),categorias(nome))')
+    .select('quantidade,total,preco_unitario,produto_id,produtos!inner(nome,custo,preco_venda,fornecedor_id,categoria_id,genero,categorias(nome))')
     .gte('created_at', ini)
     .lte('created_at', fim+'T23:59:59');
 
@@ -812,7 +828,7 @@ async function carregarGiro() {
     let key, label;
     if(_giroTab==='fornecedores') {
       key = p.fornecedor_id||'sem-forn';
-      label = p.fornecedores?.razao_social||'Fornecedor padrão';
+      label = fornMap[p.fornecedor_id]?.razao_social||'Fornecedor padrão';
     } else if(_giroTab==='categoria') {
       key = p.categoria_id||'sem-cat';
       label = p.categorias?.nome||'Sem categoria';
@@ -889,24 +905,26 @@ async function gerarPlanilhaGiro(tipo) {
   const fim = `${ano}-${String(mes).padStart(2,'0')}-${lastDay}`;
 
   if(tipo==='estoque') {
+    const fornMapPlan = await getFornMap();
     const {data:grades} = await sb.from('produto_grades')
-      .select('tamanho,ean,estoque,cor_descricao,produtos(nome,codigo,preco_venda,custo,fornecedores(razao_social))')
+      .select('tamanho,ean,estoque,cor_descricao,produtos(nome,codigo,preco_venda,custo,fornecedor_id)')
       .eq('produtos.ativo',true);
 
     const rows = (grades||[]).map(g=>
-      `${g.produtos?.codigo||''};${g.produtos?.nome||''};${g.tamanho||''};${g.cor_descricao||''};${g.ean||''};${g.estoque||0};${g.produtos?.custo||0};${g.produtos?.preco_venda||0};${g.produtos?.fornecedores?.razao_social||''}`
+      `${g.produtos?.codigo||''};${g.produtos?.nome||''};${g.tamanho||''};${g.cor_descricao||''};${g.ean||''};${g.estoque||0};${g.produtos?.custo||0};${g.produtos?.preco_venda||0};${fornMapPlan[g.produtos?.fornecedor_id]?.razao_social||''}`
     ).join('\n');
     const csv = `Codigo;Produto;Tamanho;Cor;EAN;Estoque;Custo;Preco Venda;Fornecedor\n${rows}`;
     const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
     const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`planilha_estoque_${ano}_${mes}.csv`; a.click();
     toast('Planilha de estoque gerada');
   } else {
+    const fornMapInv = await getFornMap();
     const {data:itens} = await sb.from('venda_itens')
-      .select('produto_nome,tamanho,quantidade,preco_unitario,total,produtos(codigo,custo,fornecedores(razao_social))')
+      .select('produto_nome,tamanho,quantidade,preco_unitario,total,produtos(codigo,custo,fornecedor_id)')
       .gte('created_at',ini).lte('created_at',fim+'T23:59:59');
 
     const rows = (itens||[]).map(i=>
-      `${i.produtos?.codigo||''};${i.produto_nome||''};${i.tamanho||''};${i.quantidade||0};${i.preco_unitario||0};${i.total||0};${i.produtos?.custo||0};${i.produtos?.fornecedores?.razao_social||''}`
+      `${i.produtos?.codigo||''};${i.produto_nome||''};${i.tamanho||''};${i.quantidade||0};${i.preco_unitario||0};${i.total||0};${i.produtos?.custo||0};${fornMapInv[i.produtos?.fornecedor_id]?.razao_social||''}`
     ).join('\n');
     const csv = `Codigo;Produto;Tamanho;Qtde;Preco Unit;Total Venda;Custo;Fornecedor\n${rows}`;
     const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
@@ -1005,8 +1023,10 @@ async function carregarCurvaABC() {
 
   const {ini, fim} = calcDateRange(_abcSel, _abcAno, _abcMes);
 
+  const fornMap = await getFornMap();
+
   const {data:itens} = await sb.from('venda_itens')
-    .select('quantidade,total,preco_unitario,produto_id,produtos!inner(nome,custo,preco_venda,fornecedor_id,categoria_id,fornecedores(razao_social),categorias(nome))')
+    .select('quantidade,total,preco_unitario,produto_id,produtos!inner(nome,custo,preco_venda,fornecedor_id,categoria_id,categorias(nome))')
     .gte('created_at', ini).lte('created_at', fim+'T23:59:59');
 
   if(!itens||!itens.length) {
@@ -1023,7 +1043,7 @@ async function carregarCurvaABC() {
     let key, label;
     if(_abcTab==='fornecedores') {
       key = p.fornecedor_id||'sem-forn';
-      label = p.fornecedores?.razao_social||'Fornecedor padrão';
+      label = fornMap[p.fornecedor_id]?.razao_social||'Fornecedor padrão';
     } else {
       key = p.categoria_id||'sem-cat';
       label = p.categorias?.nome||'Sem categoria';
@@ -1109,8 +1129,10 @@ async function carregarCurvaABCDetalhada() {
 
   const {ini, fim} = calcDateRange(_abcSel, _abcAno, _abcMes);
 
+  const fornMap = await getFornMap();
+
   const {data:itens} = await sb.from('venda_itens')
-    .select('quantidade,total,produto_id,produto_nome,produtos!inner(nome,custo,preco_venda,fornecedor_id,categoria_id,fornecedores(razao_social),categorias(nome))')
+    .select('quantidade,total,produto_id,produto_nome,produtos!inner(nome,custo,preco_venda,fornecedor_id,categoria_id,categorias(nome))')
     .gte('created_at', ini).lte('created_at', fim+'T23:59:59');
 
   if(!itens||!itens.length) {
@@ -1126,7 +1148,7 @@ async function carregarCurvaABCDetalhada() {
     if(!map[key]) {
       map[key] = {
         nome: p.nome||item.produto_nome,
-        forn: p.fornecedores?.razao_social||'Fornecedor padrão',
+        forn: fornMap[p.fornecedor_id]?.razao_social||'Fornecedor padrão',
         cat: p.categorias?.nome||'—',
         qtde:0, custo:0, venda:0
       };

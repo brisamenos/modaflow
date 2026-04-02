@@ -204,3 +204,17 @@ class SupabaseAdapter {
 }
 
 window.sb = new SupabaseAdapter('/api');
+
+// ===== GLOBAL HELPER: mapa de fornecedores (resolve joins aninhados) =====
+// O backend suporta apenas 1 nível de join. Para produto_grades→produtos→fornecedores
+// usamos este cache que é compartilhado entre todos os módulos.
+let _fornCache = null;
+async function getFornMap() {
+  if(_fornCache) return _fornCache;
+  const {data} = await sb.from('fornecedores').select('id,razao_social,cnpj').eq('ativo',1);
+  const m = {};
+  (data||[]).forEach(f => { m[f.id] = f; });
+  _fornCache = m;
+  setTimeout(()=>{ _fornCache = null; }, 60000);
+  return m;
+}
