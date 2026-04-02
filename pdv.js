@@ -70,6 +70,11 @@ async function renderPDV() {
       <button onclick="switchPdvTab('recebimento')" style="background:#2ecc71;color:#fff;border:none;padding:14px 10px;border-radius:6px;font-weight:900;font-size:13px;cursor:pointer;display:flex;justify-content:center;align-items:center;width:100%;">Efetuar Recebimento</button>
       <button onclick="finalizarVenda()" style="background:#3498db;color:#fff;border:none;padding:14px 10px;border-radius:6px;font-weight:900;font-size:13px;cursor:pointer;display:flex;justify-content:center;align-items:center;width:100%;">Concluir Venda</button>
       <button onclick="toast('Módulo Troca em desenvolvimento')" style="background:#95a5a6;color:#fff;border:none;padding:14px 10px;border-radius:6px;font-weight:800;font-size:13px;cursor:pointer;display:flex;justify-content:center;align-items:center;width:100%;">Troca</button>
+      <div style="border-top:1px solid rgba(255,255,255,0.15);padding-top:8px;margin-top:4px;">
+        <button onclick="fecharCaixaPDV()" style="background:#c0392b;color:#fff;border:none;padding:14px 10px;border-radius:6px;font-weight:800;font-size:12px;cursor:pointer;display:flex;justify-content:center;align-items:center;gap:6px;width:100%;">
+          <i data-lucide="lock" style="width:15px;height:15px;"></i>Fechar Caixa
+        </button>
+      </div>
     </div>
 
     <!-- Main Content Area -->
@@ -297,19 +302,32 @@ async function renderPDV() {
   renderCart();
 }
 
-function confirmarFundoPDV() {
+async function confirmarFundoPDV() {
   const v = document.getElementById('pdv-fundo-inicial').value;
   if(!v) return toast('Informe o fundo de caixa para continuar', 'error');
   pdvCaixaAberto = true;
   pdvFundoValor = parseFloat(v) || 0;
-  
+
+  // Salvar o caixa no banco de dados
   try {
+    const {data:cx} = await sb.from('caixas').insert({
+      saldo_inicial: pdvFundoValor,
+      status: 'aberto'
+    }).select().single();
+    if(cx) {
+      localStorage.setItem('storeos_fundo_caixa', JSON.stringify({
+        data: new Date().toLocaleDateString('pt-BR'),
+        valor: pdvFundoValor,
+        caixa_id: cx.id
+      }));
+    }
+  } catch(e) {
     localStorage.setItem('storeos_fundo_caixa', JSON.stringify({
       data: new Date().toLocaleDateString('pt-BR'),
       valor: pdvFundoValor
     }));
-  } catch(e) {}
-  
+  }
+
   toast('O Fundo de Caixa foi cadastrado corretamente! Obrigado.');
   renderPDV();
 }
@@ -877,4 +895,181 @@ async function finalizarVenda() {
   cartClient = null;
   cartSeller = null;
   renderCart();
+}
+
+// ===== FECHAR / ABRIR CAIXA NO PDV =====
+async function fecharCaixaPDV() {
+  // Buscar dados do caixa atual
+  let caixaId = null;
+  try {
+    const stored = JSON.parse(localStorage.getItem('storeos_fundo_caixa') || '{}');
+    caixaId = stored.caixa_id || null;
+  } catch(e) {}
+
+  // Buscar o caixa aberto no banco
+  const {data:cxArr} = await sb.from('caixas').select('*').eq('status','aberto').order('created_at',{ascending:false}).limit(1);
+  const cx = cxArr?.[0];
+  if(!cx && !caixaId) {
+    // Não há caixa no banco — fechar apenas o fundo local
+    if(!confirm('Fechar o caixa do PDV?\n\nIsso encerrará a sessão atual.')) return;
+    pdvCaixaAberto = false;
+    pdvFundoValor = 0;
+    localStorage.removeItem('storeos_fundo_caixa');
+    toast('Caixa fechado!');
+    renderPDV();
+    return;
+  }
+
+  const cxFinal = cx || { id: caixaId, saldo_inicial: pdvFundoValor, created_at: new Date().toISOString() };
+
+  // Buscar vendas deste caixa
+  const {data:vendas} = await sb.from('vendas')
+    .select('total,forma_pagamento')
+    .gte('created_at', cxFinal.created_at)
+    .eq('status','concluida');
+
+  const detalhe = { dinheiro:0, pix:0, cartao:0, crediario:0 };
+  let totalVendas = 0;
+  (vendas||[]).forEach(v => {
+    const val = parseFloat(v.total||0);
+    totalVendas += val;
+    const fp = (v.forma_pagamento||'').toLowerCase();
+    if(fp.includes('dinheiro')) detalhe.dinheiro += val;
+    else if(fp.includes('pix') || fp.includes('transfer')) detalhe.pix += val;
+    else if(fp.includes('cart')) detalhe.cartao += val;
+    else detalhe.crediario += val;
+  });
+
+  // Buscar movimentos
+  const {data:movs} = await sb.from('movimentos_caixa').select('*').eq('caixa_id', cxFinal.id);
+  const suprimentos = (movs||[]).filter(m=>m.tipo==='suprimento'||m.tipo==='entrada').reduce((a,m)=>a+parseFloat(m.valor||0),0);
+  const sangrias    = (movs||[]).filter(m=>m.tipo==='sangria'||m.tipo==='saida').reduce((a,m)=>a+parseFloat(m.valor||0),0);
+
+  const fundo       = parseFloat(cxFinal.saldo_inicial||0);
+  const saldoFisico = fundo + detalhe.dinheiro + suprimentos - sangrias;
+  const abertura    = new Date(cxFinal.created_at).toLocaleString('pt-BR');
+  const agora       = new Date().toLocaleString('pt-BR');
+
+  const fmt2 = n => 'R$ ' + parseFloat(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  openModal(`
+    <div class="modal-header" style="background:#c0392b;padding:20px 24px;border-radius:8px 8px 0 0;">
+      <h3 style="color:#fff;font-weight:900;font-size:18px;margin:0;display:flex;align-items:center;gap:10px;">
+        <i data-lucide="lock" style="width:20px;height:20px;"></i>Fechamento de Caixa
+      </h3>
+      <button class="modal-close" onclick="closeModalDirect()" style="color:#fff;opacity:0.8;"></button>
+    </div>
+    <div class="modal-body" style="padding:0;">
+
+      <!-- Período -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid #f1f2f6;">
+        <div style="padding:14px 20px;border-right:1px solid #f1f2f6;">
+          <div style="font-size:11px;font-weight:700;color:#7f8c8d;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Abertura</div>
+          <div style="font-weight:700;color:#2c3e50;font-size:13px;">${abertura}</div>
+        </div>
+        <div style="padding:14px 20px;">
+          <div style="font-size:11px;font-weight:700;color:#7f8c8d;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Fechamento</div>
+          <div style="font-weight:700;color:#2c3e50;font-size:13px;">${agora}</div>
+        </div>
+      </div>
+
+      <!-- Resumo de vendas -->
+      <div style="padding:16px 20px;border-bottom:1px solid #f1f2f6;">
+        <div style="font-size:12px;font-weight:800;color:#2c3e50;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">Vendas por Forma de Pagamento</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          ${[
+            {icon:'banknote',   cor:'#f1c40f', label:'Dinheiro',  val:detalhe.dinheiro},
+            {icon:'smartphone', cor:'#2ecc71', label:'Pix',       val:detalhe.pix},
+            {icon:'credit-card',cor:'#3498db', label:'Cartão',    val:detalhe.cartao},
+            {icon:'file-text',  cor:'#9b59b6', label:'Crediário', val:detalhe.crediario},
+          ].map(r=>`
+            <div style="background:#f8f9fa;border-radius:8px;padding:12px 14px;display:flex;align-items:center;gap:10px;">
+              <i data-lucide="${r.icon}" style="width:20px;height:20px;color:${r.cor};flex-shrink:0;"></i>
+              <div>
+                <div style="font-size:11px;color:#7f8c8d;font-weight:700;">${r.label}</div>
+                <div style="font-size:15px;font-weight:900;color:#2c3e50;">${fmt2(r.val)}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- Saldo físico em caixa -->
+      <div style="padding:16px 20px;border-bottom:1px solid #f1f2f6;">
+        <div style="font-size:12px;font-weight:800;color:#2c3e50;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">Resumo do Caixa</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${[
+            {label:'Fundo de caixa (abertura)', val:fundo,       cor:'#7f8c8d'},
+            {label:'Suprimentos',               val:suprimentos, cor:'#2ecc71'},
+            {label:'Sangrias',                  val:-sangrias,   cor:'#e74c3c'},
+            {label:'Total vendas',              val:totalVendas, cor:'#3498db'},
+          ].map(r=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
+              <span style="color:#7f8c8d;font-weight:600;">${r.label}</span>
+              <span style="font-weight:800;color:${r.cor};">${fmt2(Math.abs(r.val))}${r.val<0?' (-)':''}</span>
+            </div>
+          `).join('')}
+          <div style="border-top:2px solid #e1e8ed;padding-top:10px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-weight:800;color:#2c3e50;font-size:14px;">Saldo físico em caixa (dinheiro)</span>
+            <span style="font-weight:900;color:#2ecc71;font-size:18px;">${fmt2(saldoFisico)}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Conferência -->
+      <div style="padding:16px 20px;">
+        <label style="font-size:12px;font-weight:800;color:#c0392b;display:block;margin-bottom:8px;">Valor conferido no caixa (R$)</label>
+        <input type="number" id="pdv-fecho-conferido" step="0.01" placeholder="0,00"
+          value="${saldoFisico.toFixed(2)}"
+          style="width:100%;padding:12px 14px;border:2px solid #c0392b;border-radius:6px;outline:none;font-size:16px;font-weight:800;color:#2c3e50;box-sizing:border-box;">
+        <div style="font-size:11px;color:#95a5a6;margin-top:6px;">
+          Preencha com o valor que você contou fisicamente no caixa para gerar o relatório de diferença.
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer" style="padding:16px 20px;display:flex;justify-content:space-between;gap:12px;">
+      <button onclick="closeModalDirect()" style="background:#ecf0f1;color:#7f8c8d;border:none;border-radius:6px;padding:12px 24px;font-weight:800;font-size:13px;cursor:pointer;">
+        Cancelar
+      </button>
+      <button onclick="confirmarFechamentoCaixaPDV('${cxFinal.id}',${saldoFisico.toFixed(2)})" style="background:#c0392b;color:#fff;border:none;border-radius:6px;padding:12px 28px;font-weight:900;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(192,57,43,0.3);">
+        <i data-lucide="lock" style="width:16px;height:16px;"></i>Confirmar Fechamento
+      </button>
+    </div>
+  `, 'modal-lg');
+  lucide.createIcons();
+}
+
+async function confirmarFechamentoCaixaPDV(caixaId, saldoEsperado) {
+  const conferido = parseFloat(document.getElementById('pdv-fecho-conferido')?.value || saldoEsperado);
+  const diferenca = conferido - saldoEsperado;
+
+  // Fechar caixa no banco
+  if(caixaId && caixaId !== 'null' && caixaId !== 'undefined') {
+    try {
+      await sb.from('caixas').update({
+        status: 'fechado',
+        data_fechamento: new Date().toISOString()
+      }).eq('id', caixaId);
+    } catch(e) {}
+  }
+
+  // Resetar estado local
+  pdvCaixaAberto = false;
+  pdvFundoValor = 0;
+  cart = [];
+  pdvPayments = [];
+  cartClient = null;
+  cartSeller = null;
+  localStorage.removeItem('storeos_fundo_caixa');
+
+  closeModalDirect();
+
+  const difMsg = diferenca !== 0
+    ? `\nDiferença: ${diferenca > 0 ? '+' : ''}R$ ${diferenca.toLocaleString('pt-BR',{minimumFractionDigits:2})}`
+    : '';
+  toast(`Caixa fechado com sucesso!${difMsg}`, diferenca === 0 ? 'success' : 'info');
+
+  // Retornar à tela de abertura de caixa
+  setTimeout(() => renderPDV(), 500);
 }
