@@ -1,4 +1,4 @@
-const CACHE_NAME = 'modaflow-v1';
+const CACHE_NAME = 'modaflow-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -8,7 +8,6 @@ const ASSETS = [
   './dashboard.js',
   './whatsapp.js',
   './effects.js'
-  // icon-192.png e icon-512.png devem ser incluídos aqui quando existirem
 ];
 
 self.addEventListener('install', event => {
@@ -18,6 +17,7 @@ self.addEventListener('install', event => {
       return cache.addAll(ASSETS);
     })
   );
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
@@ -32,15 +32,15 @@ self.addEventListener('activate', event => {
       );
     })
   );
+  self.clients.claim();
 });
 
 self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request).then(response => {
-      // Retorna do cache, senão busca na rede
-      return response || fetch(event.request);
-    }).catch(() => {
-      // Aqui pode-se retornar uma página offline fallback
+    // Estratégia Network First (Sempre tenta pegar o arquivo novo da rede primeiro)
+    fetch(event.request).catch(() => {
+      // Se falhar (offline), aí sim usa o cache
+      return caches.match(event.request);
     })
   );
 });
