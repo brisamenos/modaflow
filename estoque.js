@@ -571,36 +571,36 @@ async function carregarVisaoDetalhada(tab) {
 
     if(tab==='col-forn') {
       // Agrupado por Coleção, sub por Fornecedor
-      gKey   = p.colecao_id||'sem-col';
-      gLabel = p.colecoes?.nome||'Sem coleção';
+      gKey   = p?.colecao_id||'sem-col';
+      gLabel = p?.colecoes?.nome||'Sem coleção';
       gCnpj  = '';
-      sKey   = p.fornecedor_id||'sem-forn';
-      sLabel = p.fornecedores?.razao_social||'Fornecedor padrão';
-      sCnpj  = p.fornecedores?.cnpj||'';
+      sKey   = p?.fornecedor_id||'sem-forn';
+      sLabel = p?.fornecedores?.razao_social||'Fornecedor padrão';
+      sCnpj  = p?.fornecedores?.cnpj||'';
     } else if(tab==='grade-forn') {
       // Agrupado por Grade, sub por Fornecedor
-      gKey   = p.grade_id||'sem-grade';
-      gLabel = p.grades?.nome||'Sem grade';
+      gKey   = p?.grade_id||'sem-grade';
+      gLabel = p?.grades?.nome||'Sem grade';
       gCnpj  = '';
-      sKey   = p.fornecedor_id||'sem-forn';
-      sLabel = p.fornecedores?.razao_social||'Fornecedor padrão';
-      sCnpj  = p.fornecedores?.cnpj||'';
+      sKey   = p?.fornecedor_id||'sem-forn';
+      sLabel = p?.fornecedores?.razao_social||'Fornecedor padrão';
+      sCnpj  = p?.fornecedores?.cnpj||'';
     } else if(tab==='col-grade') {
       // Agrupado por Coleção, sub por Grade
-      gKey   = p.colecao_id||'sem-col';
-      gLabel = p.colecoes?.nome||'Sem coleção';
+      gKey   = p?.colecao_id||'sem-col';
+      gLabel = p?.colecoes?.nome||'Sem coleção';
       gCnpj  = '';
-      sKey   = p.grade_id||'sem-grade';
-      sLabel = p.grades?.nome||'Sem grade';
+      sKey   = p?.grade_id||'sem-grade';
+      sLabel = p?.grades?.nome||'Sem grade';
       sCnpj  = '';
     } else {
       // Genero por Categoria
       const genMap = {F:'Feminino',M:'Masculino',U:'Unissex',J:'Juvenil'};
-      gKey   = p.genero||'sem-genero';
-      gLabel = genMap[p.genero]||'Sem gênero';
+      gKey   = p?.genero||'sem-genero';
+      gLabel = p?.genero ? (genMap[p.genero]||'Sem gênero') : 'Sem gênero';
       gCnpj  = '';
-      sKey   = p.categoria_id||'sem-cat';
-      sLabel = p.categorias?.nome||'Sem categoria';
+      sKey   = p?.categoria_id||'sem-cat';
+      sLabel = p?.categorias?.nome||'Sem categoria';
       sCnpj  = '';
     }
 
