@@ -99,7 +99,7 @@ function triggerPageEnter() {
   el.classList.add('page-enter');
 }
 
-// ─── Mobile Menu / Sidebar ───────────────────────────────────────────────────
+// ─── Mobile Menu ────────────────────────────────────────────────────────────
 let _mobileMenuOpen = false;
 
 function toggleMobileMenu() {
@@ -109,7 +109,7 @@ function toggleMobileMenu() {
   if (!overlay || !menu) return;
 
   overlay.classList.toggle('open', _mobileMenuOpen);
-  menu.classList.toggle('sidebar-open', _mobileMenuOpen);
+  menu.style.display = _mobileMenuOpen ? 'flex' : 'none';
 
   if (_mobileMenuOpen) {
     lucide.createIcons();
@@ -124,7 +124,7 @@ function closeMobileMenu() {
   const overlay = document.getElementById('mobile-menu-overlay');
   const menu    = document.getElementById('mobile-menu');
   if (overlay) overlay.classList.remove('open');
-  if (menu)    menu.classList.remove('sidebar-open');
+  if (menu) menu.style.display = 'none';
   document.body.style.overflow = '';
 }
 
