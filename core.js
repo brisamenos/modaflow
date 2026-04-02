@@ -12,33 +12,57 @@ let cartPayment = 'dinheiro';
 const LOCAL_USER = 'admin';
 const LOCAL_PASS = '1234';
 
-function login() {
+async function sha256(msg) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function login() {
   const email = document.getElementById('auth-email').value.trim();
   const pw = document.getElementById('auth-password').value;
   if(!email||!pw) return toast('Preencha usuário e senha','error');
-  if(email !== LOCAL_USER || pw !== LOCAL_PASS) return toast('Credenciais inválidas','error');
-  currentUser = {email: LOCAL_USER};
-  localStorage.setItem('loja_session','1');
-  initApp();
+  
+  try {
+    const hash = await sha256(pw);
+    const r = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, senha_hash: hash })
+    });
+    const d = await r.json();
+    if(!r.ok) return toast(d.message || 'Credenciais inválidas', 'error');
+    
+    localStorage.setItem('loja_token', d.token);
+    currentUser = { email, nome: d.nome, slug: d.slug };
+    initApp();
+  } catch(e) {
+    toast('Erro ao conectar com servidor', 'error');
+  }
 }
 
 function logout() {
-  localStorage.removeItem('loja_session');
+  localStorage.removeItem('loja_token');
+  currentUser = null;
   document.getElementById('app').style.display = 'none';
   document.getElementById('auth-screen').style.display = 'flex';
 }
 
-function checkSession() {
-  if(localStorage.getItem('loja_session')) {
-    currentUser = {email: LOCAL_USER};
+async function checkSession() {
+  const t = localStorage.getItem('loja_token');
+  if(!t) return;
+  try {
+    const r = await fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer '+t } });
+    if(!r.ok) { localStorage.removeItem('loja_token'); return; }
+    const d = await r.json();
+    currentUser = { email: d.email||'', nome: d.nome, slug: d.slug };
     initApp();
-  }
+  } catch(e) {}
 }
 
 function initApp() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
-  const name = currentUser.email?.split('@')[0]||'Usuário';
+  const name = currentUser.nome || currentUser.email?.split('@')[0] || 'Gestor';
   document.getElementById('sidebar-user-name').textContent = name;
   document.getElementById('topnav-initial').textContent = name.charAt(0).toUpperCase();
   lucide.createIcons();
