@@ -660,7 +660,7 @@ async function exibirConferencia(conf) {
         <div style="display:grid;grid-template-columns:1fr 2fr 2fr 1fr;text-align:center;padding:14px 20px;gap:12px;border-bottom:1px solid var(--border)">
           <div>
             <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Número</div>
-            <div style="font-size:15px;font-weight:700">${conf.id.slice(-4).toUpperCase()}</div>
+            <div style="font-size:15px;font-weight:700">${String(conf.id).slice(-4).toUpperCase()}</div>
           </div>
           <div>
             <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Data início</div>
