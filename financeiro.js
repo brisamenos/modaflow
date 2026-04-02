@@ -1118,14 +1118,14 @@ async function renderPainelDespesas() {
         label = k.split('-').reverse().slice(0,2).join('/') + '/' + k.substring(2,4); 
       }
 
-      return \`<tr>
-        <td style="padding:16px;color:#7f8c8d;font-weight:600;">\${label}</td>
-        <td style="padding:16px;text-align:right;font-weight:700;color:var(--text);">\${fmt(v.total).replace('R$ ','')}</td>
-        <td style="padding:16px;text-align:right;font-weight:600;color:#27ae60;">\${fmt(v.pagas).replace('R$ ','')}</td>
-        <td style="padding:16px;text-align:right;font-weight:600;color:#e67e22;">\${fmt(v.apagar).replace('R$ ','')}</td>
-        <td style="padding:16px;text-align:center;font-weight:700;color:#95a5a6;">\${rowPercStr}</td>
+      return `<tr>
+        <td style="padding:16px;color:#7f8c8d;font-weight:600;">${label}</td>
+        <td style="padding:16px;text-align:right;font-weight:700;color:var(--text);">${fmt(v.total).replace('R$ ','')}</td>
+        <td style="padding:16px;text-align:right;font-weight:600;color:#27ae60;">${fmt(v.pagas).replace('R$ ','')}</td>
+        <td style="padding:16px;text-align:right;font-weight:600;color:#e67e22;">${fmt(v.apagar).replace('R$ ','')}</td>
+        <td style="padding:16px;text-align:center;font-weight:700;color:#95a5a6;">${rowPercStr}</td>
         <td style="padding:16px;text-align:center;"><i data-lucide="folder" style="width:14px;color:#e67e22;cursor:pointer;"></i></td>
-      </tr>\`;
+      </tr>`;
     }).join('');
   };
 
@@ -1136,22 +1136,22 @@ async function renderPainelDespesas() {
   const cicRows = Object.keys(byCiclo).sort().map(k => {
       let v = byCiclo[k];
       let rowPercStr = percentScore(v) + '%';
-      return \`<tr>
-        <td style="padding:16px;color:#7f8c8d;font-weight:600;">\${k}</td>
-        <td style="padding:16px;text-align:right;font-weight:700;color:var(--text);">\${fmt(v.total).replace('R$ ','')}</td>
-        <td style="padding:16px;text-align:right;font-weight:600;color:#27ae60;">\${fmt(v.pagas).replace('R$ ','')}</td>
-        <td style="padding:16px;text-align:right;font-weight:600;color:#e67e22;">\${fmt(v.apagar).replace('R$ ','')}</td>
-        <td style="padding:16px;text-align:center;font-weight:700;color:#95a5a6;">\${rowPercStr}</td>
-      </tr>\`;
+      return `<tr>
+        <td style="padding:16px;color:#7f8c8d;font-weight:600;">${k}</td>
+        <td style="padding:16px;text-align:right;font-weight:700;color:var(--text);">${fmt(v.total).replace('R$ ','')}</td>
+        <td style="padding:16px;text-align:right;font-weight:600;color:#27ae60;">${fmt(v.pagas).replace('R$ ','')}</td>
+        <td style="padding:16px;text-align:right;font-weight:600;color:#e67e22;">${fmt(v.apagar).replace('R$ ','')}</td>
+        <td style="padding:16px;text-align:center;font-weight:700;color:#95a5a6;">${rowPercStr}</td>
+      </tr>`;
   }).join('');
 
 
-  document.getElementById('content').innerHTML = \`
+  document.getElementById('content').innerHTML = `
     <div style="font-family:var(--font-sans);padding-bottom:50px;">
       
       <div style="display:flex;gap:12px;margin-bottom:24px;">
         <select style="padding:8px 16px;border:1px solid #e1e8ed;border-radius:6px;outline:none;background:#fff;color:var(--text);font-weight:600;font-size:13px;">
-          <option>\${year}</option>
+          <option>${year}</option>
         </select>
         <select style="padding:8px 16px;border:1px solid #e1e8ed;border-radius:6px;outline:none;background:#fff;color:var(--text);font-weight:600;font-size:13px;">
           <option>Abril</option>
@@ -1166,17 +1166,17 @@ async function renderPainelDespesas() {
         
         <div style="background:#54a0ff;border-radius:8px;padding:24px;color:#fff;box-shadow:0 3px 10px rgba(84,160,255,0.25);">
           <div style="font-weight:800;font-size:14px;margin-bottom:4px;">Total</div>
-          <div style="font-size:36px;font-weight:800;letter-spacing:-0.5px;">\${fmt(totalDesp)}</div>
+          <div style="font-size:36px;font-weight:800;letter-spacing:-0.5px;">${fmt(totalDesp)}</div>
         </div>
 
         <div style="background:#2ed573;border-radius:8px;padding:24px;color:#fff;box-shadow:0 3px 10px rgba(46,213,115,0.25);">
           <div style="font-weight:800;font-size:14px;margin-bottom:4px;">Pagas</div>
-          <div style="font-size:36px;font-weight:800;letter-spacing:-0.5px;">\${fmt(totalPagas)}</div>
+          <div style="font-size:36px;font-weight:800;letter-spacing:-0.5px;">${fmt(totalPagas)}</div>
         </div>
 
         <div style="background:#ff9f43;border-radius:8px;padding:24px;color:#fff;box-shadow:0 3px 10px rgba(255,159,67,0.25);">
           <div style="font-weight:800;font-size:14px;margin-bottom:4px;">A pagar</div>
-          <div style="font-size:36px;font-weight:800;letter-spacing:-0.5px;">\${fmt(totalApagar)}</div>
+          <div style="font-size:36px;font-weight:800;letter-spacing:-0.5px;">${fmt(totalApagar)}</div>
         </div>
 
       </div>
@@ -1198,7 +1198,7 @@ async function renderPainelDespesas() {
                    <th style="padding:14px;text-align:center;color:#2c3e50;font-weight:800;">Ação</th>
                  </tr>
                </thead>
-               <tbody>\${cRows || \`<tr><td colspan="6" style="text-align:center;padding:40px;color:#bdc3c7;font-weight:600;">Sem dados para o mês selecionado</td></tr>\`}</tbody>
+               <tbody>${cRows || `<tr><td colspan="6" style="text-align:center;padding:40px;color:#bdc3c7;font-weight:600;">Sem dados para o mês selecionado</td></tr>`}</tbody>
              </table>
            </div>
         </div>
@@ -1217,7 +1217,7 @@ async function renderPainelDespesas() {
                    <th style="padding:14px;text-align:center;color:#2c3e50;font-weight:800;">Ação</th>
                  </tr>
                </thead>
-               <tbody>\${dRows || \`<tr><td colspan="6" style="text-align:center;padding:40px;color:#bdc3c7;font-weight:600;">Sem dados para o mês selecionado</td></tr>\`}</tbody>
+               <tbody>${dRows || `<tr><td colspan="6" style="text-align:center;padding:40px;color:#bdc3c7;font-weight:600;">Sem dados para o mês selecionado</td></tr>`}</tbody>
              </table>
            </div>
         </div>
@@ -1231,12 +1231,12 @@ async function renderPainelDespesas() {
            <div style="padding:16px 20px;font-weight:800;color:#3498db;font-size:14px;border-bottom:1px solid #f8f9fa;">Despesas por classificação</div>
            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;">
               <!-- Empty state graph or pure CSS gradient placeholder matching the UI screenshot -->
-              \${totalDesp > 0 ? 
-                \`<div style="width:150px;height:150px;border-radius:50%;background:conic-gradient(#54a0ff 0% 30%, #2ed573 30% 50%, #ff9f43 50% 80%, #b762f0 80% 100%);box-shadow:0 0 0 6px #fff, 0 4px 15px rgba(0,0,0,0.1) inset;border:2px solid #fff;"></div>
-                  <div style="margin-top:20px;font-size:11px;font-weight:700;color:#7f8c8d;text-align:center;">Gráfico em construção...</div>\`
+              ${totalDesp > 0 ? 
+                `<div style="width:150px;height:150px;border-radius:50%;background:conic-gradient(#54a0ff 0% 30%, #2ed573 30% 50%, #ff9f43 50% 80%, #b762f0 80% 100%);box-shadow:0 0 0 6px #fff, 0 4px 15px rgba(0,0,0,0.1) inset;border:2px solid #fff;"></div>
+                  <div style="margin-top:20px;font-size:11px;font-weight:700;color:#7f8c8d;text-align:center;">Gráfico em construção...</div>`
                : 
-                \`<i data-lucide="pie-chart" style="width:48px;height:48px;color:#ecf0f1;margin-bottom:12px;"></i>
-                 <div style="color:#bdc3c7;font-weight:600;font-size:13px;">Sem dados para gerar gráfico</div>\`
+                `<i data-lucide="pie-chart" style="width:48px;height:48px;color:#ecf0f1;margin-bottom:12px;"></i>
+                 <div style="color:#bdc3c7;font-weight:600;font-size:13px;">Sem dados para gerar gráfico</div>`
               }
            </div>
         </div>
@@ -1244,7 +1244,7 @@ async function renderPainelDespesas() {
         <div style="background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.02);border:1px solid #f1f2f6;overflow:hidden;min-height:270px;display:flex;flex-direction:column;">
            <div style="padding:16px 20px;font-weight:800;color:#3498db;font-size:14px;border-bottom:1px solid #f8f9fa;">Despesas pagas por forma pagamento</div>
            <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:40px;">
-              \${totalPagas > 0 ? \`<div style="color:#bdc3c7;font-weight:600;font-size:13px;">\${fmt(totalPagas)} pagas... (Layout a definir)</div>\` : \`<div style="color:#bdc3c7;font-weight:600;font-size:13px;">Sem dados</div>\`}
+              ${totalPagas > 0 ? `<div style="color:#bdc3c7;font-weight:600;font-size:13px;">${fmt(totalPagas)} pagas... (Layout a definir)</div>` : `<div style="color:#bdc3c7;font-weight:600;font-size:13px;">Sem dados</div>`}
            </div>
         </div>
 
@@ -1266,7 +1266,7 @@ async function renderPainelDespesas() {
                    <th style="padding:14px;text-align:center;color:#2c3e50;font-weight:800;">%</th>
                  </tr>
                </thead>
-               <tbody>\${cicRows || \`<tr><td colspan="5" style="text-align:center;padding:40px;color:#bdc3c7;font-weight:600;">Sem dados no período</td></tr>\`}</tbody>
+               <tbody>${cicRows || `<tr><td colspan="5" style="text-align:center;padding:40px;color:#bdc3c7;font-weight:600;">Sem dados no período</td></tr>`}</tbody>
              </table>
            </div>
         </div>
@@ -1291,17 +1291,17 @@ async function renderPainelDespesas() {
       </div>
 
     </div>
-  \`;
+  `;
   lucide.createIcons();
 }
 
 // ===== CADASTRAR CLASSIFICAÇÃO =====
 async function renderCadastrarClassificacao() {
-  document.getElementById('topbar-actions').innerHTML = \`
+  document.getElementById('topbar-actions').innerHTML = `
     <button class="btn btn-success" style="border-radius:20px;padding:8px 24px;font-weight:700;" onclick="openClassificacaoModal()">
       <i data-lucide="plus"></i> Nova classificação
     </button>
-  \`;
+  `;
 
   document.getElementById('content').innerHTML = '<div class="loading" style="padding-top:40px;text-align:center;"><div class="sk"></div></div>';
 
@@ -1311,22 +1311,22 @@ async function renderCadastrarClassificacao() {
   (data||[]).forEach(c => {
     let dt = c.created_at ? new Date(c.created_at).toLocaleDateString('pt-BR') : 'N/D';
     let visao = c.visao_contabil || 'Fixa';
-    rows += \`
+    rows += `
       <tr style="border-bottom:1px solid #f1f2f6;">
-        <td style="padding:16px;text-align:center;color:#7f8c8d;font-weight:600;">\${dt}</td>
-        <td style="padding:16px;text-align:center;color:#2c3e50;font-weight:700;">\${visao}</td>
-        <td style="padding:16px;text-align:center;color:#2c3e50;font-weight:600;">\${c.nome}</td>
+        <td style="padding:16px;text-align:center;color:#7f8c8d;font-weight:600;">${dt}</td>
+        <td style="padding:16px;text-align:center;color:#2c3e50;font-weight:700;">${visao}</td>
+        <td style="padding:16px;text-align:center;color:#2c3e50;font-weight:600;">${c.nome}</td>
         <td style="padding:16px;text-align:center;">
           <div style="display:flex;gap:10px;justify-content:center;">
             <i data-lucide="edit-3" style="width:16px;color:#3498db;cursor:pointer;"></i>
-            <i data-lucide="trash-2" style="width:16px;color:#e74c3c;cursor:pointer;" onclick="deleteClassificacao('\${c.id}')"></i>
+            <i data-lucide="trash-2" style="width:16px;color:#e74c3c;cursor:pointer;" onclick="deleteClassificacao('${c.id}')"></i>
           </div>
         </td>
       </tr>
-    \`;
+    `;
   });
 
-  document.getElementById('content').innerHTML = \`
+  document.getElementById('content').innerHTML = `
     <div style="font-family:var(--font-sans);padding-bottom:50px;">
       
       <div style="display:flex;gap:12px;margin-bottom:24px;align-items:center;">
@@ -1349,17 +1349,17 @@ async function renderCadastrarClassificacao() {
             </tr>
           </thead>
           <tbody>
-            \${rows || \`<tr><td colspan="4" style="text-align:center;padding:60px 0;color:#bdc3c7;font-weight:600;">Nenhuma classificação encontrada</td></tr>\`}
+            ${rows || `<tr><td colspan="4" style="text-align:center;padding:60px 0;color:#bdc3c7;font-weight:600;">Nenhuma classificação encontrada</td></tr>`}
           </tbody>
         </table>
       </div>
     </div>
-  \`;
+  `;
   lucide.createIcons();
 }
 
 function openClassificacaoModal() {
-  openModal(\`
+  openModal(`
     <style>
       .cl-modal-focus:focus { border-color:#3498db !important; box-shadow:0 0 0 3px rgba(52,152,219,0.15) !important; }
     </style>
@@ -1390,7 +1390,7 @@ function openClassificacaoModal() {
         <i data-lucide="thumbs-up" style="width:14px;"></i> Salvar
       </button>
     </div>
-  \`, 'modal-md');
+  `, 'modal-md');
   lucide.createIcons();
 }
 
