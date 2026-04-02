@@ -311,46 +311,85 @@ function buildWhere(query) {
     const vals = Array.isArray(rawVal) ? rawVal : [rawVal];
     for (const val of vals) {
       if (typeof val !== 'string') continue;
+      
+      let leftSide = `"${key}"`;
+      let rightSideClose = ``;
+      
+      if (key.includes('.')) {
+        const parts = key.split('.');
+        if (parts.length === 2) {
+          let fk = parts[0].toLowerCase();
+          if (fk.endsWith('oes')) fk = fk.slice(0,-3) + 'ao';
+          else if (fk.endsWith('s')) fk = fk.slice(0,-1);
+          fk += '_id';
+          leftSide = `"${fk}" IN (SELECT "id" FROM "${parts[0]}" WHERE "${parts[1]}"`;
+          rightSideClose = `)`;
+        }
+      }
+
+      const pushC = (op, paramVal) => { clauses.push(`${leftSide} ${op} ?${rightSideClose}`); params.push(coerceBool(paramVal)); };
+      const pushDirect = (op) => { clauses.push(`${leftSide} ${op}${rightSideClose}`); };
+
       if (val.startsWith('not.')) {
         const rest = val.slice(4);
-        if (rest === 'is.null') clauses.push(`"${key}" IS NOT NULL`);
+        if (rest === 'is.null') pushDirect('IS NOT NULL');
         else if (rest.startsWith('in.(')) {
           const list = rest.slice(4,-1).split(',').map(v=>v.trim()).filter(Boolean);
-          if (list.length) { clauses.push(`"${key}" NOT IN (${list.map(()=>'?').join(',')})`); params.push(...list.map(coerceBool)); }
-        } else if (rest.startsWith('eq.')) { clauses.push(`"${key}" != ?`); params.push(coerceBool(rest.slice(3))); }
+          if (list.length) { clauses.push(`${leftSide} NOT IN (${list.map(()=>'?').join(',')})${rightSideClose}`); params.push(...list.map(coerceBool)); }
+        } else if (rest.startsWith('eq.')) { pushC('!=', rest.slice(3)); }
         else if (rest.startsWith('ilike.')||rest.startsWith('like.')) {
           const p = rest.startsWith('ilike.') ? 6 : 5;
-          clauses.push(`"${key}" NOT LIKE ?`); params.push(rest.slice(p).replace(/\*/g,'%'));
+          pushC('NOT LIKE', rest.slice(p).replace(/\*/g,'%'));
         }
         continue;
       }
-      if (val.startsWith('eq.'))        { clauses.push(`"${key}" = ?`);  params.push(coerceBool(val.slice(3))); }
-      else if (val.startsWith('neq.'))  { clauses.push(`"${key}" != ?`); params.push(coerceBool(val.slice(4))); }
-      else if (val.startsWith('gt.'))   { clauses.push(`"${key}" > ?`);  params.push(coerceBool(val.slice(3))); }
-      else if (val.startsWith('gte.'))  { clauses.push(`"${key}" >= ?`); params.push(coerceBool(val.slice(4))); }
-      else if (val.startsWith('lt.'))   { clauses.push(`"${key}" < ?`);  params.push(coerceBool(val.slice(3))); }
-      else if (val.startsWith('lte.'))  { clauses.push(`"${key}" <= ?`); params.push(coerceBool(val.slice(4))); }
+      if (val.startsWith('eq.'))        { pushC('=', val.slice(3)); }
+      else if (val.startsWith('neq.'))  { pushC('!=', val.slice(4)); }
+      else if (val.startsWith('gt.'))   { pushC('>', val.slice(3)); }
+      else if (val.startsWith('gte.'))  { pushC('>=', val.slice(4)); }
+      else if (val.startsWith('lt.'))   { pushC('<', val.slice(3)); }
+      else if (val.startsWith('lte.'))  { pushC('<=', val.slice(4)); }
       else if (val.startsWith('ilike.')||val.startsWith('like.')) {
         const p = val.startsWith('ilike.') ? 6 : 5;
-        clauses.push(`"${key}" LIKE ?`); params.push(val.slice(p).replace(/\*/g,'%'));
+        pushC('LIKE', val.slice(p).replace(/\*/g,'%'));
       } else if (val.startsWith('in.(')) {
         const list = val.slice(4,-1).split(',').map(v=>v.trim()).filter(Boolean);
-        if (list.length) { clauses.push(`"${key}" IN (${list.map(()=>'?').join(',')})`); params.push(...list.map(coerceBool)); }
-      } else if (val === 'is.null')     { clauses.push(`"${key}" IS NULL`); }
-      else if (val === 'not.is.null')   { clauses.push(`"${key}" IS NOT NULL`); }
-      else                              { clauses.push(`"${key}" = ?`); params.push(coerceBool(val)); }
+        if (list.length) { clauses.push(`${leftSide} IN (${list.map(()=>'?').join(',')})${rightSideClose}`); params.push(...list.map(coerceBool)); }
+      } else if (val === 'is.null')     { pushDirect('IS NULL'); }
+      else if (val === 'not.is.null')   { pushDirect('IS NOT NULL'); }
+      else                              { pushC('=', val); }
     }
   }
   if (query.or) {
     const orClauses = [];
-    for (const part of query.or.split(',')) {
+    const orItems = query.or.replace(/^\(|\)$/g, '').split(',');
+    for (const part of orItems) {
       const dot = part.indexOf('.');
       if (dot === -1) continue;
-      const col = part.slice(0,dot), rest = part.slice(dot+1);
+      
+      let leftSide = `"${part.slice(0,dot)}"`;
+      let rightSideClose = ``;
+      let col = part.slice(0,dot);
+      const rest = part.slice(dot+1);
+
+      if (col.includes('.')) {
+        const parts = col.split('.');
+        if (parts.length === 2) {
+          let fk = parts[0].toLowerCase();
+          if (fk.endsWith('oes')) fk = fk.slice(0,-3) + 'ao';
+          else if (fk.endsWith('s')) fk = fk.slice(0,-1);
+          fk += '_id';
+          leftSide = `"${fk}" IN (SELECT "id" FROM "${parts[0]}" WHERE "${parts[1]}"`;
+          rightSideClose = `)`;
+        }
+      }
+
       if (rest.startsWith('ilike.')||rest.startsWith('like.')) {
         const p = rest.startsWith('ilike.') ? 6 : 5;
-        orClauses.push(`"${col}" LIKE ?`); params.push(rest.slice(p).replace(/\*/g,'%'));
-      } else if (rest.startsWith('eq.')) { orClauses.push(`"${col}" = ?`); params.push(rest.slice(3)); }
+        orClauses.push(`${leftSide} LIKE ?${rightSideClose}`); params.push(rest.slice(p).replace(/\*/g,'%'));
+      } else if (rest.startsWith('eq.')) { 
+        orClauses.push(`${leftSide} = ?${rightSideClose}`); params.push(rest.slice(3)); 
+      }
     }
     if (orClauses.length) clauses.push(`(${orClauses.join(' OR ')})`);
   }
