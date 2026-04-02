@@ -126,6 +126,8 @@ function aplicarMigracoes(tdb) {
   ac('produto_grades','cor_descricao','TEXT'); ac('produto_grades','custo','REAL');
   ac('produto_grades','preco_venda','REAL'); ac('produto_grades','margem_lucro','REAL');
   ac('categorias','ativo','INTEGER'); ac('colecoes','ativo','INTEGER'); ac('grades','ativo','INTEGER');
+  ac('classificacoes','visao_contabil','TEXT');
+  ac('classificacoes','created_at','TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
   try { tdb.exec(`UPDATE categorias SET ativo=1 WHERE ativo IS NULL`); } catch(e){}
   try { tdb.exec(`UPDATE colecoes SET ativo=1 WHERE ativo IS NULL`); } catch(e){}
   try { tdb.exec(`UPDATE grades SET ativo=1 WHERE ativo IS NULL`); } catch(e){}

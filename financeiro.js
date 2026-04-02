@@ -422,26 +422,107 @@ async function renderDespesas() {
 
 async function openDespesaModal() {
   const {data:cls}=await sb.from('classificacoes').select('id,nome').eq('tipo','despesa');
+  
+  const now = new Date();
+  const mesP = (now.getMonth()+1) + ' / ' + now.getFullYear();
+
   openModal(`
-    <div class="modal-header"><h3>Nova Despesa</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
-    <div class="modal-body"><div class="form-grid">
-      <div class="form-group"><label>Descrição *</label><input id="dp2-desc"></div>
-      <div class="form-row">
-        <div class="form-group"><label>Valor (R$) *</label><input id="dp2-val" type="number" step="0.01"></div>
-        <div class="form-group"><label>Vencimento</label><input id="dp2-venc" type="date"></div>
-        <div class="form-group"><label>Competência</label><input id="dp2-comp" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
+    <style>
+      .dp-modal-focus:focus { border-color:#3498db !important; box-shadow:0 0 0 3px rgba(52,152,219,0.15) !important; }
+      .dp-file-area { display:flex; gap:8px; background:#fdfdfd; padding:12px; border-radius:6px; border:1px dashed #bdc3c7;}
+    </style>
+    <div class="modal-header" style="border-bottom:none;padding-bottom:10px;">
+      <h3 style="color:#2c3e50;font-weight:800;font-size:18px;">Nova Despesa</h3>
+    </div>
+    <div class="modal-body" style="padding-top:0;">
+      <div style="font-weight:800;font-size:13px;color:#2c3e50;margin-bottom:16px;">
+        Mês de referência: <span style="color:#7f8c8d;">${mesP}</span>
       </div>
-      <div class="form-group"><label>Classificação</label><select id="dp2-cls"><option value="">Nenhuma</option>${(cls||[]).map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}</select></div>
-    </div></div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModalDirect()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveDespesa()"><i data-lucide="save"></i>Salvar</button>
-    </div>`,'modal-md');
+
+      <div class="form-grid" style="display:flex;flex-direction:column;gap:16px;">
+        
+        <div class="form-group">
+          <label style="color:#c0392b;font-weight:800;font-size:12px;margin-bottom:6px;display:block;">Classificação *</label>
+          <select id="dp2-cls" class="dp-modal-focus" style="width:100%;border:1px solid #3498db;border-radius:6px;padding:10px 14px;color:#2c3e50;font-weight:600;outline:none;background:#fff;transition:border .2s;">
+            <option value="">Selecione uma opção</option>
+            ${(cls||[]).map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label style="color:#c0392b;font-weight:800;font-size:12px;margin-bottom:6px;display:block;">Descrição *</label>
+          <input id="dp2-desc" class="dp-modal-focus" placeholder="" style="width:100%;border:1px solid #e1e8ed;border-radius:6px;padding:10px 14px;color:#2c3e50;outline:none;transition:border .2s;font-weight:600;">
+        </div>
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="form-group">
+            <label style="color:#c0392b;font-weight:800;font-size:12px;margin-bottom:6px;display:block;">Valor *</label>
+            <input id="dp2-val" class="dp-modal-focus" type="number" step="0.01" style="width:100%;border:1px solid #e1e8ed;border-radius:6px;padding:10px 14px;color:#2c3e50;outline:none;transition:border .2s;font-weight:800;">
+          </div>
+          <div class="form-group">
+            <label style="color:#c0392b;font-weight:800;font-size:12px;margin-bottom:6px;display:block;">Data vencto *</label>
+            <div style="position:relative;">
+              <input id="dp2-venc" class="dp-modal-focus" type="date" style="width:100%;border:1px solid #e1e8ed;border-radius:6px;padding:10px 14px;color:#2c3e50;outline:none;transition:border .2s;font-weight:600;">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label style="color:#c0392b;font-weight:800;font-size:12px;margin-bottom:6px;display:block;">Ciclo pagto *</label>
+          <select id="dp2-ciclo" class="dp-modal-focus" style="width:100%;border:1px solid #e1e8ed;border-radius:6px;padding:10px 14px;color:#2c3e50;font-weight:600;outline:none;background:#fff;transition:border .2s;">
+            <option value="Unico">Selecione uma opção (Único)</option>
+            <option value="Mensal">Mensal</option>
+            <option value="Quinzenal">Quinzenal</option>
+            <option value="Semanal">Semanal</option>
+          </select>
+        </div>
+
+        <div style="text-align:center; margin-top:4px;">
+          <span style="color:#c0392b;font-weight:800;font-size:12px;">Pagamento será feito somente em dia útil?</span>
+          <div style="display:flex; justify-content:center; gap:20px; margin-top:10px;">
+            <label style="display:flex;align-items:center;gap:6px;font-weight:700;color:#2c3e50;font-size:13px;cursor:pointer;"><input type="radio" name="dp2-util" value="sim" checked style="accent-color:#3498db;width:16px;height:16px;"> Sim</label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:700;color:#2c3e50;font-size:13px;cursor:pointer;"><input type="radio" name="dp2-util" value="nao" style="accent-color:#3498db;width:16px;height:16px;"> Não</label>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top:10px;">
+          <label style="color:#2c3e50;font-weight:800;font-size:13px;margin-bottom:8px;display:block;">Selecione o comprovante de despesa</label>
+          <div class="dp-file-area">
+            <button class="btn btn-sm" style="background:#3498db;color:#fff;border-radius:6px;font-weight:700;padding:8px 16px;border:none;display:flex;align-items:center;gap:4px;"><i data-lucide="plus" style="width:14px;"></i> Selecionar</button>
+            <button class="btn btn-sm" style="background:#f1f2f6;color:#95a5a6;border-radius:6px;font-weight:700;padding:8px 16px;border:none;display:flex;align-items:center;gap:4px;box-shadow:none;"><i data-lucide="upload" style="width:14px;"></i> Carregar</button>
+            <button class="btn btn-sm" style="background:#f1f2f6;color:#95a5a6;border-radius:6px;font-weight:700;padding:8px 16px;border:none;display:flex;align-items:center;gap:4px;box-shadow:none;"><i data-lucide="x" style="width:14px;"></i> Cancelar</button>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="modal-footer" style="border-top:none;display:flex;justify-content:space-between;padding-top:20px;">
+      <button class="btn" style="background:#e74c3c;color:#fff;border-radius:20px;padding:8px 24px;font-weight:700;border:none;display:flex;align-items:center;gap:6px;box-shadow:0 3px 6px rgba(231,76,60,0.2);" onclick="closeModalDirect()">
+        <i data-lucide="arrow-left" style="width:14px;"></i> Voltar
+      </button>
+      <div style="display:flex; gap:12px;">
+         <button class="btn" style="background:#f1f2f6;color:#7f8c8d;border-radius:20px;padding:8px 20px;font-weight:700;border:none;display:flex;align-items:center;gap:6px;" onclick="document.querySelectorAll('.dp-modal-focus').forEach(el=>el.value='')">
+           <i data-lucide="eraser" style="width:14px;"></i> Limpar
+         </button>
+         <button class="btn" style="background:#3498db;color:#fff;border-radius:20px;padding:8px 24px;font-weight:700;border:none;display:flex;align-items:center;gap:6px;box-shadow:0 3px 6px rgba(52,152,219,0.2);" onclick="saveDespesa()">
+           <i data-lucide="thumbs-up" style="width:14px;"></i> Salvar
+         </button>
+      </div>
+    </div>
+  `,'modal-md');
+  lucide.createIcons();
 }
 
 async function saveDespesa() {
-  const payload={descricao:document.getElementById('dp2-desc').value.trim(),valor:parseFloat(document.getElementById('dp2-val').value||0),vencimento:document.getElementById('dp2-venc').value||null,data_competencia:document.getElementById('dp2-comp').value,classificacao_id:document.getElementById('dp2-cls').value||null};
-  if(!payload.descricao||!payload.valor) return toast('Preencha descrição e valor','error');
+  const payload={
+    descricao:document.getElementById('dp2-desc').value.trim(),
+    valor:parseFloat(document.getElementById('dp2-val').value||0),
+    vencimento:document.getElementById('dp2-venc').value||null,
+    data_competencia: new Date().toISOString().split('T')[0],
+    classificacao_id:document.getElementById('dp2-cls').value||null
+  };
+  if(!payload.descricao||!payload.valor||!payload.vencimento) return toast('Preencha os campos obrigatórios em vermelho!','error');
   await sb.from('despesas').insert(payload);
   closeModalDirect();toast('Despesa cadastrada');renderDespesas();
 }
@@ -977,4 +1058,356 @@ async function deleteOpCaixa(id) {
   await sb.from('movimentos_caixa').delete().eq('id',id);
   toast('Registro excluído!');
   renderOperacoesCaixa();
+}
+
+// ===== PAINEL DE DESPESAS =====
+async function renderPainelDespesas() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const m = `${year}-${month}`;
+
+  document.getElementById('topbar-actions').innerHTML = '';
+
+  document.getElementById('content').innerHTML = '<div class="loading" style="padding-top:60px;text-align:center;"><div class="sk" style="height:20px;width:200px;margin:0 auto 8px;background:#eee;border-radius:4px;"></div></div>';
+
+  const {data:desps} = await sb.from('despesas').select('*, classificacoes(nome)').gte('vencimento', m+'-01').lte('vencimento', m+'-31');
+
+  let totalDesp = 0;
+  let totalPagas = 0;
+  let totalApagar = 0;
+
+  let byClass = {};
+  let byDate = {};
+  let byCiclo = {};
+
+  (desps||[]).forEach(d => {
+    let val = parseFloat(d.valor||0);
+    totalDesp += val;
+    let isPaga = d.status === 'pago';
+    if(isPaga) totalPagas += val; else totalApagar += val;
+
+    let clsName = d.classificacoes?.nome || 'Outros';
+    if(!byClass[clsName]) byClass[clsName] = {total:0, pagas:0, apagar:0};
+    byClass[clsName].total += val;
+    byClass[clsName][isPaga ? 'pagas' : 'apagar'] += val;
+
+    let dt = (d.vencimento||'').split('T')[0];
+    if(dt) {
+      if(!byDate[dt]) byDate[dt] = {total:0, pagas:0, apagar:0};
+      byDate[dt].total += val;
+      byDate[dt][isPaga ? 'pagas' : 'apagar'] += val;
+    }
+
+    let ciclo = d.ciclo_pagamento || 'Mensal';
+    if(ciclo === 'Unico' || ciclo === 'unico' || !ciclo) ciclo = 'Único';
+    if(!byCiclo[ciclo]) byCiclo[ciclo] = {total:0, pagas:0, apagar:0};
+    byCiclo[ciclo].total += val;
+    byCiclo[ciclo][isPaga ? 'pagas' : 'apagar'] += val;
+  });
+
+  const percentScore = (v) => totalDesp > 0 ? Math.round((v.total/totalDesp)*100) : 0;
+
+  const generateRows = (obj, formatKey=null) => {
+    return Object.keys(obj).sort().map(k => {
+      let v = obj[k];
+      let rowPercStr = percentScore(v) + '%';
+      
+      let label = k;
+      if(formatKey === 'date' && k.includes('-')) {
+        label = k.split('-').reverse().slice(0,2).join('/') + '/' + k.substring(2,4); 
+      }
+
+      return \`<tr>
+        <td style="padding:16px;color:#7f8c8d;font-weight:600;">\${label}</td>
+        <td style="padding:16px;text-align:right;font-weight:700;color:var(--text);">\${fmt(v.total).replace('R$ ','')}</td>
+        <td style="padding:16px;text-align:right;font-weight:600;color:#27ae60;">\${fmt(v.pagas).replace('R$ ','')}</td>
+        <td style="padding:16px;text-align:right;font-weight:600;color:#e67e22;">\${fmt(v.apagar).replace('R$ ','')}</td>
+        <td style="padding:16px;text-align:center;font-weight:700;color:#95a5a6;">\${rowPercStr}</td>
+        <td style="padding:16px;text-align:center;"><i data-lucide="folder" style="width:14px;color:#e67e22;cursor:pointer;"></i></td>
+      </tr>\`;
+    }).join('');
+  };
+
+  const cRows = generateRows(byClass);
+  const dRows = generateRows(byDate, 'date');
+  
+  // Ciclos usually don't have the 'Ação' icon in the screenshot, so slightly different row gen:
+  const cicRows = Object.keys(byCiclo).sort().map(k => {
+      let v = byCiclo[k];
+      let rowPercStr = percentScore(v) + '%';
+      return \`<tr>
+        <td style="padding:16px;color:#7f8c8d;font-weight:600;">\${k}</td>
+        <td style="padding:16px;text-align:right;font-weight:700;color:var(--text);">\${fmt(v.total).replace('R$ ','')}</td>
+        <td style="padding:16px;text-align:right;font-weight:600;color:#27ae60;">\${fmt(v.pagas).replace('R$ ','')}</td>
+        <td style="padding:16px;text-align:right;font-weight:600;color:#e67e22;">\${fmt(v.apagar).replace('R$ ','')}</td>
+        <td style="padding:16px;text-align:center;font-weight:700;color:#95a5a6;">\${rowPercStr}</td>
+      </tr>\`;
+  }).join('');
+
+
+  document.getElementById('content').innerHTML = \`
+    <div style="font-family:var(--font-sans);padding-bottom:50px;">
+      
+      <div style="display:flex;gap:12px;margin-bottom:24px;">
+        <select style="padding:8px 16px;border:1px solid #e1e8ed;border-radius:6px;outline:none;background:#fff;color:var(--text);font-weight:600;font-size:13px;">
+          <option>\${year}</option>
+        </select>
+        <select style="padding:8px 16px;border:1px solid #e1e8ed;border-radius:6px;outline:none;background:#fff;color:var(--text);font-weight:600;font-size:13px;">
+          <option>Abril</option>
+        </select>
+        <select style="padding:8px 16px;border:1px solid #e1e8ed;border-radius:6px;outline:none;background:#fff;color:var(--text);font-weight:600;font-size:13px;">
+          <option>Visão contábil</option>
+        </select>
+      </div>
+
+      <!-- CARDS MENSURAÇÃO -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:30px;">
+        
+        <div style="background:#54a0ff;border-radius:8px;padding:24px;color:#fff;box-shadow:0 3px 10px rgba(84,160,255,0.25);">
+          <div style="font-weight:800;font-size:14px;margin-bottom:4px;">Total</div>
+          <div style="font-size:36px;font-weight:800;letter-spacing:-0.5px;">\${fmt(totalDesp)}</div>
+        </div>
+
+        <div style="background:#2ed573;border-radius:8px;padding:24px;color:#fff;box-shadow:0 3px 10px rgba(46,213,115,0.25);">
+          <div style="font-weight:800;font-size:14px;margin-bottom:4px;">Pagas</div>
+          <div style="font-size:36px;font-weight:800;letter-spacing:-0.5px;">\${fmt(totalPagas)}</div>
+        </div>
+
+        <div style="background:#ff9f43;border-radius:8px;padding:24px;color:#fff;box-shadow:0 3px 10px rgba(255,159,67,0.25);">
+          <div style="font-weight:800;font-size:14px;margin-bottom:4px;">A pagar</div>
+          <div style="font-size:36px;font-weight:800;letter-spacing:-0.5px;">\${fmt(totalApagar)}</div>
+        </div>
+
+      </div>
+
+      <!-- SESSÃO 1: Classificações & Datas -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+        
+        <div style="background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.02);border:1px solid #f1f2f6;overflow:hidden;min-height:250px;">
+           <div style="padding:16px 20px;font-weight:800;color:#3498db;font-size:14px;border-bottom:1px solid #f8f9fa;">Despesas por classificação</div>
+           <div style="overflow-x:auto;">
+             <table style="width:100%;border-collapse:collapse;font-size:12px;">
+               <thead style="background:#fcfcfc;border-bottom:2px solid #f1f2f6;">
+                 <tr>
+                   <th style="padding:14px;text-align:left;color:#2c3e50;font-weight:800;"></th>
+                   <th style="padding:14px;text-align:right;color:#2c3e50;font-weight:800;">Total</th>
+                   <th style="padding:14px;text-align:right;color:#2c3e50;font-weight:800;">Pagas</th>
+                   <th style="padding:14px;text-align:right;color:#2c3e50;font-weight:800;">A Pagar</th>
+                   <th style="padding:14px;text-align:center;color:#2c3e50;font-weight:800;">%</th>
+                   <th style="padding:14px;text-align:center;color:#2c3e50;font-weight:800;">Ação</th>
+                 </tr>
+               </thead>
+               <tbody>\${cRows || \`<tr><td colspan="6" style="text-align:center;padding:40px;color:#bdc3c7;font-weight:600;">Sem dados para o mês selecionado</td></tr>\`}</tbody>
+             </table>
+           </div>
+        </div>
+
+        <div style="background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.02);border:1px solid #f1f2f6;overflow:hidden;min-height:250px;">
+           <div style="padding:16px 20px;font-weight:800;color:#3498db;font-size:14px;border-bottom:1px solid #f8f9fa;">Despesas por data vencimento dia útil</div>
+           <div style="overflow-x:auto;">
+             <table style="width:100%;border-collapse:collapse;font-size:12px;">
+               <thead style="background:#fcfcfc;border-bottom:2px solid #f1f2f6;">
+                 <tr>
+                   <th style="padding:14px;text-align:left;color:#2c3e50;font-weight:800;"></th>
+                   <th style="padding:14px;text-align:right;color:#2c3e50;font-weight:800;">Total</th>
+                   <th style="padding:14px;text-align:right;color:#2c3e50;font-weight:800;">Pagas</th>
+                   <th style="padding:14px;text-align:right;color:#2c3e50;font-weight:800;">A Pagar</th>
+                   <th style="padding:14px;text-align:center;color:#2c3e50;font-weight:800;">%</th>
+                   <th style="padding:14px;text-align:center;color:#2c3e50;font-weight:800;">Ação</th>
+                 </tr>
+               </thead>
+               <tbody>\${dRows || \`<tr><td colspan="6" style="text-align:center;padding:40px;color:#bdc3c7;font-weight:600;">Sem dados para o mês selecionado</td></tr>\`}</tbody>
+             </table>
+           </div>
+        </div>
+
+      </div>
+
+      <!-- SESSÃO 2: Gráfico & Formas Pagt vazias -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+        
+        <div style="background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.02);border:1px solid #f1f2f6;overflow:hidden;min-height:270px;display:flex;flex-direction:column;">
+           <div style="padding:16px 20px;font-weight:800;color:#3498db;font-size:14px;border-bottom:1px solid #f8f9fa;">Despesas por classificação</div>
+           <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;">
+              <!-- Empty state graph or pure CSS gradient placeholder matching the UI screenshot -->
+              \${totalDesp > 0 ? 
+                \`<div style="width:150px;height:150px;border-radius:50%;background:conic-gradient(#54a0ff 0% 30%, #2ed573 30% 50%, #ff9f43 50% 80%, #b762f0 80% 100%);box-shadow:0 0 0 6px #fff, 0 4px 15px rgba(0,0,0,0.1) inset;border:2px solid #fff;"></div>
+                  <div style="margin-top:20px;font-size:11px;font-weight:700;color:#7f8c8d;text-align:center;">Gráfico em construção...</div>\`
+               : 
+                \`<i data-lucide="pie-chart" style="width:48px;height:48px;color:#ecf0f1;margin-bottom:12px;"></i>
+                 <div style="color:#bdc3c7;font-weight:600;font-size:13px;">Sem dados para gerar gráfico</div>\`
+              }
+           </div>
+        </div>
+
+        <div style="background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.02);border:1px solid #f1f2f6;overflow:hidden;min-height:270px;display:flex;flex-direction:column;">
+           <div style="padding:16px 20px;font-weight:800;color:#3498db;font-size:14px;border-bottom:1px solid #f8f9fa;">Despesas pagas por forma pagamento</div>
+           <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:40px;">
+              \${totalPagas > 0 ? \`<div style="color:#bdc3c7;font-weight:600;font-size:13px;">\${fmt(totalPagas)} pagas... (Layout a definir)</div>\` : \`<div style="color:#bdc3c7;font-weight:600;font-size:13px;">Sem dados</div>\`}
+           </div>
+        </div>
+
+      </div>
+
+      <!-- SESSÃO 3: Ciclos -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+        
+        <div style="background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.02);border:1px solid #f1f2f6;overflow:hidden;min-height:200px;">
+           <div style="padding:16px 20px;font-weight:800;color:#3498db;font-size:14px;border-bottom:1px solid #f8f9fa;">Ciclo despesa</div>
+           <div style="overflow-x:auto;">
+             <table style="width:100%;border-collapse:collapse;font-size:12px;">
+               <thead style="background:#fcfcfc;border-bottom:2px solid #f1f2f6;">
+                 <tr>
+                   <th style="padding:14px;text-align:left;color:#2c3e50;font-weight:800;"></th>
+                   <th style="padding:14px;text-align:right;color:#2c3e50;font-weight:800;">Total</th>
+                   <th style="padding:14px;text-align:right;color:#2c3e50;font-weight:800;">Pagas</th>
+                   <th style="padding:14px;text-align:right;color:#2c3e50;font-weight:800;">A Pagar</th>
+                   <th style="padding:14px;text-align:center;color:#2c3e50;font-weight:800;">%</th>
+                 </tr>
+               </thead>
+               <tbody>\${cicRows || \`<tr><td colspan="5" style="text-align:center;padding:40px;color:#bdc3c7;font-weight:600;">Sem dados no período</td></tr>\`}</tbody>
+             </table>
+           </div>
+        </div>
+
+        <div style="background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.02);border:1px solid #f1f2f6;overflow:hidden;min-height:200px;">
+           <div style="padding:16px 20px;font-weight:800;color:#3498db;font-size:14px;border-bottom:1px solid #f8f9fa;">Despesas pagas - Forma pagamento</div>
+           <div style="overflow-x:auto;">
+             <table style="width:100%;border-collapse:collapse;font-size:12px;">
+               <thead style="background:#fcfcfc;border-bottom:2px solid #f1f2f6;">
+                 <tr>
+                   <th style="padding:14px;text-align:left;color:#2c3e50;font-weight:800;"></th>
+                   <th style="padding:14px;text-align:right;color:#2c3e50;font-weight:800;">Valor pago</th>
+                   <th style="padding:14px;text-align:center;color:#2c3e50;font-weight:800;">%</th>
+                   <th style="padding:14px;text-align:center;color:#2c3e50;font-weight:800;">Ação</th>
+                 </tr>
+               </thead>
+               <tbody><tr><td colspan="4" style="text-align:center;padding:40px;color:#bdc3c7;font-weight:600;">Sem dados no período</td></tr></tbody>
+             </table>
+           </div>
+        </div>
+
+      </div>
+
+    </div>
+  \`;
+  lucide.createIcons();
+}
+
+// ===== CADASTRAR CLASSIFICAÇÃO =====
+async function renderCadastrarClassificacao() {
+  document.getElementById('topbar-actions').innerHTML = \`
+    <button class="btn btn-success" style="border-radius:20px;padding:8px 24px;font-weight:700;" onclick="openClassificacaoModal()">
+      <i data-lucide="plus"></i> Nova classificação
+    </button>
+  \`;
+
+  document.getElementById('content').innerHTML = '<div class="loading" style="padding-top:40px;text-align:center;"><div class="sk"></div></div>';
+
+  const {data} = await sb.from('classificacoes').select('*').eq('tipo', 'despesa').order('nome');
+  
+  let rows = '';
+  (data||[]).forEach(c => {
+    let dt = c.created_at ? new Date(c.created_at).toLocaleDateString('pt-BR') : 'N/D';
+    let visao = c.visao_contabil || 'Fixa';
+    rows += \`
+      <tr style="border-bottom:1px solid #f1f2f6;">
+        <td style="padding:16px;text-align:center;color:#7f8c8d;font-weight:600;">\${dt}</td>
+        <td style="padding:16px;text-align:center;color:#2c3e50;font-weight:700;">\${visao}</td>
+        <td style="padding:16px;text-align:center;color:#2c3e50;font-weight:600;">\${c.nome}</td>
+        <td style="padding:16px;text-align:center;">
+          <div style="display:flex;gap:10px;justify-content:center;">
+            <i data-lucide="edit-3" style="width:16px;color:#3498db;cursor:pointer;"></i>
+            <i data-lucide="trash-2" style="width:16px;color:#e74c3c;cursor:pointer;" onclick="deleteClassificacao('\${c.id}')"></i>
+          </div>
+        </td>
+      </tr>
+    \`;
+  });
+
+  document.getElementById('content').innerHTML = \`
+    <div style="font-family:var(--font-sans);padding-bottom:50px;">
+      
+      <div style="display:flex;gap:12px;margin-bottom:24px;align-items:center;">
+        <label style="font-weight:800;color:#2c3e50;font-size:13px;">Filtrar por visão contábil:</label>
+        <select style="padding:8px 16px;border:1px solid #e1e8ed;border-radius:6px;outline:none;background:#fff;color:var(--text);font-weight:600;font-size:13px;">
+          <option>Todas...</option>
+          <option>Fixa</option>
+          <option>Variável</option>
+        </select>
+      </div>
+
+      <div style="background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.02);border:1px solid #f1f2f6;overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead style="background:#fcfcfc;border-bottom:2px solid #f1f2f6;">
+            <tr>
+              <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Data Cadastro</th>
+              <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Visão Contábil</th>
+              <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Classificação ↑↓</th>
+              <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Ação</th>
+            </tr>
+          </thead>
+          <tbody>
+            \${rows || \`<tr><td colspan="4" style="text-align:center;padding:60px 0;color:#bdc3c7;font-weight:600;">Nenhuma classificação encontrada</td></tr>\`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  \`;
+  lucide.createIcons();
+}
+
+function openClassificacaoModal() {
+  openModal(\`
+    <style>
+      .cl-modal-focus:focus { border-color:#3498db !important; box-shadow:0 0 0 3px rgba(52,152,219,0.15) !important; }
+    </style>
+    <div class="modal-header" style="border-bottom:none;padding-bottom:10px;">
+      <h3 style="color:#2c3e50;font-weight:800;font-size:18px;">Nova Classificação de Despesa</h3>
+    </div>
+    <div class="modal-body" style="padding-top:0;">
+      <div style="display:flex;flex-direction:column;gap:16px;padding-top:10px;">
+        <div class="form-group">
+          <label style="color:#c0392b;font-weight:800;font-size:13px;margin-bottom:6px;display:block;">Visão Contábil *</label>
+          <select id="cl-visao" class="cl-modal-focus" style="width:100%;border:1px solid #3498db;border-radius:6px;padding:10px 14px;color:#2c3e50;font-weight:600;outline:none;background:#fff;transition:border .2s;font-size:14px;">
+            <option value="">Selecione</option>
+            <option value="Fixa">Fixa</option>
+            <option value="Variável">Variável</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label style="color:#c0392b;font-weight:800;font-size:13px;margin-bottom:6px;display:block;">Classificação *</label>
+          <input id="cl-nome" class="cl-modal-focus" placeholder="Ex: Aluguel" style="width:100%;border:1px solid #e1e8ed;border-radius:6px;padding:10px 14px;color:#2c3e50;font-weight:600;outline:none;transition:border .2s;font-size:14px;">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="border-top:none;display:flex;justify-content:space-between;padding-top:20px;">
+      <button class="btn" style="background:#e74c3c;color:#fff;border-radius:20px;padding:8px 24px;font-weight:800;border:none;display:flex;align-items:center;gap:6px;box-shadow:0 3px 6px rgba(231,76,60,0.2);" onclick="closeModalDirect()">
+        <i data-lucide="arrow-left" style="width:14px;"></i> Voltar
+      </button>
+      <button class="btn" style="background:#3498db;color:#fff;border-radius:20px;padding:8px 24px;font-weight:800;border:none;display:flex;align-items:center;gap:6px;box-shadow:0 3px 6px rgba(52,152,219,0.2);" onclick="saveClassificacao()">
+        <i data-lucide="thumbs-up" style="width:14px;"></i> Salvar
+      </button>
+    </div>
+  \`, 'modal-md');
+  lucide.createIcons();
+}
+
+async function saveClassificacao() {
+  const visao = document.getElementById('cl-visao').value;
+  const nome = document.getElementById('cl-nome').value.trim();
+  if(!visao || !nome) return toast('Preencha visão contábil e a classificação!','error');
+
+  await sb.from('classificacoes').insert({nome: nome, tipo: 'despesa', visao_contabil: visao});
+  closeModalDirect();
+  toast('Classificação salva!');
+  renderCadastrarClassificacao();
+}
+
+async function deleteClassificacao(id) {
+  if(!confirm('Atenção: Deseja excluir esta classificação?')) return;
+  await sb.from('classificacoes').delete().eq('id',id);
+  toast('Excluída com sucesso!');
+  renderCadastrarClassificacao();
 }
