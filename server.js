@@ -3,562 +3,496 @@ const cors = require('cors');
 const Database = require('better-sqlite3');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-
 app.use(express.static(__dirname));
 
-// --- Setup Database ---
 const dataDir = path.join(__dirname, 'data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
-const dbPath = path.join(dataDir, 'database.sqlite');
-const dbExists = fs.existsSync(dbPath);
-const db = new Database(dbPath);
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+// =============================================
+// ADMIN DATABASE
+// =============================================
+const adminDb = new Database(path.join(dataDir, 'admin.sqlite'));
+adminDb.pragma('journal_mode = WAL');
+adminDb.exec(`
+  CREATE TABLE IF NOT EXISTS admin_usuarios (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL, email TEXT UNIQUE NOT NULL, senha_hash TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE TABLE IF NOT EXISTS gestores (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL, slug TEXT UNIQUE NOT NULL, email TEXT UNIQUE NOT NULL,
+    senha_hash TEXT NOT NULL, plano TEXT DEFAULT 'basico',
+    ativo INTEGER DEFAULT 1, expires_at DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+`);
 
-if (!dbExists) {
-  console.log('Creating new SQLite database from schema...');
+// Admin padrão
+if (!adminDb.prepare('SELECT id FROM admin_usuarios WHERE email=?').get('admin@modaflow.com')) {
+  const h = crypto.createHash('sha256').update('admin123').digest('hex');
+  adminDb.prepare('INSERT INTO admin_usuarios (nome,email,senha_hash) VALUES (?,?,?)').run('Super Admin','admin@modaflow.com',h);
+  console.log('Admin criado: admin@modaflow.com / admin123 — TROQUE A SENHA!');
+}
+
+// =============================================
+// TOKENS
+// =============================================
+const SECRET = process.env.TOKEN_SECRET || 'modaflow-2025';
+function gerarToken(p) {
+  const d = JSON.stringify({...p, iat:Date.now()});
+  const s = crypto.createHmac('sha256',SECRET).update(d).digest('hex');
+  return Buffer.from(d).toString('base64')+'.'+s;
+}
+function verificarToken(token) {
+  try {
+    const [b,s] = token.split('.');
+    const d = Buffer.from(b,'base64').toString();
+    if(crypto.createHmac('sha256',SECRET).update(d).digest('hex')!==s) return null;
+    return JSON.parse(d);
+  } catch { return null; }
+}
+
+// =============================================
+// MULTI-TENANT DBS
+// =============================================
+const tenantDbs = {};
+function getTenantDb(slug) {
+  if (tenantDbs[slug]) return tenantDbs[slug];
+  const tdb = new Database(path.join(dataDir, `tenant_${slug}.sqlite`));
+  tdb.pragma('journal_mode = WAL');
+  tdb.pragma('foreign_keys = ON');
+  tenantDbs[slug] = tdb;
+  return tdb;
+}
+
+function iniciarBancoGestor(slug) {
+  const tdb = getTenantDb(slug);
   const schemaPath = path.join(__dirname, 'database_schema.sql');
   if (fs.existsSync(schemaPath)) {
-    let sql = fs.readFileSync(schemaPath, 'utf8');
-    sql = sql.replace(/SERIAL PRIMARY KEY/g, 'INTEGER PRIMARY KEY AUTOINCREMENT');
-    sql = sql.replace(/JSONB/g, 'TEXT');
-    sql = sql.replace(/BOOLEAN/g, 'INTEGER');
-    sql = sql.replace(/VARCHAR\(\d+\)\s+UNIQUE/g, 'TEXT UNIQUE');
-    sql = sql.replace(/VARCHAR\(\d+\)/g, 'TEXT');
-    sql = sql.replace(/DECIMAL\(\d+,\d+\)/g, 'REAL');
-    db.exec(sql);
-    console.log('Database initialized successfully!');
+    let sql = fs.readFileSync(schemaPath,'utf8');
+    sql = sql.replace(/SERIAL PRIMARY KEY/g,'INTEGER PRIMARY KEY AUTOINCREMENT')
+             .replace(/JSONB/g,'TEXT').replace(/BOOLEAN/g,'INTEGER')
+             .replace(/VARCHAR\(\d+\)\s+UNIQUE/g,'TEXT UNIQUE')
+             .replace(/VARCHAR\(\d+\)/g,'TEXT').replace(/DECIMAL\(\d+,\d+\)/g,'REAL');
+    try { tdb.exec(sql); } catch(e) {}
+  }
+  aplicarMigracoes(tdb);
+  return tdb;
+}
+
+function aplicarMigracoes(tdb) {
+  const sc = sql => { try { tdb.exec(sql); } catch(e){} };
+  const ac = (t,c,tp) => { try { tdb.exec(`ALTER TABLE "${t}" ADD COLUMN "${c}" ${tp}`); } catch(e){} };
+  sc(`CREATE TABLE IF NOT EXISTS como_conheceu (id INTEGER PRIMARY KEY AUTOINCREMENT, descricao TEXT, ativo INTEGER DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS transferencias_estoque (id INTEGER PRIMARY KEY AUTOINCREMENT, produto_grade_id INTEGER, quantidade INTEGER DEFAULT 0, loja_origem TEXT, loja_destino TEXT, observacao TEXT, status TEXT DEFAULT 'concluida', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS agenda_tarefas (id INTEGER PRIMARY KEY AUTOINCREMENT, titulo TEXT, descricao TEXT, data_tarefa DATE, concluida INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS changelog (id INTEGER PRIMARY KEY AUTOINCREMENT, descricao TEXT, data_lancamento DATE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS configuracoes (id INTEGER PRIMARY KEY AUTOINCREMENT, chave TEXT UNIQUE, valor TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS contas_bancarias (id INTEGER PRIMARY KEY AUTOINCREMENT, nome TEXT, banco TEXT, agencia TEXT, conta TEXT, saldo REAL DEFAULT 0, ativo INTEGER DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS metas_vendas (id INTEGER PRIMARY KEY AUTOINCREMENT, tipo TEXT DEFAULT 'loja', vendedor_id INTEGER, mes INTEGER, ano INTEGER, valor_meta REAL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS bags (id INTEGER PRIMARY KEY AUTOINCREMENT, cliente_id INTEGER, vendedor_id INTEGER, total REAL NOT NULL, data_retorno DATE, status TEXT DEFAULT 'aberta', observacoes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS bag_itens (id INTEGER PRIMARY KEY AUTOINCREMENT, bag_id INTEGER, produto_id INTEGER, produto_nome TEXT, tamanho TEXT, quantidade INTEGER NOT NULL, preco_unitario REAL NOT NULL, total REAL NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS trocas (id INTEGER PRIMARY KEY AUTOINCREMENT, venda_id INTEGER, cliente_id INTEGER, produto_id INTEGER, produto_nome TEXT, tamanho TEXT, valor REAL, motivo TEXT, status TEXT DEFAULT 'pendente', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS notas_fiscais (id INTEGER PRIMARY KEY AUTOINCREMENT, numero TEXT, chave TEXT, fornecedor_id INTEGER, valor REAL NOT NULL, data_emissao DATE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS duplicatas (id INTEGER PRIMARY KEY AUTOINCREMENT, nota_id INTEGER, valor REAL NOT NULL, vencimento DATE NOT NULL, status TEXT DEFAULT 'pendente', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS movimentos_caixa (id INTEGER PRIMARY KEY AUTOINCREMENT, caixa_id INTEGER, tipo TEXT, descricao TEXT, valor REAL NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS caixas (id INTEGER PRIMARY KEY AUTOINCREMENT, saldo_inicial REAL DEFAULT 0, status TEXT DEFAULT 'aberto', data_fechamento TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS despesas (id INTEGER PRIMARY KEY AUTOINCREMENT, classificacao_id INTEGER, descricao TEXT NOT NULL, valor REAL NOT NULL, data_competencia DATE, vencimento DATE, data_pagamento DATE, status TEXT DEFAULT 'aberta', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS contas_pagar (id INTEGER PRIMARY KEY AUTOINCREMENT, fornecedor_id INTEGER, descricao TEXT, valor REAL NOT NULL, vencimento DATE, data_pagamento DATE, status TEXT DEFAULT 'aberta', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS classificacoes (id INTEGER PRIMARY KEY AUTOINCREMENT, nome TEXT NOT NULL, tipo TEXT)`);
+  sc(`CREATE TABLE IF NOT EXISTS contas_receber (id INTEGER PRIMARY KEY AUTOINCREMENT, cliente_id INTEGER, descricao TEXT, valor REAL, vencimento DATE, data_pagamento DATE, data_recebimento DATE, status TEXT DEFAULT 'aberta', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS crediario (id INTEGER PRIMARY KEY AUTOINCREMENT, venda_id INTEGER, cliente_id INTEGER, total REAL NOT NULL, saldo_devedor REAL DEFAULT 0, num_parcelas INTEGER DEFAULT 1, parcelas_pagas INTEGER DEFAULT 0, valor_parcela REAL DEFAULT 0, status TEXT DEFAULT 'aberto', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS crediario_parcelas (id INTEGER PRIMARY KEY AUTOINCREMENT, crediario_id INTEGER, numero_parcela INTEGER DEFAULT 1, valor REAL NOT NULL, valor_pago REAL, vencimento DATE NOT NULL, data_pagamento DATE, status TEXT DEFAULT 'pendente', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  ac('clientes','nome_abreviado','TEXT'); ac('clientes','cpf','TEXT'); ac('clientes','instagram','TEXT');
+  ac('clientes','sexo','TEXT'); ac('clientes','data_nascimento','DATE'); ac('clientes','observacoes','TEXT');
+  ac('clientes','logradouro','TEXT'); ac('clientes','numero','TEXT'); ac('clientes','bairro','TEXT');
+  ac('clientes','cep','TEXT'); ac('clientes','estado','TEXT'); ac('clientes','cidade','TEXT');
+  ac('clientes','ultima_compra','DATE');
+  ac('vendas','numero_venda','INTEGER'); ac('vendas','subtotal','REAL'); ac('vendas','parcelas','INTEGER');
+  ac('vendas','valor_pago','REAL'); ac('vendas','troco','REAL');
+  ac('fornecedores','razao_social','TEXT'); ac('fornecedores','nome_fantasia','TEXT');
+  ac('fornecedores','cnpj','TEXT'); ac('fornecedores','celular','TEXT');
+  ac('fornecedores','cidade','TEXT'); ac('fornecedores','estado','TEXT');
+  ac('produtos','sku','TEXT'); ac('produtos','marca','TEXT'); ac('produtos','colecao_id','INTEGER');
+  ac('produtos','ncm_descricao','TEXT'); ac('produtos','ncm','TEXT'); ac('produtos','genero','TEXT');
+  ac('produtos','unidade','TEXT'); ac('produtos','custo','REAL'); ac('produtos','margem_lucro','REAL');
+  ac('produto_grades','ean','TEXT'); ac('produto_grades','cor_hexa','TEXT');
+  ac('produto_grades','cor_descricao','TEXT'); ac('produto_grades','custo','REAL');
+  ac('produto_grades','preco_venda','REAL'); ac('produto_grades','margem_lucro','REAL');
+  ac('categorias','ativo','INTEGER'); ac('colecoes','ativo','INTEGER'); ac('grades','ativo','INTEGER');
+  try { tdb.exec(`UPDATE categorias SET ativo=1 WHERE ativo IS NULL`); } catch(e){}
+  try { tdb.exec(`UPDATE colecoes SET ativo=1 WHERE ativo IS NULL`); } catch(e){}
+  try { tdb.exec(`UPDATE grades SET ativo=1 WHERE ativo IS NULL`); } catch(e){}
+  try { tdb.exec(`UPDATE fornecedores SET razao_social=nome WHERE (razao_social IS NULL OR razao_social='') AND nome IS NOT NULL`); } catch(e){}
+}
+
+// =============================================
+// DB LEGADO (compatibilidade)
+// =============================================
+const legacyDbPath = path.join(dataDir, 'database.sqlite');
+const legacyExists = fs.existsSync(legacyDbPath);
+const legacyDb = new Database(legacyDbPath);
+legacyDb.pragma('journal_mode = WAL');
+legacyDb.pragma('foreign_keys = ON');
+if (!legacyExists) {
+  const schemaPath = path.join(__dirname, 'database_schema.sql');
+  if (fs.existsSync(schemaPath)) {
+    let sql = fs.readFileSync(schemaPath,'utf8');
+    sql = sql.replace(/SERIAL PRIMARY KEY/g,'INTEGER PRIMARY KEY AUTOINCREMENT')
+             .replace(/JSONB/g,'TEXT').replace(/BOOLEAN/g,'INTEGER')
+             .replace(/VARCHAR\(\d+\)\s+UNIQUE/g,'TEXT UNIQUE')
+             .replace(/VARCHAR\(\d+\)/g,'TEXT').replace(/DECIMAL\(\d+,\d+\)/g,'REAL');
+    legacyDb.exec(sql);
   }
 }
+aplicarMigracoes(legacyDb);
 
-// --- Helpers de migração ---
-function safeExec(sql) { try { db.exec(sql); } catch(e) {} }
-function safeAddCol(table, col, type) {
-  try { db.exec(`ALTER TABLE "${table}" ADD COLUMN "${col}" ${type}`); } catch(e) {}
+// Iniciar bancos de gestores já cadastrados
+for (const g of adminDb.prepare('SELECT slug FROM gestores WHERE ativo=1').all()) {
+  const dbFile = path.join(dataDir, `tenant_${g.slug}.sqlite`);
+  if (fs.existsSync(dbFile)) { getTenantDb(g.slug); aplicarMigracoes(getTenantDb(g.slug)); }
+  else iniciarBancoGestor(g.slug);
 }
 
 // =============================================
-// TABELAS QUE PODEM FALTAR
+// MIDDLEWARE: resolve o DB correto
 // =============================================
-safeExec(`CREATE TABLE IF NOT EXISTS como_conheceu (id INTEGER PRIMARY KEY AUTOINCREMENT, descricao TEXT, ativo INTEGER DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-safeExec(`CREATE TABLE IF NOT EXISTS cliente_filhos (id INTEGER PRIMARY KEY AUTOINCREMENT, cliente_id INTEGER, nome TEXT, nome_abreviado TEXT, sexo TEXT, data_nascimento DATE, grade_id INTEGER, grade_nome TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-safeExec(`CREATE TABLE IF NOT EXISTS contas_receber (id INTEGER PRIMARY KEY AUTOINCREMENT, cliente_id INTEGER, descricao TEXT, valor REAL, vencimento DATE, data_pagamento DATE, data_recebimento DATE, origem TEXT, status TEXT DEFAULT 'aberta', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-safeExec(`CREATE TABLE IF NOT EXISTS agenda_tarefas (id INTEGER PRIMARY KEY AUTOINCREMENT, titulo TEXT, descricao TEXT, data_tarefa DATE, concluida INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-safeExec(`CREATE TABLE IF NOT EXISTS changelog (id INTEGER PRIMARY KEY AUTOINCREMENT, descricao TEXT, data_lancamento DATE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-safeExec(`CREATE TABLE IF NOT EXISTS configuracoes (id INTEGER PRIMARY KEY AUTOINCREMENT, chave TEXT UNIQUE, valor TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-safeExec(`CREATE TABLE IF NOT EXISTS contas_bancarias (id INTEGER PRIMARY KEY AUTOINCREMENT, nome TEXT, banco TEXT, agencia TEXT, conta TEXT, saldo REAL DEFAULT 0, ativo INTEGER DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-safeExec(`CREATE TABLE IF NOT EXISTS metas_vendas (id INTEGER PRIMARY KEY AUTOINCREMENT, tipo TEXT DEFAULT 'loja', vendedor_id INTEGER, mes INTEGER, ano INTEGER, valor_meta REAL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-safeExec(`CREATE TABLE IF NOT EXISTS agenda (id INTEGER PRIMARY KEY AUTOINCREMENT, cliente_id INTEGER, titulo TEXT, descricao TEXT, data DATE, hora TEXT, concluido INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-safeExec(`CREATE TABLE IF NOT EXISTS conferencias_estoque (id INTEGER PRIMARY KEY AUTOINCREMENT, status TEXT DEFAULT 'aberta', total_lido INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-safeExec(`CREATE TABLE IF NOT EXISTS conferencia_itens (id INTEGER PRIMARY KEY AUTOINCREMENT, conferencia_id INTEGER, produto_grade_id INTEGER, ean TEXT, produto_nome TEXT, quantidade INTEGER DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-safeExec(`CREATE TABLE IF NOT EXISTS cores_estoque (id INTEGER PRIMARY KEY AUTOINCREMENT, descricao TEXT, cor_hex TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-safeExec(`CREATE TABLE IF NOT EXISTS generos_estoque (id INTEGER PRIMARY KEY AUTOINCREMENT, descricao TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-safeExec(`CREATE TABLE IF NOT EXISTS grade_tamanhos (id INTEGER PRIMARY KEY AUTOINCREMENT, tamanho TEXT, faixa_etaria TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-safeExec(`CREATE TABLE IF NOT EXISTS fornecedor_marcas (id INTEGER PRIMARY KEY AUTOINCREMENT, fornecedor_id INTEGER, nome TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-safeExec(`CREATE TABLE IF NOT EXISTS transferencias_estoque (id INTEGER PRIMARY KEY AUTOINCREMENT, produto_grade_id INTEGER, quantidade INTEGER DEFAULT 0, loja_origem TEXT, loja_destino TEXT, observacao TEXT, status TEXT DEFAULT 'concluida', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-safeExec(`CREATE TABLE IF NOT EXISTS classificacoes (id INTEGER PRIMARY KEY AUTOINCREMENT, nome TEXT NOT NULL, tipo TEXT)`);
-safeExec(`CREATE TABLE IF NOT EXISTS despesas (id INTEGER PRIMARY KEY AUTOINCREMENT, classificacao_id INTEGER, descricao TEXT NOT NULL, valor REAL NOT NULL, data_competencia DATE, vencimento DATE, data_pagamento DATE, status TEXT DEFAULT 'aberta', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-safeExec(`CREATE TABLE IF NOT EXISTS contas_pagar (id INTEGER PRIMARY KEY AUTOINCREMENT, fornecedor_id INTEGER, descricao TEXT, valor REAL NOT NULL, vencimento DATE, data_pagamento DATE, status TEXT DEFAULT 'aberta', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-safeExec(`CREATE TABLE IF NOT EXISTS bags (id INTEGER PRIMARY KEY AUTOINCREMENT, cliente_id INTEGER, vendedor_id INTEGER, total REAL NOT NULL, data_retorno DATE, status TEXT DEFAULT 'aberta', observacoes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-safeExec(`CREATE TABLE IF NOT EXISTS bag_itens (id INTEGER PRIMARY KEY AUTOINCREMENT, bag_id INTEGER, produto_id INTEGER, produto_nome TEXT, tamanho TEXT, quantidade INTEGER NOT NULL, preco_unitario REAL NOT NULL, total REAL NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-safeExec(`CREATE TABLE IF NOT EXISTS trocas (id INTEGER PRIMARY KEY AUTOINCREMENT, venda_id INTEGER, cliente_id INTEGER, produto_id INTEGER, produto_nome TEXT, tamanho TEXT, valor REAL, motivo TEXT, status TEXT DEFAULT 'pendente', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-safeExec(`CREATE TABLE IF NOT EXISTS notas_fiscais (id INTEGER PRIMARY KEY AUTOINCREMENT, numero TEXT, chave TEXT, fornecedor_id INTEGER, valor REAL NOT NULL, data_emissao DATE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-safeExec(`CREATE TABLE IF NOT EXISTS duplicatas (id INTEGER PRIMARY KEY AUTOINCREMENT, nota_id INTEGER, valor REAL NOT NULL, vencimento DATE NOT NULL, status TEXT DEFAULT 'pendente', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-safeExec(`CREATE TABLE IF NOT EXISTS movimentos_caixa (id INTEGER PRIMARY KEY AUTOINCREMENT, caixa_id INTEGER, tipo TEXT, descricao TEXT, valor REAL NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-safeExec(`CREATE TABLE IF NOT EXISTS caixas (id INTEGER PRIMARY KEY AUTOINCREMENT, saldo_inicial REAL DEFAULT 0, status TEXT DEFAULT 'aberto', data_fechamento TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+function resolveDb(req, res, next) {
+  const auth = req.headers['authorization'];
+  if (auth) {
+    const payload = verificarToken(auth.replace('Bearer ',''));
+    if (payload && payload.tipo === 'gestor') {
+      const g = adminDb.prepare('SELECT ativo,expires_at FROM gestores WHERE id=?').get(payload.id);
+      if (!g || !g.ativo) return res.status(403).json({ message:'Conta bloqueada' });
+      if (g.expires_at && new Date(g.expires_at) < new Date()) {
+        return res.status(403).json({ message:`Sistema vencido em ${new Date(g.expires_at).toLocaleDateString('pt-BR')}. Renove seu plano.` });
+      }
+      req.db = getTenantDb(payload.slug);
+      req.gestor = payload;
+      return next();
+    }
+  }
+  // Fallback: banco legado (compatibilidade com sessão antiga)
+  req.db = legacyDb;
+  next();
+}
 
 // =============================================
-// COLUNAS FALTANDO NAS TABELAS EXISTENTES
+// ROTAS ADMIN
 // =============================================
+function adminAuth(req, res, next) {
+  const auth = req.headers['authorization'];
+  if (!auth) return res.status(401).json({ message:'Não autenticado' });
+  const p = verificarToken(auth.replace('Bearer ',''));
+  if (!p || p.tipo !== 'admin') return res.status(401).json({ message:'Token inválido' });
+  req.admin = p; next();
+}
 
-// clientes
-safeAddCol('clientes','nome_abreviado','TEXT');
-safeAddCol('clientes','cpf','TEXT');
-safeAddCol('clientes','rg','TEXT');
-safeAddCol('clientes','ie','TEXT');
-safeAddCol('clientes','instagram','TEXT');
-safeAddCol('clientes','sexo','TEXT');
-safeAddCol('clientes','como_conheceu','TEXT');
-safeAddCol('clientes','data_nascimento','DATE');
-safeAddCol('clientes','observacoes','TEXT');
-safeAddCol('clientes','tipo_pessoa','TEXT');
-safeAddCol('clientes','logradouro','TEXT');
-safeAddCol('clientes','numero','TEXT');
-safeAddCol('clientes','complemento','TEXT');
-safeAddCol('clientes','bairro','TEXT');
-safeAddCol('clientes','cep','TEXT');
-safeAddCol('clientes','estado','TEXT');
-safeAddCol('clientes','cidade','TEXT');
-safeAddCol('clientes','ultima_compra','DATE');
+app.post('/api/admin/login', (req,res) => {
+  try {
+    const { email, senha_hash } = req.body;
+    const adm = adminDb.prepare('SELECT * FROM admin_usuarios WHERE email=?').get(email);
+    if (!adm || adm.senha_hash !== senha_hash) return res.status(401).json({ message:'Credenciais inválidas' });
+    const token = gerarToken({ tipo:'admin', id:adm.id, nome:adm.nome, email:adm.email });
+    res.json({ token, nome:adm.nome });
+  } catch(e) { res.status(500).json({ message:e.message }); }
+});
 
-// vendas
-safeAddCol('vendas','numero_venda','INTEGER');
-safeAddCol('vendas','subtotal','REAL');
-safeAddCol('vendas','parcelas','INTEGER');
-safeAddCol('vendas','valor_pago','REAL');
-safeAddCol('vendas','troco','REAL');
+app.get('/api/admin/me', adminAuth, (req,res) => res.json({ nome:req.admin.nome, email:req.admin.email }));
 
-// crediario
-safeAddCol('crediario','saldo_devedor','REAL');
-safeAddCol('crediario','num_parcelas','INTEGER');
-safeAddCol('crediario','parcelas_pagas','INTEGER');
-safeAddCol('crediario','valor_parcela','REAL');
+app.get('/api/admin/gestores', adminAuth, (req,res) => {
+  res.json(adminDb.prepare('SELECT id,nome,slug,email,plano,ativo,expires_at,created_at FROM gestores ORDER BY created_at DESC').all());
+});
 
-// crediario_parcelas
-safeAddCol('crediario_parcelas','numero_parcela','INTEGER');
-safeAddCol('crediario_parcelas','valor_pago','REAL');
+app.post('/api/admin/gestores', adminAuth, (req,res) => {
+  try {
+    const { nome,slug,email,senha_hash,plano='basico',ativo=1,expires_at=null } = req.body;
+    if (!nome||!slug||!email||!senha_hash) return res.status(400).json({ message:'Campos obrigatórios faltando' });
+    if (adminDb.prepare('SELECT id FROM gestores WHERE slug=? OR email=?').get(slug,email))
+      return res.status(400).json({ message:'Slug ou e-mail já cadastrado' });
+    const info = adminDb.prepare('INSERT INTO gestores (nome,slug,email,senha_hash,plano,ativo,expires_at) VALUES (?,?,?,?,?,?,?)')
+      .run(nome,slug,email,senha_hash,plano,ativo?1:0,expires_at);
+    iniciarBancoGestor(slug);
+    res.json({ id:info.lastInsertRowid, nome, slug, email });
+  } catch(e) { res.status(500).json({ message:e.message }); }
+});
 
-// contas_receber
-safeAddCol('contas_receber','data_recebimento','DATE');
-safeAddCol('contas_receber','origem','TEXT');
-
-// fornecedores — CRÍTICO: frontend usa razao_social, schema original tem nome
-safeAddCol('fornecedores','razao_social','TEXT');
-safeAddCol('fornecedores','nome_fantasia','TEXT');
-safeAddCol('fornecedores','ie','TEXT');
-safeAddCol('fornecedores','site','TEXT');
-safeAddCol('fornecedores','celular','TEXT');
-safeAddCol('fornecedores','cnpj','TEXT');
-safeAddCol('fornecedores','contato','TEXT');
-safeAddCol('fornecedores','endereco','TEXT');
-safeAddCol('fornecedores','cidade','TEXT');
-safeAddCol('fornecedores','estado','TEXT');
-safeAddCol('fornecedores','cep','TEXT');
-safeAddCol('fornecedores','observacoes','TEXT');
-// Copiar nome -> razao_social para registros existentes
-try { db.exec(`UPDATE fornecedores SET razao_social = nome WHERE (razao_social IS NULL OR razao_social = '') AND nome IS NOT NULL AND nome != ''`); } catch(e) {}
-
-// produtos
-safeAddCol('produtos','sku','TEXT');
-safeAddCol('produtos','marca','TEXT');
-safeAddCol('produtos','colecao_id','INTEGER');
-safeAddCol('produtos','ncm_descricao','TEXT');
-safeAddCol('produtos','ean','TEXT');
-safeAddCol('produtos','ncm','TEXT');
-safeAddCol('produtos','genero','TEXT');
-safeAddCol('produtos','cor','TEXT');
-safeAddCol('produtos','imagem_url','TEXT');
-safeAddCol('produtos','unidade','TEXT');
-safeAddCol('produtos','custo','REAL');
-safeAddCol('produtos','margem_lucro','REAL');
-// Sincronizar preco_custo -> custo para registros legados
-try { db.exec(`UPDATE produtos SET custo = preco_custo WHERE (custo IS NULL OR custo = 0) AND preco_custo IS NOT NULL AND preco_custo != 0`); } catch(e) {}
-
-// produto_grades — CRÍTICO: sem essas colunas as variações não salvam
-safeAddCol('produto_grades','ean','TEXT');
-safeAddCol('produto_grades','cor_hexa','TEXT');
-safeAddCol('produto_grades','cor_descricao','TEXT');
-safeAddCol('produto_grades','custo','REAL');
-safeAddCol('produto_grades','preco_venda','REAL');
-safeAddCol('produto_grades','margem_lucro','REAL');
-
-// categorias — sem ativo o filtro .eq('ativo',true) retorna vazio
-safeAddCol('categorias','descricao','TEXT');
-safeAddCol('categorias','ativo','INTEGER');
-try { db.exec(`UPDATE categorias SET ativo = 1 WHERE ativo IS NULL`); } catch(e) {}
-
-// colecoes
-safeAddCol('colecoes','temporada','TEXT');
-safeAddCol('colecoes','ano','INTEGER');
-safeAddCol('colecoes','ativo','INTEGER');
-try { db.exec(`UPDATE colecoes SET ativo = 1 WHERE ativo IS NULL`); } catch(e) {}
-
-// grades — sem ativo o filtro .eq('ativo',true) retorna vazio
-safeAddCol('grades','tipo','TEXT');
-safeAddCol('grades','ativo','INTEGER');
-try { db.exec(`UPDATE grades SET ativo = 1 WHERE ativo IS NULL`); } catch(e) {}
-
-// vendedores
-safeAddCol('vendedores','cpf','TEXT');
-safeAddCol('vendedores','telefone','TEXT');
-safeAddCol('vendedores','email','TEXT');
-safeAddCol('vendedores','meta_mensal','REAL');
-
-// despesas / contas_pagar
-safeAddCol('despesas','classificacao_id','INTEGER');
-safeAddCol('despesas','conta_bancaria_id','INTEGER');
-safeAddCol('contas_pagar','nota_fiscal_id','INTEGER');
-safeAddCol('contas_pagar','conta_bancaria_id','INTEGER');
-
-console.log('Database migration check complete.');
+app.patch('/api/admin/gestores/:id', adminAuth, (req,res) => {
+  try {
+    const { id } = req.params;
+    const permitidos = ['nome','slug','email','senha_hash','plano','ativo','expires_at'];
+    const sets=[],vals=[];
+    for (const [k,v] of Object.entries(req.body)) {
+      if (permitidos.includes(k)) { sets.push(`"${k}"=?`); vals.push(k==='ativo'?(v?1:0):v); }
+    }
+    if (!sets.length) return res.status(400).json({ message:'Nada para atualizar' });
+    vals.push(id);
+    adminDb.prepare(`UPDATE gestores SET ${sets.join(',')} WHERE id=?`).run(...vals);
+    res.json({ ok:true });
+  } catch(e) { res.status(500).json({ message:e.message }); }
+});
 
 // =============================================
-// FK MAP: tabela relacionada -> nome da FK
+// LOGIN DO GESTOR
 // =============================================
-const FK_MAP = {
-  clientes:             'cliente_id',
-  produtos:             'produto_id',
-  vendedores:           'vendedor_id',
-  fornecedores:         'fornecedor_id',
-  categorias:           'categoria_id',
-  colecoes:             'colecao_id',
-  grades:               'grade_id',
-  vendas:               'venda_id',
-  crediario:            'crediario_id',
-  bags:                 'bag_id',
-  caixas:               'caixa_id',
-  notas_fiscais:        'nota_id',
-  classificacoes:       'classificacao_id',
-  conferencias_estoque: 'conferencia_id',
-  contas_bancarias:     'conta_bancaria_id',
-  produto_grades:       'produto_grade_id',
-};
+app.post('/api/auth/login', (req,res) => {
+  try {
+    const { email, senha_hash } = req.body;
+    const g = adminDb.prepare('SELECT * FROM gestores WHERE email=?').get(email);
+    if (!g || g.senha_hash !== senha_hash) return res.status(401).json({ message:'E-mail ou senha incorretos' });
+    if (!g.ativo) return res.status(403).json({ message:'Conta bloqueada. Entre em contato com o suporte.' });
+    if (g.expires_at && new Date(g.expires_at) < new Date())
+      return res.status(403).json({ message:`Sistema vencido em ${new Date(g.expires_at).toLocaleDateString('pt-BR')}. Renove seu plano.` });
+    const token = gerarToken({ tipo:'gestor', id:g.id, slug:g.slug, nome:g.nome, email:g.email });
+    res.json({ token, nome:g.nome, slug:g.slug });
+  } catch(e) { res.status(500).json({ message:e.message }); }
+});
+
+app.get('/api/auth/me', (req,res) => {
+  try {
+    const auth = req.headers['authorization'];
+    if (!auth) return res.status(401).json({ message:'Não autenticado' });
+    const p = verificarToken(auth.replace('Bearer ',''));
+    if (!p) return res.status(401).json({ message:'Token inválido' });
+    if (p.tipo === 'admin') return res.json({ nome:p.nome, tipo:'admin' });
+    const g = adminDb.prepare('SELECT ativo,expires_at FROM gestores WHERE id=?').get(p.id);
+    if (!g||!g.ativo) return res.status(403).json({ message:'Conta bloqueada' });
+    if (g.expires_at&&new Date(g.expires_at)<new Date()) return res.status(403).json({ message:'Sistema vencido' });
+    res.json({ nome:p.nome, slug:p.slug });
+  } catch(e) { res.status(500).json({ message:e.message }); }
+});
 
 // =============================================
-// parseSelect: aceita sintaxe PostgREST (!inner, :id, nested)
+// HELPERS (reutilizados das rotas)
 // =============================================
+
 function parseSelect(selectStr) {
   if (!selectStr || selectStr === '*') return { fields: '*', relations: [] };
-
-  const fields = [];
-  const relations = [];
+  const fields = [], relations = [];
   let current = '';
-
   for (let i = 0; i < selectStr.length; i++) {
     const char = selectStr[i];
     if (char === '(') {
-      // current contém o nome da relação (texto imediatamente antes do '(')
-      // Não usar fields.pop() — a vírgula anterior já empilhou o campo correto
       const relName = current.trim().replace(/[!:].*$/, '').trim();
       current = '';
-      let relFields = '';
-      let depth = 1;
-      i++;
+      let relFields = '', depth = 1; i++;
       while (i < selectStr.length && depth > 0) {
         if (selectStr[i] === '(') depth++;
         else if (selectStr[i] === ')') { depth--; if (depth === 0) { i++; break; } }
-        relFields += selectStr[i];
-        i++;
+        relFields += selectStr[i]; i++;
       }
-      i--; // compensar o for
+      i--;
       if (relName) relations.push({ table: relName, fields: relFields });
     } else if (char === ',') {
-      const f = current.trim().replace(/"/g, '').replace(/[!:].*$/, '').trim();
-      if (f) fields.push(f);
-      current = '';
-    } else {
-      current += char;
-    }
+      const f = current.trim().replace(/"/g,'').replace(/[!:].*$/,'').trim();
+      if (f) fields.push(f); current = '';
+    } else { current += char; }
   }
-  const last = current.trim().replace(/"/g, '').replace(/[!:].*$/, '').trim();
+  const last = current.trim().replace(/"/g,'').replace(/[!:].*$/,'').trim();
   if (last) fields.push(last);
-
-  const clean = fields.filter(f => f);
-  return {
-    fields: clean.length ? clean.map(f => `"${f}"`).join(',') : '*',
-    relations
-  };
+  const clean = fields.filter(f=>f);
+  return { fields: clean.length ? clean.map(f=>`"${f}"`).join(',') : '*', relations };
 }
 
-// =============================================
-// buildWhere: suporta eq, neq, gt, gte, lt, lte, ilike, like, in, not, or
-// =============================================
-
-// Converte strings 'true'/'false' para 1/0 (SQLite armazena booleanos como inteiros)
 function coerceBool(v) {
-  if (v === 'true')  return 1;
-  if (v === 'false') return 0;
-  return v;
+  if (v === 'true') return 1; if (v === 'false') return 0; return v;
 }
 
 function buildWhere(query) {
-  const clauses = [];
-  const params = [];
-
+  const clauses = [], params = [];
   for (const [key, rawVal] of Object.entries(query)) {
-    if (['select', 'order', 'limit', 'or'].includes(key)) continue;
-
+    if (['select','order','limit','or'].includes(key)) continue;
     const vals = Array.isArray(rawVal) ? rawVal : [rawVal];
     for (const val of vals) {
       if (typeof val !== 'string') continue;
-
-      // not.* — operadores negativos
       if (val.startsWith('not.')) {
         const rest = val.slice(4);
-        if (rest === 'is.null')           { clauses.push(`"${key}" IS NOT NULL`); }
+        if (rest === 'is.null') clauses.push(`"${key}" IS NOT NULL`);
         else if (rest.startsWith('in.(')) {
-          const list = rest.slice(4, -1).split(',').map(v => v.trim()).filter(Boolean);
-          if (list.length) {
-            clauses.push(`"${key}" NOT IN (${list.map(() => '?').join(',')})`);
-            params.push(...list.map(coerceBool));
-          }
-        }
-        else if (rest.startsWith('eq.'))  { clauses.push(`"${key}" != ?`); params.push(coerceBool(rest.slice(3))); }
-        else if (rest.startsWith('ilike.') || rest.startsWith('like.')) {
+          const list = rest.slice(4,-1).split(',').map(v=>v.trim()).filter(Boolean);
+          if (list.length) { clauses.push(`"${key}" NOT IN (${list.map(()=>'?').join(',')})`); params.push(...list.map(coerceBool)); }
+        } else if (rest.startsWith('eq.')) { clauses.push(`"${key}" != ?`); params.push(coerceBool(rest.slice(3))); }
+        else if (rest.startsWith('ilike.')||rest.startsWith('like.')) {
           const p = rest.startsWith('ilike.') ? 6 : 5;
-          clauses.push(`"${key}" NOT LIKE ?`);
-          params.push(rest.slice(p).replace(/\*/g, '%'));
+          clauses.push(`"${key}" NOT LIKE ?`); params.push(rest.slice(p).replace(/\*/g,'%'));
         }
         continue;
       }
-
-      if (val.startsWith('eq.'))         { clauses.push(`"${key}" = ?`);    params.push(coerceBool(val.slice(3))); }
-      else if (val.startsWith('neq.'))   { clauses.push(`"${key}" != ?`);   params.push(coerceBool(val.slice(4))); }
-      else if (val.startsWith('gt.'))    { clauses.push(`"${key}" > ?`);    params.push(coerceBool(val.slice(3))); }
-      else if (val.startsWith('gte.'))   { clauses.push(`"${key}" >= ?`);   params.push(coerceBool(val.slice(4))); }
-      else if (val.startsWith('lt.'))    { clauses.push(`"${key}" < ?`);    params.push(coerceBool(val.slice(3))); }
-      else if (val.startsWith('lte.'))   { clauses.push(`"${key}" <= ?`);   params.push(coerceBool(val.slice(4))); }
-      else if (val.startsWith('ilike.') || val.startsWith('like.')) {
+      if (val.startsWith('eq.'))        { clauses.push(`"${key}" = ?`);  params.push(coerceBool(val.slice(3))); }
+      else if (val.startsWith('neq.'))  { clauses.push(`"${key}" != ?`); params.push(coerceBool(val.slice(4))); }
+      else if (val.startsWith('gt.'))   { clauses.push(`"${key}" > ?`);  params.push(coerceBool(val.slice(3))); }
+      else if (val.startsWith('gte.'))  { clauses.push(`"${key}" >= ?`); params.push(coerceBool(val.slice(4))); }
+      else if (val.startsWith('lt.'))   { clauses.push(`"${key}" < ?`);  params.push(coerceBool(val.slice(3))); }
+      else if (val.startsWith('lte.'))  { clauses.push(`"${key}" <= ?`); params.push(coerceBool(val.slice(4))); }
+      else if (val.startsWith('ilike.')||val.startsWith('like.')) {
         const p = val.startsWith('ilike.') ? 6 : 5;
-        clauses.push(`"${key}" LIKE ?`);
-        params.push(val.slice(p).replace(/\*/g, '%'));
-      }
-      else if (val.startsWith('in.(')) {
-        const list = val.slice(4, -1).split(',').map(v => v.trim()).filter(Boolean);
-        if (list.length) {
-          clauses.push(`"${key}" IN (${list.map(() => '?').join(',')})`);
-          params.push(...list.map(coerceBool));
-        }
-      }
-      else if (val === 'is.null')        { clauses.push(`"${key}" IS NULL`); }
-      else if (val === 'not.is.null')    { clauses.push(`"${key}" IS NOT NULL`); }
-      else                               { clauses.push(`"${key}" = ?`); params.push(coerceBool(val)); }
+        clauses.push(`"${key}" LIKE ?`); params.push(val.slice(p).replace(/\*/g,'%'));
+      } else if (val.startsWith('in.(')) {
+        const list = val.slice(4,-1).split(',').map(v=>v.trim()).filter(Boolean);
+        if (list.length) { clauses.push(`"${key}" IN (${list.map(()=>'?').join(',')})`); params.push(...list.map(coerceBool)); }
+      } else if (val === 'is.null')     { clauses.push(`"${key}" IS NULL`); }
+      else if (val === 'not.is.null')   { clauses.push(`"${key}" IS NOT NULL`); }
+      else                              { clauses.push(`"${key}" = ?`); params.push(coerceBool(val)); }
     }
   }
-
-  // OR filter ex: "nome.ilike.%q%,celular.ilike.%q%"
   if (query.or) {
     const orClauses = [];
     for (const part of query.or.split(',')) {
       const dot = part.indexOf('.');
       if (dot === -1) continue;
-      const col = part.slice(0, dot);
-      const rest = part.slice(dot + 1);
-      if (rest.startsWith('ilike.') || rest.startsWith('like.')) {
+      const col = part.slice(0,dot), rest = part.slice(dot+1);
+      if (rest.startsWith('ilike.')||rest.startsWith('like.')) {
         const p = rest.startsWith('ilike.') ? 6 : 5;
-        orClauses.push(`"${col}" LIKE ?`);
-        params.push(rest.slice(p).replace(/\*/g, '%'));
-      } else if (rest.startsWith('eq.')) {
-        orClauses.push(`"${col}" = ?`);
-        params.push(rest.slice(3));
-      }
+        orClauses.push(`"${col}" LIKE ?`); params.push(rest.slice(p).replace(/\*/g,'%'));
+      } else if (rest.startsWith('eq.')) { orClauses.push(`"${col}" = ?`); params.push(rest.slice(3)); }
     }
     if (orClauses.length) clauses.push(`(${orClauses.join(' OR ')})`);
   }
-
-  return {
-    where: clauses.length ? 'WHERE ' + clauses.join(' AND ') : '',
-    params
-  };
+  return { where: clauses.length ? 'WHERE '+clauses.join(' AND ') : '', params };
 }
 
-// =============================================
-// fetchRelations: simula JOIN para relações aninhadas
-// =============================================
+const FK_MAP = {
+  clientes:'cliente_id', produtos:'produto_id', vendedores:'vendedor_id', fornecedores:'fornecedor_id',
+  categorias:'categoria_id', colecoes:'colecao_id', grades:'grade_id', vendas:'venda_id',
+  crediario:'crediario_id', bags:'bag_id', caixas:'caixa_id', notas_fiscais:'nota_id',
+  classificacoes:'classificacao_id', produto_grades:'produto_grade_id', contas_bancarias:'conta_bancaria_id',
+};
+
 function fetchRelations(db, table, results, relations) {
   if (!results.length || !relations.length) return;
-
   for (const rel of relations) {
     let fk = FK_MAP[rel.table];
     if (!fk) {
-      let singular = rel.table;
-      if (singular.endsWith('oes')) singular = singular.slice(0, -3) + 'ao';
-      else if (singular.endsWith('s')) singular = singular.slice(0, -1);
-      fk = singular + '_id';
+      let s = rel.table;
+      if (s.endsWith('oes')) s = s.slice(0,-3)+'ao';
+      else if (s.endsWith('s')) s = s.slice(0,-1);
+      fk = s+'_id';
     }
-
     let relFieldsSql = '*';
     if (rel.fields && rel.fields.trim()) {
-      const cols = rel.fields
-        .split(',')
-        .map(f => f.trim().replace(/"/g, '').replace(/[!:].*$/, '').trim())
-        .filter(f => f && !f.includes('('));
-      if (cols.length) relFieldsSql = cols.map(c => `"${c}"`).join(',');
+      const cols = rel.fields.split(',').map(f=>f.trim().replace(/"/g,'').replace(/[!:].*$/,'').trim()).filter(f=>f&&!f.includes('('));
+      if (cols.length) relFieldsSql = cols.map(c=>`"${c}"`).join(',');
     }
-
-    let stmt;
-    try {
-      stmt = db.prepare(`SELECT ${relFieldsSql} FROM "${rel.table}" WHERE id = ? LIMIT 1`);
-    } catch (e) {
-      console.error(`Relation stmt error [${rel.table}]:`, e.message);
-      continue;
-    }
-
+    let stmt; try { stmt = db.prepare(`SELECT ${relFieldsSql} FROM "${rel.table}" WHERE id=? LIMIT 1`); } catch(e) { continue; }
     for (const row of results) {
       const fkVal = row[fk];
       if (fkVal != null && fkVal !== '') {
-        try {
-          const related = stmt.get(fkVal);
-          if (related) parseJsonFields([related]);
-          row[rel.table] = related || null;
-        } catch(e) {
-          row[rel.table] = null;
-        }
-      } else {
-        row[rel.table] = null;
-      }
+        try { const r = stmt.get(fkVal); if(r) parseJsonFields([r]); row[rel.table]=r||null; } catch(e) { row[rel.table]=null; }
+      } else { row[rel.table]=null; }
     }
   }
 }
 
-// Converte strings JSON em objetos nos resultados
 function parseJsonFields(rows) {
   for (const row of rows) {
-    for (const [k, v] of Object.entries(row)) {
-      if (typeof v === 'string' && (v.startsWith('[') || v.startsWith('{'))) {
-        try { row[k] = JSON.parse(v); } catch(e) {}
+    for (const [k,v] of Object.entries(row)) {
+      if (typeof v==='string' && (v.startsWith('[')||v.startsWith('{'))) {
+        try { row[k]=JSON.parse(v); } catch(e) {}
       }
     }
   }
 }
 
-// Converte valor para formato adequado ao SQLite
 function toSQLiteValue(val) {
-  if (val === null || val === undefined) return null;
-  if (typeof val === 'boolean') return val ? 1 : 0;
-  if (typeof val === 'object') return JSON.stringify(val);
+  if (val===null||val===undefined) return null;
+  if (typeof val==='boolean') return val?1:0;
+  if (typeof val==='object') return JSON.stringify(val);
   return val;
 }
 
 // =============================================
-// API ROUTES
+// API ROUTES (multi-tenant via resolveDb)
 // =============================================
 
-// GET /api/:table
-app.get('/api/:table', (req, res) => {
+app.get('/api/:table', resolveDb, (req, res) => {
   try {
+    const db = req.db;
     const table = req.params.table;
     let { fields, relations } = parseSelect(req.query.select);
-    if (fields === '"*"') fields = '*';
-
+    if (fields==='"*"') fields='*';
     const { where, params } = buildWhere(req.query);
-
     let orderClause = '';
     if (req.query.order) {
       const parts = req.query.order.split('.');
-      const col = parts[0];
-      const dir = (parts[1] || '').toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
-      orderClause = `ORDER BY "${col}" ${dir}`;
+      orderClause = `ORDER BY "${parts[0]}" ${(parts[1]||'').toUpperCase()==='DESC'?'DESC':'ASC'}`;
     }
-
-    let limitClause = '';
-    if (req.query.limit) limitClause = `LIMIT ${parseInt(req.query.limit)}`;
-
+    let limitClause = req.query.limit ? `LIMIT ${parseInt(req.query.limit)}` : '';
     const sql = `SELECT ${fields} FROM "${table}" ${where} ${orderClause} ${limitClause}`;
-    const stmt = db.prepare(sql);
-    const results = stmt.all(...params);
-
+    const results = db.prepare(sql).all(...params);
     parseJsonFields(results);
     fetchRelations(db, table, results, relations);
-
     res.json(results);
-  } catch (err) {
-    console.error('GET error:', err.message);
-    res.status(500).json({ message: err.message });
-  }
+  } catch(err) { console.error('GET error:',err.message); res.status(500).json({ message:err.message }); }
 });
 
-// POST /api/:table
-app.post('/api/:table', (req, res) => {
+app.post('/api/:table', resolveDb, (req, res) => {
   try {
+    const db = req.db;
     const table = req.params.table;
     let items = Array.isArray(req.body) ? req.body : [req.body];
     if (!items.length) return res.json([]);
-
-    // Auto-numerar vendas
-    if (table === 'vendas') {
+    if (table==='vendas') {
       try {
-        const row = db.prepare(`SELECT COALESCE(MAX(numero_venda), 0) as mx FROM "vendas"`).get();
-        let nextNum = (row ? row.mx : 0) + 1;
-        for (const item of items) {
-          if (!item.numero_venda) item.numero_venda = nextNum++;
-        }
+        const row = db.prepare(`SELECT COALESCE(MAX(numero_venda),0) as mx FROM "vendas"`).get();
+        let n = (row?row.mx:0)+1;
+        for (const item of items) { if (!item.numero_venda) item.numero_venda=n++; }
       } catch(e) {}
     }
-
-    // Sincronizar razao_social -> nome em fornecedores
-    if (table === 'fornecedores') {
-      for (const item of items) {
-        if (item.razao_social && !item.nome) item.nome = item.razao_social;
-      }
+    if (table==='fornecedores') {
+      for (const item of items) { if (item.razao_social&&!item.nome) item.nome=item.razao_social; }
     }
-
     const keys = Object.keys(items[0]);
-    const placeholders = keys.map(() => '?').join(',');
-    const insertSql = `INSERT INTO "${table}" (${keys.map(k => `"${k}"`).join(',')}) VALUES (${placeholders})`;
+    const placeholders = keys.map(()=>'?').join(',');
+    const insertSql = `INSERT INTO "${table}" (${keys.map(k=>`"${k}"`).join(',')}) VALUES (${placeholders})`;
     const stmt = db.prepare(insertSql);
-
     const results = [];
-    const insertMany = db.transaction((rows) => {
+    db.transaction(rows => {
       for (const row of rows) {
-        const values = keys.map(k => toSQLiteValue(row[k]));
+        const values = keys.map(k=>toSQLiteValue(row[k]));
         const info = stmt.run(values);
-        try {
-          const inserted = db.prepare(`SELECT * FROM "${table}" WHERE rowid = ?`).get(info.lastInsertRowid);
-          if (inserted) parseJsonFields([inserted]);
-          if (inserted) results.push(inserted);
-        } catch(e) {}
+        try { const ins=db.prepare(`SELECT * FROM "${table}" WHERE rowid=?`).get(info.lastInsertRowid); if(ins){parseJsonFields([ins]);results.push(ins);} } catch(e){}
       }
-    });
-
-    insertMany(items);
-    res.json(Array.isArray(req.body) ? results : (results[0] || {}));
-  } catch (err) {
-    console.error('POST error:', err.message);
-    res.status(500).json({ message: err.message });
-  }
+    })(items);
+    res.json(Array.isArray(req.body)?results:(results[0]||{}));
+  } catch(err) { console.error('POST error:',err.message); res.status(500).json({ message:err.message }); }
 });
 
-// PATCH /api/:table
-app.patch('/api/:table', (req, res) => {
+app.patch('/api/:table', resolveDb, (req, res) => {
   try {
+    const db = req.db;
     const table = req.params.table;
-
-    // Sincronizar razao_social -> nome em fornecedores
-    if (table === 'fornecedores' && req.body.razao_social && !req.body.nome) {
-      req.body.nome = req.body.razao_social;
-    }
-
-    const setClauses = [];
-    const setParams = [];
-    for (const [k, v] of Object.entries(req.body)) {
-      setClauses.push(`"${k}" = ?`);
-      setParams.push(toSQLiteValue(v));
-    }
-
+    if (table==='fornecedores'&&req.body.razao_social&&!req.body.nome) req.body.nome=req.body.razao_social;
+    const setClauses=[], setParams=[];
+    for (const [k,v] of Object.entries(req.body)) { setClauses.push(`"${k}"=?`); setParams.push(toSQLiteValue(v)); }
     const { where, params: whereParams } = buildWhere(req.query);
-    const sql = `UPDATE "${table}" SET ${setClauses.join(',')} ${where}`;
-    const info = db.prepare(sql).run(...setParams, ...whereParams);
-
-    if (info.changes > 0) {
-      try {
-        const selected = db.prepare(`SELECT * FROM "${table}" ${where} LIMIT 1`).get(...whereParams);
-        if (selected) parseJsonFields([selected]);
-        return res.json(selected || {});
-      } catch(e) {}
+    const info = db.prepare(`UPDATE "${table}" SET ${setClauses.join(',')} ${where}`).run(...setParams,...whereParams);
+    if (info.changes>0) {
+      try { const sel=db.prepare(`SELECT * FROM "${table}" ${where} LIMIT 1`).get(...whereParams); if(sel)parseJsonFields([sel]); return res.json(sel||{}); } catch(e){}
     }
     res.json({});
-  } catch(err) {
-    console.error('PATCH error:', err.message);
-    res.status(500).json({ message: err.message });
-  }
+  } catch(err) { console.error('PATCH error:',err.message); res.status(500).json({ message:err.message }); }
 });
 
-// DELETE /api/:table
-app.delete('/api/:table', (req, res) => {
+app.delete('/api/:table', resolveDb, (req, res) => {
   try {
+    const db = req.db;
     const { where, params } = buildWhere(req.query);
-    if (!where) return res.status(400).json({ message: 'DELETE sem filtro bloqueado por segurança' });
+    if (!where) return res.status(400).json({ message:'DELETE sem filtro bloqueado' });
     db.prepare(`DELETE FROM "${req.params.table}" ${where}`).run(...params);
     res.status(204).send();
-  } catch(err) {
-    console.error('DELETE error:', err.message);
-    res.status(500).json({ message: err.message });
-  }
+  } catch(err) { console.error('DELETE error:',err.message); res.status(500).json({ message:err.message }); }
 });
 
-// RPC stub (compatibilidade)
-app.post('/api/rpc/:fn', (req, res) => {
-  console.log('RPC call (stub):', req.params.fn, req.body);
+app.post('/api/rpc/:fn', resolveDb, (req, res) => {
+  console.log('RPC:', req.params.fn, req.body);
   res.json({});
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`StoreOS Backend running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`StoreOS Multi-Tenant rodando na porta ${PORT}`));
