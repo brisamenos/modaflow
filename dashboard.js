@@ -229,11 +229,11 @@ async function buildDashboard() {
     .dash-kpi-card .kpi-delta { display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:600;margin-top:8px;padding:3px 8px;border-radius:99px; }
     .dash-kpi-card .sparkline-wrap { position:absolute;bottom:0;right:0;width:90px;height:48px;opacity:.55; }
     .dash-widget-card { background:#fff;border:1px solid #e8edf3;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,.06),0 4px 12px rgba(15,23,42,.03); }
-    .dwc-head { padding:15px 18px;border-bottom:1px solid #e8edf3;display:flex;align-items:center;justify-content:space-between; }
+    .dwc-head { padding:15px 18px;border-bottom:1px solid #e8edf3;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px; }
     .dwc-head h3 { font-family:'Sora',sans-serif;font-size:13px;font-weight:700;color:#0f172a;letter-spacing:-.2px; }
     .dwc-head .dwc-meta { font-size:11px;color:#94a3b8;font-weight:500; }
     .dwc-body { padding:16px 18px; }
-    .period-bar { display:flex;gap:4px;background:#f8fafc;border:1px solid #e8edf3;border-radius:10px;padding:3px;margin-bottom:20px;width:fit-content; }
+    .period-bar { display:flex;gap:4px;background:#f8fafc;border:1px solid #e8edf3;border-radius:10px;padding:3px;width:fit-content; }
     .period-btn { padding:7px 16px;border-radius:7px;font-size:12.5px;font-weight:600;cursor:pointer;border:none;background:none;color:#64748b;transition:all .15s;font-family:inherit; }
     .period-btn.active { background:#fff;color:#0f172a;box-shadow:0 1px 4px rgba(15,23,42,.1); }
     .area-chart { width:100%;height:140px;overflow:visible; }
@@ -266,6 +266,27 @@ async function buildDashboard() {
     .changelog-chip { display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:99px;font-size:10.5px;font-weight:600; }
     .alert-low-stock { display:flex;align-items:center;gap:10px;padding:12px 18px;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;margin-bottom:16px;font-size:13px;color:#92400e;font-weight:500; }
     .alert-low-stock i svg { width:16px;height:16px;color:#d97706; }
+    /* ─── MOBILE DASHBOARD ─── */
+    @media (max-width: 768px) {
+      #dash-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+      #dash-main-grid { grid-template-columns: 1fr !important; }
+      #dash-sub-grid  { grid-template-columns: 1fr !important; }
+      .dash-kpi-card { padding: 14px 12px !important; }
+      .dash-kpi-card .kpi-val { font-size: 18px !important; }
+      .dash-kpi-card .kpi-icon { width: 36px !important; height: 36px !important; border-radius: 9px !important; }
+      .dash-kpi-card .kpi-icon svg { width: 18px !important; height: 18px !important; }
+      .period-btn { padding: 6px 10px !important; font-size: 12px !important; }
+      .vbar-name { width: 80px !important; font-size: 11.5px !important; }
+      .vbar-val  { width: 70px !important; font-size: 11.5px !important; }
+      .dwc-body  { padding: 14px 14px !important; }
+      .dwc-head  { padding: 12px 14px !important; }
+      .cat-bar-wrap { width: 60px !important; }
+      .cat-val   { width: 65px !important; }
+    }
+    @media (max-width: 480px) {
+      #dash-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+      .dash-kpi-card .kpi-val { font-size: 16px !important; }
+    }
   </style>
 
   <!-- Period selector + privacy toggle -->
@@ -289,7 +310,7 @@ async function buildDashboard() {
     </div>` : ''}
 
   <!-- ═══════════════ KPI ROW ═══════════════ -->
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px">
+  <div id="dash-kpi-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px">
 
     <!-- Total Vendas -->
     <div class="dash-kpi-card" style="animation:fadeUp .35s ease .05s both">
@@ -345,7 +366,7 @@ async function buildDashboard() {
   </div>
 
   <!-- ═══════════════ MAIN GRID (2+1) ═══════════════ -->
-  <div style="display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:16px;align-items:start">
+  <div id="dash-main-grid" style="display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:16px;align-items:start">
 
     <!-- Left: Sales area chart + Vendedores -->
     <div style="display:flex;flex-direction:column;gap:16px">
@@ -384,7 +405,7 @@ async function buildDashboard() {
       </div>
 
       <!-- Top Categorias + Top Clientes (side by side) -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div id="dash-sub-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
 
         <!-- Top Categorias -->
         <div class="dash-widget-card" style="animation:fadeUp .35s ease .35s both">

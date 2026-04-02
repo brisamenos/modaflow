@@ -65,6 +65,9 @@ function initApp() {
   const name = currentUser.nome || currentUser.email?.split('@')[0] || 'Gestor';
   document.getElementById('sidebar-user-name').textContent = name;
   document.getElementById('topnav-initial').textContent = name.charAt(0).toUpperCase();
+  // Show WhatsApp FAB
+  const wafab = document.getElementById('wa-fab');
+  if (wafab) wafab.style.display = 'flex';
   lucide.createIcons();
   navigate('dashboard');
   // Fechar dropdowns ao clicar fora
