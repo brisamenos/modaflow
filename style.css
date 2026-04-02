@@ -1326,15 +1326,8 @@ body {
    RESPONSIVE — MOBILE (≤ 768px)
    ============================================================ */
 @media (max-width: 768px) {
-  /* Show hamburger, hide desktop nav */
-  .btn-hamburger { display: flex; }
-  .nav-groups-desktop { display: none; }
-  .btn-pdv-nav .label-txt { display: none; }
-  .topnav-uinfo { display: none; }
-
-  /* Compact topnav */
-  .topnav-inner { padding: 0 14px; }
-  .topnav-brand-text span { display: none; }
+  /* Hide desktop topnav on mobile */
+  .topnav { display: none !important; }
 
   /* Show bottom nav */
   .bottom-nav { display: block; }
