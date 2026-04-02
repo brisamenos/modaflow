@@ -1,7 +1,6 @@
-﻿// ===== CONFIG =====
-const SUPABASE_URL = 'https://zllvtkgtzxmmjphazzjr.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsbHZ0a2d0enhtbWpwaGF6empyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2NzA4NDIsImV4cCI6MjA5MDI0Njg0Mn0.Y8I35NuA5MspluYhoHFWPK-B2SvwW1Su3lFoEjr7b2c';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// ===== CONFIG =====
+// sb é inicializado em api.js via window.sb = new SupabaseAdapter('/api')
+// NÃO instanciar Supabase aqui — o backend SQLite local é usado via api.js
 
 // ===== STATE =====
 let currentPage = 'dashboard';
@@ -10,4 +9,3 @@ let cart = [];
 let cartClient = null;
 let cartSeller = null;
 let cartPayment = 'dinheiro';
-

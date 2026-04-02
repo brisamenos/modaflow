@@ -15,7 +15,6 @@ class SupabaseQueryBuilder {
   }
 
   select(columns = '*') {
-    // Only set GET if not already a POST/PATCH (chained after insert/update)
     if (!this._body) this._method = 'GET';
     this._params.set('select', columns);
     return this;
@@ -84,6 +83,12 @@ class SupabaseQueryBuilder {
     return this;
   }
 
+  // Suporte a .not('coluna', 'is', null) e .not('coluna', 'in', '(...)')
+  not(column, operator, value) {
+    this._params.append(column, `not.${operator}.${value}`);
+    return this;
+  }
+
   match(query) {
     Object.entries(query).forEach(([k, v]) => {
       this.eq(k, v);
@@ -119,11 +124,9 @@ class SupabaseQueryBuilder {
     return this;
   }
 
-  // Execução Assíncrona via promise interna
   async execute() {
     let url = `${this.apiUrl}/${this.table}`;
-    
-    // Se for RPC
+
     if (this._rpcName) {
       url = `${this.apiUrl}/rpc/${this._rpcName}`;
     }
@@ -152,7 +155,7 @@ class SupabaseQueryBuilder {
 
       let json = null;
       if (res.status !== 204) {
-        try { json = await res.json(); } catch(e){}
+        try { json = await res.json(); } catch(e) {}
       }
 
       if (!res.ok) {
@@ -160,13 +163,11 @@ class SupabaseQueryBuilder {
       }
 
       let returnData = json;
-      
-      // Handle single/maybeSingle: server may return array OR single object
+
       if (this._single || this._maybeSingle) {
         if (Array.isArray(json)) {
           returnData = json.length > 0 ? json[0] : null;
         } else if (json && typeof json === 'object' && json.id !== undefined) {
-          // Server returned a single object directly (e.g. from POST)
           returnData = json;
         } else {
           returnData = null;
@@ -179,7 +180,6 @@ class SupabaseQueryBuilder {
     }
   }
 
-  // Compatibilidade Promise-like
   then(resolve, reject) {
     return this.execute().then(resolve).catch(reject);
   }
@@ -203,5 +203,4 @@ class SupabaseAdapter {
   }
 }
 
-// Inicializando o Adapter globalmente como 'sb'
 window.sb = new SupabaseAdapter('/api');
