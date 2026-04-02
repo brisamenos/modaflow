@@ -1376,30 +1376,22 @@ async function loadProdutos(filtros={}) {
           <button class="btn btn-primary" style="border-radius:0 var(--radius) var(--radius) 0;padding:7px 12px" onclick="aplicarFiltrosProdutos()"><i data-lucide="search"></i>Pesquisar</button>
         </div>
         <div style="display:flex;gap:6px;align-items:center;margin-left:auto">
-          <select id="pf-acao" class="filter-select" style="min-width:180px">
-            <option value="">Ações</option>
-            <option value="excluir">Excluir selecionados</option>
-            <option value="exportar">Exportar selecionados</option>
-          </select>
-          <button class="btn btn-secondary btn-sm" onclick="toggleFiltrosAvancados()"><i data-lucide="sliders-horizontal"></i>Filtros Avançados</button>
-        </div>
-      </div>
-      <!-- Filtros Avançados (oculto por padrão) -->
-      <div id="filtros-avancados" style="display:none;padding:12px 16px;background:#f8fafc;border-bottom:1px solid var(--border);gap:10px;flex-wrap:wrap">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
-          <div class="form-group" style="min-width:140px"><label>Fornecedor</label>
-            <select id="pf-forn" class="filter-select"><option value="">Todos</option></select></div>
-          <div class="form-group" style="min-width:130px"><label>Categoria</label>
-            <select id="pf-cat" class="filter-select"><option value="">Todas</option></select></div>
-          <div class="form-group" style="min-width:120px"><label>Gênero</label>
-            <select id="pf-gen" class="filter-select">
-              <option value="">Todos</option><option value="F">Feminino</option>
-              <option value="M">Masculino</option><option value="U">Unissex</option><option value="J">Juvenil</option>
-            </select></div>
-          <div class="form-group" style="min-width:110px"><label>Grade</label>
-            <select id="pf-grade" class="filter-select"><option value="">Todas</option></select></div>
-          <button class="btn btn-primary btn-sm" onclick="aplicarFiltrosProdutos()" style="margin-bottom:1px"><i data-lucide="filter"></i>Aplicar</button>
-          <button class="btn btn-secondary btn-sm" onclick="limparFiltros()" style="margin-bottom:1px"><i data-lucide="x"></i>Limpar</button>
+          <div style="display:flex;gap:0">
+            <select id="pf-acao" class="filter-select" style="min-width:200px;border-radius:var(--radius) 0 0 var(--radius);border-right:none" onchange="executarAcaoEmMassa(this.value);this.value=''">
+              <option value="">Selecione uma ação</option>
+              <option value="desc-codigo">Alteração em massa Descrição e Código Referência</option>
+              <option value="categoria">Alteração em massa de Categoria</option>
+              <option value="marca">Alteração em massa da Marca</option>
+              <option value="genero">Alteração em massa da Gênero</option>
+              <option value="grade">Alteração em massa da Grade</option>
+              <option value="cor">Alteração em massa da Cor</option>
+              <option value="transferir">Transferir produtos para outra loja</option>
+              <option value="excluir">Excluir selecionados</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" style="border-radius: 0 var(--radius) var(--radius) 0;padding:7px 10px;font-size:12px" onclick="openFiltrosAvancadosModal()">
+              <i data-lucide="sliders-horizontal" style="width:14px;height:14px"></i> Filtros Avançados
+            </button>
+          </div>
         </div>
       </div>
       <!-- Tabela -->
@@ -1410,12 +1402,285 @@ async function loadProdutos(filtros={}) {
   await carregarSelectsFiltros();
 }
 
-function toggleFiltrosAvancados() {
-  const el = document.getElementById('filtros-avancados');
-  if(!el) return;
-  el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+async function openFiltrosAvancadosModal() {
+  // Buscar dados para os selects
+  const [{data:forns},{data:cats},{data:cols},{data:marcasRaw}] = await Promise.all([
+    sb.from('fornecedores').select('id,razao_social').eq('ativo',true).order('razao_social'),
+    sb.from('categorias').select('id,nome').eq('ativo',true).order('nome'),
+    sb.from('colecoes').select('id,nome').eq('ativo',true).order('nome'),
+    sb.from('produtos').select('marca').eq('ativo',true).not('marca','is',null)
+  ]);
+  const marcas = [...new Set((marcasRaw||[]).map(m=>m.marca).filter(Boolean))].sort();
+
+  const optForn = (forns||[]).map(f=>`<option value="${f.id}">${f.razao_social}</option>`).join('');
+  const optCat  = (cats||[]).map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+  const optCol  = (cols||[]).map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+  const optMar  = marcas.map(m=>`<option value="${m}">${m}</option>`).join('');
+
+  openModal(`
+    <div style="position:relative">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border)">
+        <h3 style="font-size:16px;font-weight:700;color:var(--text);margin:0">Filtros Avançados</h3>
+        <button onclick="closeModalDirect()" style="background:none;border:none;cursor:pointer;color:var(--text-2);font-size:18px;line-height:1;padding:0;width:24px;height:24px">&times;</button>
+      </div>
+      <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
+
+        <div class="form-group">
+          <label style="font-weight:600;color:var(--text)">Descrição complementar</label>
+          <input id="fa-desc" class="filter-input" placeholder="Digite a descrição" style="width:100%">
+        </div>
+
+        <div class="form-group">
+          <label style="font-weight:600;color:var(--text)">Fornecedor</label>
+          <select id="fa-forn" class="filter-select" style="width:100%">
+            <option value="">Selecione um Fornecedor</option>
+            ${optForn}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label style="font-weight:600;color:var(--text)">Marca</label>
+          <select id="fa-marca" class="filter-select" style="width:100%">
+            <option value="">Selecione a marca</option>
+            ${optMar}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label style="font-weight:600;color:var(--text)">Coleção</label>
+          <select id="fa-colecao" class="filter-select" style="width:100%">
+            <option value="">Selecione a coleção</option>
+            ${optCol}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label style="font-weight:600;color:var(--text)">Categoria</label>
+          <select id="fa-categoria" class="filter-select" style="width:100%">
+            <option value="">Selecione a categoria</option>
+            ${optCat}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label style="font-weight:600;color:var(--text)">Gênero</label>
+          <select id="fa-genero" class="filter-select" style="width:100%">
+            <option value="">Todos</option>
+            <option value="F">Feminino</option>
+            <option value="M">Masculino</option>
+            <option value="U">Unissex</option>
+            <option value="J">Juvenil/Infantil</option>
+          </select>
+        </div>
+
+        <details style="cursor:pointer">
+          <summary style="font-size:13px;font-weight:600;color:#2563eb;list-style:none;display:flex;align-items:center;gap:6px">
+            <i data-lucide="plus-circle" style="width:14px;height:14px"></i> Mais filtros de variações
+          </summary>
+          <div style="margin-top:12px;display:flex;flex-direction:column;gap:12px">
+            <div class="form-group">
+              <label style="font-weight:600;color:var(--text)">Cor</label>
+              <input id="fa-cor" class="filter-input" placeholder="Ex: Preto, Branco" style="width:100%">
+            </div>
+            <div class="form-group">
+              <label style="font-weight:600;color:var(--text)">EAN (Cód. Barras)</label>
+              <input id="fa-ean" class="filter-input" placeholder="Código de barras" style="width:100%">
+            </div>
+            <div class="form-group">
+              <label style="font-weight:600;color:var(--text)">Estoque mínimo</label>
+              <input id="fa-estoque-min" type="number" min="0" class="filter-input" placeholder="0" style="width:100%">
+            </div>
+          </div>
+        </details>
+
+        <button onclick="aplicarFiltrosAvancados()" style="width:100%;padding:11px;background:#2563eb;color:white;border:none;border-radius:var(--radius);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+          <i data-lucide="filter" style="width:15px;height:15px"></i> Aplicar Filtro
+        </button>
+      </div>
+    </div>
+  `, 'modal-sm');
   lucide.createIcons();
 }
+
+async function aplicarFiltrosAvancados() {
+  const filtros = {
+    desc: document.getElementById('fa-desc')?.value.trim() || '',
+    forn: document.getElementById('fa-forn')?.value || '',
+    marca: document.getElementById('fa-marca')?.value || '',
+    colecao: document.getElementById('fa-colecao')?.value || '',
+    cat: document.getElementById('fa-categoria')?.value || '',
+    gen: document.getElementById('fa-genero')?.value || '',
+    cor: document.getElementById('fa-cor')?.value.trim() || '',
+    ean: document.getElementById('fa-ean')?.value.trim() || '',
+    estoqueMin: document.getElementById('fa-estoque-min')?.value || ''
+  };
+  closeModalDirect();
+  await carregarTabelaProdutos(filtros);
+}
+
+function getSelectedProdIds() {
+  return [...document.querySelectorAll('[data-pid]:checked')].map(c => c.getAttribute('data-pid'));
+}
+
+async function executarAcaoEmMassa(acao) {
+  if(!acao) return;
+  const ids = getSelectedProdIds();
+  if(acao === 'excluir') {
+    if(!ids.length) return toast('Selecione pelo menos um produto', 'error');
+    if(!confirm(`Excluir ${ids.length} produto(s) selecionado(s)?`)) return;
+    for(const id of ids) await sb.from('produtos').update({ativo:false}).eq('id',id);
+    toast(`${ids.length} produto(s) excluído(s)`);
+    await carregarTabelaProdutos({});
+    return;
+  }
+  if(acao === 'transferir') { toast('Funcionalidade em desenvolvimento', 'info'); return; }
+
+  // Ações de alteração em massa
+  const acoes = {
+    'desc-codigo': { titulo: 'Descrição e Código de Referência', tipo: 'desc-codigo' },
+    'categoria':   { titulo: 'Categoria', tipo: 'select-cat' },
+    'marca':       { titulo: 'Marca', tipo: 'text', campo: 'marca', placeholder: 'Nova marca' },
+    'genero':      { titulo: 'Gênero', tipo: 'select-gen' },
+    'grade':       { titulo: 'Grade', tipo: 'select-grade' },
+    'cor':         { titulo: 'Cor das Variações', tipo: 'cor' }
+  };
+
+  const cfg = acoes[acao];
+  if(!cfg) return;
+
+  if(!ids.length) return toast('Selecione pelo menos um produto na lista', 'error');
+
+  await openMassEditModal(cfg, ids);
+}
+
+async function openMassEditModal(cfg, ids) {
+  let inputHtml = '';
+
+  if(cfg.tipo === 'text') {
+    inputHtml = `<input id="me-val" class="filter-input" placeholder="${cfg.placeholder||''}" style="width:100%">`;
+  } else if(cfg.tipo === 'select-cat') {
+    const {data} = await sb.from('categorias').select('id,nome').eq('ativo',true).order('nome');
+    inputHtml = `<select id="me-val" class="filter-select" style="width:100%">
+      <option value="">Selecione a categoria</option>
+      ${(data||[]).map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}
+    </select>`;
+  } else if(cfg.tipo === 'select-gen') {
+    inputHtml = `<select id="me-val" class="filter-select" style="width:100%">
+      <option value="">Selecione</option>
+      <option value="F">Feminino</option>
+      <option value="M">Masculino</option>
+      <option value="U">Unissex</option>
+      <option value="J">Juvenil/Infantil</option>
+    </select>`;
+  } else if(cfg.tipo === 'select-grade') {
+    const {data} = await sb.from('grades').select('id,nome').eq('ativo',true).order('nome');
+    inputHtml = `<select id="me-val" class="filter-select" style="width:100%">
+      <option value="">Selecione a grade</option>
+      ${(data||[]).map(g=>`<option value="${g.id}">${g.nome}</option>`).join('')}
+    </select>`;
+  } else if(cfg.tipo === 'desc-codigo') {
+    inputHtml = `
+      <div class="form-group">
+        <label style="font-size:12px;font-weight:600">Nova Descrição</label>
+        <input id="me-val-desc" class="filter-input" placeholder="Deixe vazio para não alterar" style="width:100%">
+      </div>
+      <div class="form-group" style="margin-top:10px">
+        <label style="font-size:12px;font-weight:600">Novo Código de Referência</label>
+        <input id="me-val-cod" class="filter-input" placeholder="Deixe vazio para não alterar" style="width:100%">
+      </div>`;
+  } else if(cfg.tipo === 'cor') {
+    inputHtml = `
+      <div style="display:flex;gap:10px;align-items:center">
+        <input type="color" id="me-cor-hex" value="#cccccc" style="width:40px;height:40px;border:1.5px solid var(--border-2);border-radius:6px;cursor:pointer">
+        <input id="me-val" class="filter-input" placeholder="Nome da cor (ex: Preto)" style="flex:1">
+      </div>`;
+  }
+
+  openModal(`
+    <div class="modal-header">
+      <h3>Alteração em Massa — ${cfg.titulo}</h3>
+      <button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#1e40af">
+        <i data-lucide="info" style="width:14px;height:14px;vertical-align:-2px;margin-right:6px"></i>
+        <strong>${ids.length} produto(s)</strong> serão alterados.
+      </div>
+      ${inputHtml}
+    </div>
+    <div class="modal-footer" style="display:flex;justify-content:space-between">
+      <button class="btn btn-secondary" onclick="closeModalDirect()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarEdicaoEmMassa('${cfg.tipo}',${JSON.stringify(ids).replace(/"/g,'\"')})"
+        style="background:#2563eb">
+        <i data-lucide="save"></i> Aplicar Alteração
+      </button>
+    </div>
+  `, 'modal-md');
+  lucide.createIcons();
+}
+
+async function confirmarEdicaoEmMassa(tipo, ids) {
+  let payload = {};
+  let varPayload = null;
+
+  if(tipo === 'text') {
+    // não usado mais, mas por segurança
+    const val = document.getElementById('me-val')?.value?.trim();
+    if(!val) return toast('Informe o novo valor', 'error');
+    payload = { marca: val };
+  } else if(tipo === 'select-cat') {
+    const val = document.getElementById('me-val')?.value;
+    if(!val) return toast('Selecione a categoria', 'error');
+    payload = { categoria_id: val };
+  } else if(tipo === 'select-gen') {
+    const val = document.getElementById('me-val')?.value;
+    if(!val) return toast('Selecione o gênero', 'error');
+    payload = { genero: val };
+  } else if(tipo === 'select-grade') {
+    const val = document.getElementById('me-val')?.value;
+    if(!val) return toast('Selecione a grade', 'error');
+    payload = { grade_id: val };
+  } else if(tipo === 'marca') {
+    const val = document.getElementById('me-val')?.value?.trim();
+    if(!val) return toast('Informe a nova marca', 'error');
+    payload = { marca: val };
+  } else if(tipo === 'desc-codigo') {
+    const desc = document.getElementById('me-val-desc')?.value?.trim();
+    const cod  = document.getElementById('me-val-cod')?.value?.trim();
+    if(!desc && !cod) return toast('Preencha ao menos um campo', 'error');
+    if(desc) payload.nome = desc;
+    if(cod)  payload.codigo = cod;
+  } else if(tipo === 'cor') {
+    const corHex  = document.getElementById('me-cor-hex')?.value || '#cccccc';
+    const corDesc = document.getElementById('me-val')?.value?.trim();
+    if(!corDesc) return toast('Informe o nome da cor', 'error');
+    // Altera nas variações (produto_grades)
+    varPayload = { cor_hexa: corHex, cor_descricao: corDesc };
+  }
+
+  let sucessos = 0;
+  try {
+    if(varPayload) {
+      // Atualizar variações de todos os produtos selecionados
+      for(const id of ids) {
+        await sb.from('produto_grades').update(varPayload).eq('produto_id', id);
+        sucessos++;
+      }
+    } else if(Object.keys(payload).length) {
+      for(const id of ids) {
+        await sb.from('produtos').update(payload).eq('id', id);
+        sucessos++;
+      }
+    }
+    closeModalDirect();
+    toast(`✅ ${sucessos} produto(s) atualizados com sucesso!`, 'success');
+    await carregarTabelaProdutos({});
+  } catch(e) {
+    toast('Erro ao atualizar: ' + e.message, 'error');
+  }
+}
+
+function toggleFiltrosAvancados() { openFiltrosAvancadosModal(); }
 
 async function carregarSelectsFiltros() {
   const [{data:forns},{data:cats},{data:grades}] = await Promise.all([
@@ -1461,14 +1726,21 @@ async function carregarTabelaProdutos(filtros) {
     .eq('produtos.ativo', true)
     .order('produto_id');
 
-  // Filtros
-  if(filtros.desc) q = q.ilike('produtos.nome', `%${filtros.desc}%`);
-  if(filtros.ean)  q = q.ilike('ean', `%${filtros.ean}%`);
-  if(filtros.cod)  q = q.ilike('produtos.codigo', `%${filtros.cod}%`);
-  if(filtros.cat)  q = q.eq('produtos.categoria_id', filtros.cat);
-  if(filtros.forn) q = q.eq('produtos.fornecedor_id', filtros.forn);
-  if(filtros.gen)  q = q.eq('produtos.genero', filtros.gen);
-  if(filtros.grade)q = q.eq('produtos.grade_id', filtros.grade);
+  // Filtros da barra de busca rápida
+  if(filtros.desc)  q = q.ilike('produtos.nome', `%${filtros.desc}%`);
+  if(filtros.ean)   q = q.ilike('ean', `%${filtros.ean}%`);
+  if(filtros.cod)   q = q.ilike('produtos.codigo', `%${filtros.cod}%`);
+  if(filtros.cat)   q = q.eq('produtos.categoria_id', filtros.cat);
+  if(filtros.forn)  q = q.eq('produtos.fornecedor_id', filtros.forn);
+  if(filtros.gen)   q = q.eq('produtos.genero', filtros.gen);
+  if(filtros.grade) q = q.eq('produtos.grade_id', filtros.grade);
+  // Filtros avançados (modal)
+  if(filtros.marca)   q = q.ilike('produtos.marca', `%${filtros.marca}%`);
+  if(filtros.colecao) q = q.eq('produtos.colecao_id', filtros.colecao);
+  if(filtros.cor)     q = q.ilike('cor_descricao', `%${filtros.cor}%`);
+  if(filtros.estoqueMin && parseInt(filtros.estoqueMin) > 0)
+    q = q.gte('estoque', parseInt(filtros.estoqueMin));
+
 
   const {data, error} = await q;
 
@@ -1864,10 +2136,144 @@ function renderVariantesTable(variantes) {
       <td>${v.margem_lucro?fmtNum(v.margem_lucro)+'%':'—'}</td>
       <td><strong>${v.preco_venda?fmt(v.preco_venda):'—'}</strong></td>
       <td>${v.estoque??0}</td>
-      <td><button onclick="editarVariante('${v.id}')" style="width:26px;height:26px;border:1px solid var(--border-2);border-radius:4px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2)"><i data-lucide="square-pen" style="width:12px;height:12px"></i></button></td>
+      <td>
+        <div style="display:flex;gap:4px;align-items:center">
+          <button title="Editar variação" onclick="editarVariante('${v.id}')" style="width:26px;height:26px;border:1px solid var(--border-2);border-radius:4px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2)" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-2)'">
+            <i data-lucide="square-pen" style="width:12px;height:12px"></i>
+          </button>
+          <button title="Excluir variação" onclick="deletarVariante('${v.id}')" style="width:26px;height:26px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--red)" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">
+            <i data-lucide="trash-2" style="width:12px;height:12px"></i>
+          </button>
+          <button title="Imprimir etiqueta" onclick="imprimirEtiquetaVariante('${v.id}','${(v.ean||'').replace(/'/g,'')  }','${(v.tamanho||'').replace(/'/g,'')}','${(v.cor_descricao||'').replace(/'/g,'')}',${parseFloat(v.preco_venda||0).toFixed(2)})" style="width:26px;height:26px;border:1px solid #bfdbfe;border-radius:4px;background:#eff6ff;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#2563eb" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
+            <i data-lucide="printer" style="width:12px;height:12px"></i>
+          </button>
+        </div>
+      </td>
     </tr>`).join('')}
     </tbody>
   </table></div>`;
+}
+
+async function deletarVariante(varId) {
+  if(!confirm('Excluir esta variação? Esta ação não pode ser desfeita.')) return;
+  await sb.from('produto_grades').delete().eq('id', varId);
+  toast('Variação excluída');
+  if(_cadProdId) {
+    const {data:vars} = await sb.from('produto_grades').select('*').eq('produto_id',_cadProdId).order('tamanho');
+    const listaEl = document.getElementById('cp-variantes-lista');
+    const tableEl = document.getElementById('cp-variantes-table');
+    if(tableEl) tableEl.innerHTML = renderVariantesTable(vars||[]);
+    if(listaEl) listaEl.style.display = (vars&&vars.length) ? '' : 'none';
+    lucide.createIcons();
+  }
+}
+
+async function imprimirEtiquetaVariante(varId, ean, tamanho, cor, preco) {
+  // Buscar nome do produto
+  let nomeProd = '';
+  try {
+    if(_cadProdId) {
+      const {data:p} = await sb.from('produtos').select('nome,codigo,marca').eq('id',_cadProdId).maybeSingle();
+      nomeProd = p?.nome || '';
+      var codigo = p?.codigo || '';
+      var marca = p?.marca || '';
+    }
+  } catch(e){}
+
+  const precoFmt = 'R$ ' + parseFloat(preco||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  const win = window.open('', '_blank', 'width=400,height=520,menubar=no,toolbar=no,location=no,status=no');
+  win.document.write(`
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Etiqueta — ${nomeProd}</title>
+  <style>
+    @page { size: 60mm 40mm; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #fff; }
+
+    .etiqueta-wrapper {
+      display: flex; flex-direction: column; gap: 18px;
+      padding: 20px; align-items: center;
+    }
+
+    .etiqueta {
+      width: 220px;
+      border: 1.5px solid #ccc;
+      border-radius: 6px;
+      padding: 10px 12px;
+      text-align: center;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .marca { font-size: 9px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+    .nome { font-size: 11px; font-weight: 700; color: #111; line-height: 1.3; margin-bottom: 4px; }
+    .info-row { display: flex; justify-content: center; gap: 10px; font-size: 10px; color: #555; margin-bottom: 6px; }
+    .info-label { font-weight: 600; }
+    .preco { font-size: 22px; font-weight: 900; color: #111; margin-bottom: 6px; }
+    .ean-code { font-family: monospace; font-size: 10px; color: #555; letter-spacing: 1px; margin-bottom: 4px; }
+    .codigo-ref { font-size: 9px; color: #aaa; }
+
+    /* Barras visíveis via CSS (representacional) */
+    .barcode-bars {
+      display: flex; align-items: flex-end; justify-content: center;
+      gap: 1px; height: 28px; margin-bottom: 4px;
+    }
+    .barcode-bars span {
+      display: inline-block; background: #111;
+      width: 2px;
+    }
+
+    .btn-row { display: flex; gap: 10px; margin-top: 10px; }
+    .btn { padding: 9px 20px; border: none; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: Arial, sans-serif; }
+    .btn-print { background: #2563eb; color: white; }
+    .btn-close { background: #e5e7eb; color: #374151; }
+    @media print { .btn-row { display: none; } body { padding: 0; } .etiqueta-wrapper { padding: 4px; } }
+  </style>
+</head>
+<body>
+  <div class="etiqueta-wrapper">
+
+    <div class="etiqueta" id="etq">
+      ${marca ? `<div class="marca">${marca}</div>` : ''}
+      <div class="nome">${nomeProd}</div>
+      <div class="info-row">
+        ${tamanho ? `<span><span class="info-label">Tam:</span> ${tamanho}</span>` : ''}
+        ${cor ? `<span><span class="info-label">Cor:</span> ${cor}</span>` : ''}
+      </div>
+      <div class="preco">${precoFmt}</div>
+      ${ean ? `<div class="barcode-bars" id="bars-container"></div><div class="ean-code">${ean}</div>` : ''}
+      ${codigo ? `<div class="codigo-ref">Ref: ${codigo}</div>` : ''}
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-print" onclick="window.print()">&#128438; Imprimir</button>
+      <button class="btn btn-close" onclick="window.close()">Fechar</button>
+    </div>
+  </div>
+
+  <script>
+    // Gera barras CSS representando o EAN visualmente
+    const ean = '${ean}';
+    const barsEl = document.getElementById('bars-container');
+    if(barsEl && ean) {
+      const heights = [32,24,32,18,28,20,32,18,28,32,20,26,32,18,24,30,32,20,28,32,18,30,32,24,18,32,28,20,32,24];
+      let html = '';
+      for(let i=0;i<ean.length*2+10;i++) {
+        const h = heights[i%heights.length];
+        const w = (i%3===0)?3:2;
+        const show = i%2===0;
+        html += show ? '<span style="height:'+h+'px;width:'+w+'px;"></span>' : '<span style="width:1px;background:transparent"></span>';
+      }
+      barsEl.innerHTML = html;
+    }
+  <\/script>
+</body>
+</html>`);
+  win.document.close();
 }
 
 function atualizarGradeOpcoes() {
