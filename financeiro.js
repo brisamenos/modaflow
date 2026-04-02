@@ -530,25 +530,104 @@ async function saveDespesa() {
 async function pagarDespesa(id){await sb.from('despesas').update({status:'pago',data_pagamento:new Date().toISOString().split('T')[0]}).eq('id',id);toast('Despesa paga');renderDespesas();}
 async function deleteDespesa(id){if(!confirm('Excluir?'))return;await sb.from('despesas').delete().eq('id',id);toast('Removido');renderDespesas();}
 
-// ===== CONTAS A PAGAR =====
+// ===== CONTAS A PAGAR (Dashboard) =====
 async function renderContasPagar() {
-  document.getElementById('topbar-actions').innerHTML=`<button class="btn btn-primary" onclick="openContaPagarModal()"><i data-lucide="plus"></i>Nova Conta</button>`;
-  const {data}=await sb.from('contas_pagar').select('*,fornecedores(razao_social),classificacoes(nome)').order('vencimento');
-  document.getElementById('content').innerHTML=`
-    <div class="card">
-      <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>Descrição</th><th>Fornecedor</th><th>Vencimento</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>
-        <tbody>${(data||[]).map(c=>`<tr>
-          <td>${c.descricao}</td>
-          <td>${c.fornecedores?.razao_social||'—'}</td>
-          <td>${fmtDate(c.vencimento)}</td>
-          <td><strong>${fmt(c.valor)}</strong></td>
-          <td>${badgeStatus(c.status)}</td>
-          <td>${c.status==='aberta'?`<button class="btn btn-sm btn-success" onclick="pagarConta('${c.id}')"><i data-lucide="check"></i>Pagar</button>`:''}</td>
-        </tr>`).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--text-2)">Nenhuma conta</td></tr>'}
-        </tbody>
-      </table></div>
-    </div>`;
+  document.getElementById('topbar-actions').innerHTML = ''; // Limpa topbar, controle movido pra tela
+  
+  document.getElementById('content').innerHTML = `
+    <div style="font-family:var(--font-sans);padding-bottom:50px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+        <h2 style="color:#2c3e50;font-weight:800;font-size:20px;margin:0;">Contas a Pagar (Despesas)</h2>
+        <div style="display:flex;gap:12px;align-items:center;">
+          <select style="padding:8px 16px;border:1px solid #e1e8ed;border-radius:6px;outline:none;background:#fff;color:var(--text);font-weight:600;font-size:13px;">
+            <option>Mês Atual</option>
+          </select>
+          <button class="btn" style="background:#3498db;color:#fff;font-weight:700;border-radius:20px;padding:8px 20px;display:flex;align-items:center;gap:6px;border:none;box-shadow:0 3px 8px rgba(52,152,219,0.2);cursor:pointer;" onclick="openContaPagarModal()">
+            <i data-lucide="plus" style="width:14px;"></i> Lançar Despesa / Conta
+          </button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:20px;margin-bottom:24px;">
+        <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,0.02);border:1px solid #f1f2f6;border-left:4px solid #3498db;">
+          <div style="color:#7f8c8d;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Total no Mês</div>
+          <div style="color:#2c3e50;font-size:28px;font-weight:900;">R$ 0,00</div>
+        </div>
+        <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,0.02);border:1px solid #f1f2f6;border-left:4px solid #e67e22;">
+          <div style="color:#e67e22;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Vencem Hoje</div>
+          <div style="color:#2c3e50;font-size:28px;font-weight:900;">R$ 0,00</div>
+        </div>
+        <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,0.02);border:1px solid #f1f2f6;border-left:4px solid #e74c3c;">
+          <div style="color:#e74c3c;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Atrasadas</div>
+          <div style="color:#2c3e50;font-size:28px;font-weight:900;">R$ 0,00</div>
+        </div>
+        <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,0.02);border:1px solid #f1f2f6;border-left:4px solid #2ecc71;">
+          <div style="color:#2ecc71;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Pagas no Mês</div>
+          <div style="color:#2c3e50;font-size:28px;font-weight:900;">R$ 0,00</div>
+        </div>
+      </div>
+
+      <!-- Gráficos VAZIOS -->
+      <div style="display:grid;grid-template-columns:1.2fr 0.8fr;gap:20px;margin-bottom:24px;">
+        
+        <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,0.02);border:1px solid #f1f2f6;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+            <h3 style="font-size:14px;color:#2c3e50;font-weight:800;margin:0;">Evolução de Pagamentos</h3>
+            <i data-lucide="bar-chart-2" style="color:#bdc3c7;width:18px;"></i>
+          </div>
+          <div style="height:220px;display:flex;align-items:center;justify-content:center;background:#fcfcfc;border-radius:8px;border:1px dashed #e1e8ed;">
+            <div style="text-align:center;">
+              <i data-lucide="line-chart" style="width:32px;height:32px;color:#dcdde1;margin-bottom:10px;"></i>
+              <div style="color:#a4b0be;font-size:13px;font-weight:600;">Sem dados para plotar gráfico.<br>Registre contas pagas no mês.</div>
+            </div>
+          </div>
+        </div>
+        
+        <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,0.02);border:1px solid #f1f2f6;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+            <h3 style="font-size:14px;color:#2c3e50;font-weight:800;margin:0;">Despesas por Categoria</h3>
+            <i data-lucide="pie-chart" style="color:#bdc3c7;width:18px;"></i>
+          </div>
+          <div style="height:220px;display:flex;align-items:center;justify-content:center;background:#fcfcfc;border-radius:8px;border:1px dashed #e1e8ed;">
+             <div style="text-align:center;">
+              <i data-lucide="pie-chart" style="width:32px;height:32px;color:#dcdde1;margin-bottom:10px;"></i>
+              <div style="color:#a4b0be;font-size:13px;font-weight:600;">Sem dados de categorias.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Tabela Resumo -->
+      <div style="background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.02);border:1px solid #f1f2f6;overflow:hidden;">
+        <div style="padding:16px 20px;border-bottom:1px solid #f1f2f6;display:flex;justify-content:space-between;align-items:center;">
+           <h3 style="font-size:14px;color:#2c3e50;font-weight:800;margin:0;">Lançamentos de Contas</h3>
+           <div style="display:flex;gap:10px;">
+             <input type="text" placeholder="Buscar por descrição..." style="padding:8px 12px;border-radius:6px;border:1px solid #e1e8ed;font-size:12px;outline:none;width:240px;font-weight:600;color:#2c3e50;">
+             <button class="btn" style="background:#f1f2f6;color:#7f8c8d;border:none;border-radius:6px;padding:0 12px;cursor:pointer;"><i data-lucide="filter" style="width:14px;"></i></button>
+           </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead style="background:#fcfcfc;border-bottom:2px solid #f1f2f6;">
+              <tr>
+                <th style="padding:14px 20px;text-align:left;color:#7f8c8d;font-weight:800;">Descrição</th>
+                <th style="padding:14px 20px;text-align:left;color:#7f8c8d;font-weight:800;">Categoria / Fornecedor</th>
+                <th style="padding:14px 20px;text-align:center;color:#7f8c8d;font-weight:800;">Vencimento</th>
+                <th style="padding:14px 20px;text-align:right;color:#7f8c8d;font-weight:800;">Valor (R$)</th>
+                <th style="padding:14px 20px;text-align:center;color:#7f8c8d;font-weight:800;">Status</th>
+                <th style="padding:14px 20px;text-align:center;color:#7f8c8d;font-weight:800;">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="6" style="padding:60px 20px;text-align:center;color:#bdc3c7;font-weight:600;">Nenhuma conta a pagar registrada neste período.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
   lucide.createIcons();
 }
 
@@ -558,30 +637,56 @@ async function openContaPagarModal() {
     sb.from('classificacoes').select('id,nome').eq('tipo','despesa')
   ]);
   openModal(`
-    <div class="modal-header"><h3>Nova Conta a Pagar</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
-    <div class="modal-body"><div class="form-grid">
-      <div class="form-group"><label>Descrição *</label><input id="cp-desc"></div>
-      <div class="form-row">
-        <div class="form-group"><label>Fornecedor</label><select id="cp-forn"><option value="">Nenhum</option>${(forns||[]).map(f=>`<option value="${f.id}">${f.razao_social}</option>`).join('')}</select></div>
-        <div class="form-group"><label>Valor (R$) *</label><input id="cp-val" type="number" step="0.01"></div>
-        <div class="form-group"><label>Vencimento *</label><input id="cp-venc" type="date"></div>
+    <div class="modal-header">
+      <h3 style="color:#2c3e50;font-weight:800;font-size:16px;">Nova Conta a Pagar</h3>
+      <button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body" style="padding-top:10px;">
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="form-group"><label style="color:#c0392b;font-weight:800;font-size:12px;">Descrição da Despesa *</label>
+        <input type="text" id="cp-desc" placeholder="Ex: Conta de Luz" style="width:100%;border:1px solid #e1e8ed;border-radius:6px;padding:10px 14px;color:#2c3e50;font-weight:600;outline:none;font-size:14px;"></div>
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group"><label style="color:#2c3e50;font-weight:800;font-size:12px;">Fornecedor Adicional</label>
+            <select id="cp-forn" style="width:100%;border:1px solid #e1e8ed;border-radius:6px;padding:10px 14px;color:#2c3e50;font-weight:600;outline:none;background:#fff;font-size:14px;">
+              <option value="">Nenhum associado</option>
+              ${(forns||[]).map(f=>`<option value="${f.id}">${f.razao_social}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group"><label style="color:#c0392b;font-weight:800;font-size:12px;">Classificação *</label>
+            <select id="cp-cls" style="width:100%;border:1px solid #e1e8ed;border-radius:6px;padding:10px 14px;color:#2c3e50;font-weight:600;outline:none;background:#fff;font-size:14px;">
+              <option value="">Selecione categoria</option>
+              ${(cls||[]).map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group"><label style="color:#c0392b;font-weight:800;font-size:12px;">Data Vencimento *</label>
+          <input id="cp-venc" type="date" style="width:100%;border:1px solid #e1e8ed;border-radius:6px;padding:10px 14px;color:#7f8c8d;font-weight:600;outline:none;font-size:14px;"></div>
+          
+          <div class="form-group"><label style="color:#c0392b;font-weight:800;font-size:12px;">Valor Total (R$) *</label>
+          <input id="cp-val" type="number" step="0.01" placeholder="0.00" style="width:100%;border:1px solid #e1e8ed;border-radius:6px;padding:10px 14px;color:#2c3e50;font-weight:600;outline:none;font-size:14px;"></div>
+        </div>
       </div>
-      <div class="form-group"><label>Classificação</label><select id="cp-cls"><option value="">Nenhuma</option>${(cls||[]).map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}</select></div>
-    </div></div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModalDirect()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveContaPagar()"><i data-lucide="save"></i>Salvar</button>
+    </div>
+    <div class="modal-footer" style="padding-top:20px;display:flex;justify-content:flex-end;gap:12px;">
+      <button class="btn" style="background:#ecf0f1;color:#7f8c8d;border-radius:20px;padding:8px 24px;font-weight:800;border:none;cursor:pointer;" onclick="closeModalDirect()">Cancelar</button>
+      <button class="btn" style="background:#3498db;color:#fff;border-radius:20px;padding:8px 24px;font-weight:800;border:none;display:flex;align-items:center;gap:6px;box-shadow:0 3px 6px rgba(52,152,219,0.3);" onclick="saveContaPagar()">
+        <i data-lucide="save" style="width:14px;"></i> Salvar
+      </button>
     </div>`,'modal-md');
+  lucide.createIcons();
 }
 
 async function saveContaPagar() {
   const payload={descricao:document.getElementById('cp-desc').value.trim(),fornecedor_id:document.getElementById('cp-forn').value||null,valor:parseFloat(document.getElementById('cp-val').value||0),vencimento:document.getElementById('cp-venc').value,classificacao_id:document.getElementById('cp-cls').value||null};
-  if(!payload.descricao||!payload.valor||!payload.vencimento) return toast('Preencha os campos obrigatórios','error');
+  if(!payload.descricao||!payload.valor||!payload.vencimento) return toast('Preencha os campos obrigatórios em vermelho (*)','error');
   await sb.from('contas_pagar').insert(payload);
-  closeModalDirect();toast('Conta cadastrada');renderContasPagar();
+  closeModalDirect();toast('Conta a pagar inserida!');renderContasPagar();
 }
 
-async function pagarConta(id){await sb.from('contas_pagar').update({status:'paga',data_pagamento:new Date().toISOString().split('T')[0]}).eq('id',id);toast('Conta paga');renderContasPagar();}
+async function pagarConta(id){await sb.from('contas_pagar').update({status:'paga',data_pagamento:new Date().toISOString().split('T')[0]}).eq('id',id);toast('A conta foi marcada como paga.');renderContasPagar();}
 
 // ===== CONTAS BANCÁRIAS =====
 async function renderContasBancarias() {
@@ -1410,4 +1515,308 @@ async function deleteClassificacao(id) {
   await sb.from('classificacoes').delete().eq('id',id);
   toast('Excluída com sucesso!');
   renderCadastrarClassificacao();
+}
+
+// ===== CONTAS BANCÁRIAS (SUBMENUS) =====
+function renderConciliarExtrato() {
+  document.getElementById('topbar-actions').innerHTML = '';
+  document.getElementById('content').innerHTML = `
+    <div style="font-family:var(--font-sans);padding-bottom:50px;">
+      <h2 style="color:#2c3e50;font-weight:800;font-size:16px;margin-bottom:20px;">Conciliação Bancária pelo Extrato</h2>
+      
+      <div style="background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.02);border:1px solid #f1f2f6;overflow:hidden;">
+        
+        <div style="padding:16px 20px;">
+          <div style="color:#e74c3c;font-weight:800;font-size:12px;margin-bottom:12px;">Buscar e Ler Arquivo de Extrato (OFX) *Funciona p/ os bancos: Itaú e Santander</div>
+          <div style="display:flex;gap:12px;">
+            <button class="btn" style="background:#3498db;color:#fff;border-radius:6px;padding:8px 16px;font-weight:700;border:none;display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+              <i data-lucide="plus" style="width:14px;"></i> Selecionar
+            </button>
+            <button class="btn" style="background:#f1f2f6;color:#a4b0be;border-radius:6px;padding:8px 16px;font-weight:700;border:none;display:flex;align-items:center;gap:6px;font-size:13px;cursor:not-allowed;">
+              <i data-lucide="upload" style="width:14px;"></i> Salvar
+            </button>
+            <button class="btn" style="background:#f1f2f6;color:#a4b0be;border-radius:6px;padding:8px 16px;font-weight:700;border:none;display:flex;align-items:center;gap:6px;font-size:13px;cursor:not-allowed;">
+              <i data-lucide="x" style="width:14px;"></i> Limpar
+            </button>
+          </div>
+        </div>
+
+        <div style="border-top:1px solid #f1f2f6;min-height:50px;background:#fff;"></div>
+
+      </div>
+    </div>
+  `;
+  lucide.createIcons();
+}
+
+function renderListarConciliacao() {
+  document.getElementById('topbar-actions').innerHTML = '';
+  document.getElementById('content').innerHTML = `
+    <div style="font-family:var(--font-sans);padding-bottom:50px;">
+      <h2 style="color:#2c3e50;font-weight:800;font-size:18px;margin-bottom:20px;">Listar Conciliação</h2>
+      
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+        <div style="display:flex;gap:12px;">
+          <select style="padding:8px 16px;border:1px solid #e1e8ed;border-radius:6px;outline:none;background:#fff;color:var(--text);font-weight:600;font-size:13px;">
+            <option>Mês</option>
+          </select>
+          <select style="padding:8px 16px;border:1px solid #e1e8ed;border-radius:6px;outline:none;background:#fff;color:var(--text);font-weight:600;font-size:13px;">
+            <option>2026</option>
+          </select>
+          <select style="padding:8px 16px;border:1px solid #e1e8ed;border-radius:6px;outline:none;background:#fff;color:var(--text);font-weight:600;font-size:13px;">
+            <option>Abril</option>
+          </select>
+          <select style="padding:8px 16px;border:1px solid #e1e8ed;border-radius:6px;outline:none;background:#fff;color:var(--text);font-weight:600;font-size:13px;min-width:260px;">
+            <option>Bradesco - 5395/0000001738-4</option>
+          </select>
+        </div>
+        <button class="btn" style="background:#e1e8ed;color:#2c3e50;border-radius:20px;padding:6px 16px;font-weight:700;border:none;display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;" onclick="openLegendaConciliacaoModal()">
+          <i data-lucide="info" style="width:14px;"></i> Legenda
+        </button>
+      </div>
+      
+      <div style="background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.02);border:1px solid #f1f2f6;overflow-x:auto;">
+        <div style="padding:16px;text-align:center;font-weight:800;color:#2c3e50;border-bottom:1px solid #f1f2f6;font-size:14px;">
+          Bradesco - 5395/0000001738-4
+        </div>
+        
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead style="background:#fcfcfc;border-bottom:1px solid #f1f2f6;">
+            <tr>
+              <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Data</th>
+              <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Descrição</th>
+              <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Valor</th>
+              <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Status</th>
+              <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Ação</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="5" style="text-align:center;padding:60px 0;color:#bdc3c7;font-weight:600;">Nenhuma conciliação encontrada neste período</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  lucide.createIcons();
+}
+
+function openLegendaConciliacaoModal() {
+  openModal(`
+    <div class="modal-header" style="border-bottom:none;padding-bottom:10px;text-align:center;">
+      <h3 style="color:#2c3e50;font-weight:800;font-size:16px;">Legenda</h3>
+    </div>
+    <div class="modal-body" style="padding-top:0;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <tbody>
+          <tr style="border-bottom:1px solid #f1f2f6;">
+            <td style="padding:12px 16px;width:40px;"><div style="width:18px;height:18px;border-radius:50%;background:#bdc3c7;color:#fff;display:flex;align-items:center;justify-content:center;"><i data-lucide="x" style="width:12px;"></i></div></td>
+            <td style="padding:12px 16px;color:#7f8c8d;font-weight:600;font-size:12px;">Movimento não está sendo validado</td>
+          </tr>
+          <tr style="border-bottom:1px solid #f1f2f6;">
+            <td style="padding:12px 16px;"><div style="width:18px;height:18px;border-radius:50%;background:#2ecc71;color:#fff;display:flex;align-items:center;justify-content:center;"><i data-lucide="check" style="width:12px;"></i></div></td>
+            <td style="padding:12px 16px;color:#7f8c8d;font-weight:600;font-size:12px;">OK Movto identificado e valores batidos</td>
+          </tr>
+          <tr style="border-bottom:1px solid #f1f2f6;">
+            <td style="padding:12px 16px;"><div style="width:18px;height:18px;border-radius:50%;background:#3498db;color:#fff;display:flex;align-items:center;justify-content:center;"><i data-lucide="x" style="width:12px;"></i></div></td>
+            <td style="padding:12px 16px;color:#7f8c8d;font-weight:600;font-size:12px;">OK Movto identificado mas valores NÃO batem</td>
+          </tr>
+          <tr>
+            <td style="padding:12px 16px;"><div style="width:18px;height:18px;border-radius:50%;background:#e74c3c;color:#fff;display:flex;align-items:center;justify-content:center;"><i data-lucide="x" style="width:12px;"></i></div></td>
+            <td style="padding:12px 16px;color:#7f8c8d;font-weight:600;font-size:12px;">Movimento não identificado no sistema</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `, 'modal-sm');
+  lucide.createIcons();
+}
+
+// ===== CADASTRAR CONTA CORRENTE =====
+const BRAZILIAN_BANKS = [
+  "001 - Banco do Brasil S.A.", "033 - Banco Santander (Brasil) S.A.", "104 - Caixa Econômica Federal", "237 - Banco Bradesco S.A.", "341 - Itaú Unibanco S.A.", "077 - Banco Inter S.A.", "260 - Nu Pagamentos S.A. (Nubank)", "380 - PicPay Serviços S.A.", "212 - Banco Original S.A.", "336 - Banco C6 S.A.", "290 - PagSeguro Internet IP S.A. (PagBank)", "323 - Mercado Pago IP Ltda.", "073 - Neon Pagamentos S.A.", "422 - Banco Safra S.A.", "003 - Banco da Amazônia S.A.", "004 - Banco do Nordeste do Brasil S.A.", "021 - BANESTES S.A.", "031 - Banco Beg S.A.", "32 - ZOOP TECNOLOGIA - PAYTIME",
+  "318 - Banco BMG S.A.", "070 - BRB - Banco de Brasília", "047 - Banco do Estado de Sergipe", "041 - Banco do Estado do Rio Grande do Sul", "340 - Super Pagamentos e Adm de Meios Eletrônicos", "208 - Banco BTG Pactual S.A.", "Cora Sociedade de Crédito Direto S.A", "Banco XP S.A.", "Will Bank S.A.", "Banco Pan S.A.", "Banco Votorantim S.A. (Neon)", "Mercantil do Brasil", "Cielo S.A."
+].sort();
+
+async function renderCadastrarContaCorrente() {
+  document.getElementById('topbar-actions').innerHTML = ''; // Limpado, movido pro header da pagina
+  document.getElementById('content').innerHTML = '<div class="loading" style="padding-top:40px;text-align:center;"><div class="sk"></div></div>';
+
+  const {data} = await sb.from('contas_correntes').select('*').order('created_at', {ascending: false});
+  
+  let rows = '';
+  (data||[]).forEach(c => {
+    let dtCad = c.created_at ? new Date(c.created_at).toLocaleDateString('pt-BR') : 'N/D';
+    let dtSal = c.data ? new Date(c.data+'T12:00:00').toLocaleDateString('pt-BR') : 'N/D';
+    let emiteBol = c.emite_boleto || 'Não';
+    let sStatus = c.status === 1 ? 'checked' : '';
+    let val = parseFloat(c.saldo||0);
+    let colorVal = val >= 0 ? '#3498db' : '#e74c3c';
+
+    rows += `
+      <tr style="border-bottom:1px solid #f1f2f6;">
+        <td style="padding:16px;text-align:center;color:#7f8c8d;font-weight:600;">${dtCad}</td>
+        <td style="padding:16px;text-align:center;color:#2c3e50;font-weight:700;">${c.banco}</td>
+        <td style="padding:16px;text-align:center;color:#7f8c8d;font-weight:600;">${c.agencia} / ${c.conta}</td>
+        <td style="padding:16px;text-align:center;color:${colorVal};font-weight:700;">${fmt(val).replace('R$ ','')}</td>
+        <td style="padding:16px;text-align:center;color:#7f8c8d;font-weight:600;">${dtSal}</td>
+        <td style="padding:16px;text-align:center;color:#7f8c8d;font-weight:600;">${emiteBol}</td>
+        <td style="padding:16px;text-align:center;">
+          <input type="checkbox" ${sStatus} onchange="toggleStatusConta('${c.id}', this.checked)" style="accent-color:#3498db;cursor:pointer;width:34px;height:20px;border-radius:20px;position:relative;top:4px;">
+        </td>
+        <td style="padding:16px;text-align:center;">
+          <div style="display:flex;gap:10px;justify-content:center;">
+            <i data-lucide="edit-3" style="width:16px;color:#3498db;cursor:pointer;"></i>
+            <i data-lucide="trash-2" style="width:16px;color:#e74c3c;cursor:pointer;" onclick="deleteConta('${c.id}')"></i>
+          </div>
+        </td>
+      </tr>
+    `;
+  });
+
+  document.getElementById('content').innerHTML = `
+    <div style="font-family:var(--font-sans);padding-bottom:50px;">
+      <h2 style="color:#2c3e50;font-weight:800;font-size:18px;margin-bottom:20px;">Cadastrar Conta Corrente</h2>
+      
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+        <div style="display:flex;gap:12px;align-items:center;">
+          <label style="font-weight:800;color:#2c3e50;font-size:13px;">Filtrar por status:</label>
+          <select style="padding:8px 16px;border:1px solid #e1e8ed;border-radius:6px;outline:none;background:#fff;color:var(--text);font-weight:600;font-size:13px;">
+            <option>Ativa</option>
+            <option>Inativa</option>
+            <option>Todas</option>
+          </select>
+        </div>
+        <button class="btn btn-success" style="border-radius:20px;padding:8px 24px;font-weight:800;border:none;display:flex;align-items:center;gap:6px;font-size:13px;" onclick="openContaCorrenteModal()">
+          <i data-lucide="plus" style="width:14px;"></i> Nova conta corrente
+        </button>
+      </div>
+
+      <div style="background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.02);border:1px solid #f1f2f6;overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead style="background:#fcfcfc;border-bottom:2px solid #f1f2f6;">
+            <tr>
+              <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Data Cadastro</th>
+              <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Banco</th>
+              <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Agência / Conta</th>
+              <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Saldo</th>
+              <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Data Saldo</th>
+              <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Emite Boleto</th>
+              <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Status</th>
+              <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Ação</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows || `<tr><td colspan="8" style="text-align:center;padding:60px;color:#bdc3c7;font-weight:600;">Nenhuma conta cadastrada</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  lucide.createIcons();
+}
+
+function openContaCorrenteModal() {
+  const bankOpts = BRAZILIAN_BANKS.map(b => `<option value="${b}">${b}</option>`).join('');
+  let today = new Date().toISOString().split('T')[0];
+  
+  openModal(`
+    <style>
+      .cc-modal-f:focus { border-color:#3498db !important; box-shadow:0 0 0 3px rgba(52,152,219,0.15) !important; }
+    </style>
+    <div class="modal-header" style="border-bottom:none;padding-bottom:10px;">
+      <h3 style="color:#2c3e50;font-weight:800;font-size:18px;">Nova Conta Corrente</h3>
+    </div>
+    <div class="modal-body" style="padding-top:0;">
+      <div style="color:#34495e;font-weight:800;font-size:13px;margin-bottom:16px;">Nova Conta Corrente</div>
+      
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="form-group">
+          <label style="color:#c0392b;font-weight:800;font-size:12px;margin-bottom:6px;display:block;">Banco *</label>
+          <select id="cc-banco" class="cc-modal-f" style="width:100%;border:1px solid #3498db;border-radius:6px;padding:10px 14px;color:#2c3e50;font-weight:600;outline:none;background:#fff;transition:border .2s;font-size:14px;">
+            <option value="">Selecione</option>
+            ${bankOpts}
+          </select>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="form-group">
+            <label style="color:#c0392b;font-weight:800;font-size:12px;margin-bottom:6px;display:block;">Agência *</label>
+            <input type="text" id="cc-agencia" class="cc-modal-f" style="width:100%;border:1px solid #e1e8ed;border-radius:6px;padding:10px 14px;color:#2c3e50;font-weight:600;outline:none;font-size:14px;">
+          </div>
+          <div class="form-group">
+            <label style="color:#c0392b;font-weight:800;font-size:12px;margin-bottom:6px;display:block;">Conta *</label>
+            <input type="text" id="cc-conta" class="cc-modal-f" style="width:100%;border:1px solid #e1e8ed;border-radius:6px;padding:10px 14px;color:#2c3e50;font-weight:600;outline:none;font-size:14px;">
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="form-group">
+            <label style="color:#c0392b;font-weight:800;font-size:12px;margin-bottom:6px;display:block;">Saldo *</label>
+            <input type="number" step="0.01" id="cc-saldo" placeholder="0,00" class="cc-modal-f" style="width:100%;border:1px solid #e1e8ed;border-radius:6px;padding:10px 14px;color:#2c3e50;font-weight:600;outline:none;font-size:14px;">
+          </div>
+          <div class="form-group">
+            <label style="color:#c0392b;font-weight:800;font-size:12px;margin-bottom:6px;display:block;">Data *</label>
+            <input type="date" id="cc-data" value="${today}" class="cc-modal-f" style="width:100%;border:1px solid #e1e8ed;border-radius:6px;padding:10px 14px;color:#2c3e50;font-weight:600;outline:none;font-size:14px;color:#7f8c8d;">
+          </div>
+        </div>
+
+        <div class="form-group" style="padding-top:8px;">
+          <label style="color:#2c3e50;font-weight:800;font-size:13px;margin-bottom:6px;display:block;">Emitir boleto?</label>
+          <div style="display:flex;gap:16px;align-items:center;">
+             <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#2c3e50;cursor:pointer;">
+               <input type="radio" name="cc-boleto" value="Não" checked style="accent-color:#3498db;width:16px;height:16px;"> Não
+             </label>
+             <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#2c3e50;cursor:pointer;">
+               <input type="radio" name="cc-boleto" value="Sim" style="accent-color:#3498db;width:16px;height:16px;"> Sim
+             </label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="border-top:none;display:flex;justify-content:space-between;padding-top:20px;">
+      <button class="btn" style="background:#e74c3c;color:#fff;border-radius:20px;padding:8px 24px;font-weight:800;border:none;display:flex;align-items:center;gap:6px;box-shadow:0 3px 6px rgba(231,76,60,0.2);" onclick="closeModalDirect()">
+        <i data-lucide="arrow-left" style="width:14px;"></i> Voltar
+      </button>
+      <div style="display:flex;gap:12px;">
+        <button class="btn" style="background:#f1f2f6;color:#a4b0be;border-radius:20px;padding:8px 24px;font-weight:800;border:none;display:flex;align-items:center;gap:6px;cursor:pointer;" onclick="document.querySelectorAll('.cc-modal-f').forEach(el=>el.value='')">
+          <i data-lucide="x" style="width:14px;"></i> Limpar
+        </button>
+        <button class="btn" style="background:#3498db;color:#fff;border-radius:20px;padding:8px 24px;font-weight:800;border:none;display:flex;align-items:center;gap:6px;box-shadow:0 3px 6px rgba(52,152,219,0.2);" onclick="saveContaCorrente()">
+          <i data-lucide="thumbs-up" style="width:14px;"></i> Salvar
+        </button>
+      </div>
+    </div>
+  `, 'modal-md');
+  lucide.createIcons();
+}
+
+async function saveContaCorrente() {
+  const banco = document.getElementById('cc-banco').value;
+  const agencia = document.getElementById('cc-agencia').value.trim();
+  const conta = document.getElementById('cc-conta').value.trim();
+  const saldo = document.getElementById('cc-saldo').value;
+  const dt = document.getElementById('cc-data').value;
+  const boleto = document.querySelector('input[name="cc-boleto"]:checked').value;
+
+  if(!banco || !agencia || !conta || !saldo || !dt) return toast('Preencha todos os campos obrigatórios (*)','error');
+
+  await sb.from('contas_correntes').insert({
+    banco, agencia, conta, saldo: parseFloat(saldo), data: dt, emite_boleto: boleto, status: 1
+  });
+
+  closeModalDirect();
+  toast('Conta corrente salva!');
+  renderCadastrarContaCorrente();
+}
+
+async function deleteConta(id) {
+  if(!confirm('Atenção: Excluir esta conta?')) return;
+  await sb.from('contas_correntes').delete().eq('id',id);
+  toast('Excluída com sucesso!');
+  renderCadastrarContaCorrente();
+}
+
+async function toggleStatusConta(id, checked) {
+  await sb.from('contas_correntes').update({status: checked ? 1 : 0}).eq('id',id);
+  toast('Status alterado!');
 }

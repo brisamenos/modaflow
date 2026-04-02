@@ -148,7 +148,8 @@ function navigate(page) {
     'gestao-estoque':renderGestaoEstoque,'parametros-estoque':renderParametrosEstoque,'conferencia-estoque':renderConferenciaEstoque,'visao-geral-estoque':renderVisaoGeralEstoque,'visao-detalhada-estoque':renderVisaoDetalhadaEstoque,'giro-estoque':renderGiroEstoque,'curva-abc':renderCurvaABC,'transferencia-lojas':renderTransferenciaLojas,bag:renderBAG,'importar-csv':renderImportarCSV,'cadastrar-produto':renderCadastrarProduto,'cadastrar-fornecedor':renderCadastrarFornecedor,
     caixa:renderCaixa,'painel-financeiro':renderPainelFinanceiro,'caixa-mensal':renderCaixaMensal,'operacoes-caixa':renderOperacoesCaixa,
     despesas:renderDespesas,'painel-despesas':renderPainelDespesas,'cadastrar-classificacao':renderCadastrarClassificacao,'contas-pagar':renderContasPagar,
-    'contas-bancarias':renderContasBancarias,dre:renderDRE,
+    'conciliar-extrato':renderConciliarExtrato,'listar-conciliacao':renderListarConciliacao,'cadastrar-conta-corrente':renderCadastrarContaCorrente,
+    dre:renderDRE,
     'fluxo-caixa':renderFluxoCaixa,trocas:renderTrocas
   };
   if(renders[page]) renders[page]();

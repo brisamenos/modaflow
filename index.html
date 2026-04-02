@@ -185,7 +185,14 @@
               <div class="nav-dd-item" onclick="navigate('painel-despesas');closeNGs()"><i data-lucide="pie-chart"></i> Painel de Despesas</div>
               <div class="nav-dd-item" onclick="navigate('cadastrar-classificacao');closeNGs()"><i data-lucide="list"></i> Cadastrar Classificação</div>
               <div class="nav-dd-item" onclick="navigate('contas-pagar');closeNGs()"><i data-lucide="calendar-clock"></i> Contas a Pagar</div>
-              <div class="nav-dd-item" onclick="navigate('contas-bancarias');closeNGs()"><i data-lucide="building-2"></i> Contas Bancárias</div>
+              <div class="nav-dd-item-sub">
+                <div class="nav-dd-item" style="cursor:default;display:flex;justify-content:space-between;width:100%;"><span style="display:flex;align-items:center;gap:8px;"><i data-lucide="building-2"></i> Contas Bancárias</span> <i data-lucide="chevron-right" style="width:14px;"></i></div>
+                <div class="nav-submenu">
+                  <div class="nav-dd-item" onclick="navigate('conciliar-extrato');closeNGs()">Conciliar Extrato</div>
+                  <div class="nav-dd-item" onclick="navigate('listar-conciliacao');closeNGs()">Listar Conciliação</div>
+                  <div class="nav-dd-item" onclick="navigate('cadastrar-conta-corrente');closeNGs()">Cadastrar Conta Corrente</div>
+                </div>
+              </div>
               <div class="nav-dd-item" onclick="navigate('fluxo-caixa');closeNGs()"><i data-lucide="arrow-left-right"></i> Fluxo de Caixa</div>
               <div class="nav-dd-item" onclick="navigate('dre');closeNGs()"><i data-lucide="pie-chart"></i> Resultado — DRE</div>
             </div>
