@@ -90,6 +90,8 @@ function aplicarMigracoes(tdb) {
   const sc = sql => { try { tdb.exec(sql); } catch(e){} };
   const ac = (t,c,tp) => { try { tdb.exec(`ALTER TABLE "${t}" ADD COLUMN "${c}" ${tp}`); } catch(e){} };
   sc(`CREATE TABLE IF NOT EXISTS como_conheceu (id INTEGER PRIMARY KEY AUTOINCREMENT, descricao TEXT, ativo INTEGER DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS cliente_filhos (id INTEGER PRIMARY KEY AUTOINCREMENT, cliente_id INTEGER, nome TEXT, nome_abreviado TEXT, sexo TEXT, data_nascimento DATE, grade_id INTEGER, grade_nome TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS agenda (id INTEGER PRIMARY KEY AUTOINCREMENT, cliente_id INTEGER, titulo TEXT, descricao TEXT, data DATE, hora TEXT, concluido INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
   sc(`CREATE TABLE IF NOT EXISTS transferencias_estoque (id INTEGER PRIMARY KEY AUTOINCREMENT, produto_grade_id INTEGER, quantidade INTEGER DEFAULT 0, loja_origem TEXT, loja_destino TEXT, observacao TEXT, status TEXT DEFAULT 'concluida', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
   sc(`CREATE TABLE IF NOT EXISTS agenda_tarefas (id INTEGER PRIMARY KEY AUTOINCREMENT, titulo TEXT, descricao TEXT, data_tarefa DATE, concluida INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
   sc(`CREATE TABLE IF NOT EXISTS changelog (id INTEGER PRIMARY KEY AUTOINCREMENT, descricao TEXT, data_lancamento DATE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
@@ -117,6 +119,19 @@ function aplicarMigracoes(tdb) {
   ac('clientes','logradouro','TEXT'); ac('clientes','numero','TEXT'); ac('clientes','bairro','TEXT');
   ac('clientes','cep','TEXT'); ac('clientes','estado','TEXT'); ac('clientes','cidade','TEXT');
   ac('clientes','ultima_compra','DATE');
+  // Colunas que estavam no schema mas faltavam nas migrações
+  ac('clientes','dia_nascimento','INTEGER');
+  ac('clientes','mes_nascimento','INTEGER');
+  ac('clientes','rg','TEXT');
+  ac('clientes','ie','TEXT');
+  ac('clientes','tipo_pessoa','TEXT DEFAULT "PF"');
+  ac('clientes','como_conheceu','TEXT');
+  ac('clientes','complemento','TEXT');
+  ac('clientes','codigo_externo','TEXT');
+  ac('clientes','documento','TEXT');
+  ac('clientes','origem','TEXT');
+  ac('clientes','endereco','TEXT');
+  ac('clientes','nome_abreviado_2','TEXT');
   ac('vendas','numero_venda','INTEGER'); ac('vendas','subtotal','REAL'); ac('vendas','parcelas','INTEGER');
   ac('vendas','valor_pago','REAL'); ac('vendas','troco','REAL');
   ac('fornecedores','razao_social','TEXT'); ac('fornecedores','nome_fantasia','TEXT');
@@ -125,6 +140,7 @@ function aplicarMigracoes(tdb) {
   ac('produtos','sku','TEXT'); ac('produtos','marca','TEXT'); ac('produtos','colecao_id','INTEGER');
   ac('produtos','ncm_descricao','TEXT'); ac('produtos','ncm','TEXT'); ac('produtos','genero','TEXT');
   ac('produtos','unidade','TEXT'); ac('produtos','custo','REAL'); ac('produtos','margem_lucro','REAL');
+  ac('produtos','fornecedor_cnpj','TEXT');
   ac('produto_grades','ean','TEXT'); ac('produto_grades','cor_hexa','TEXT');
   ac('produto_grades','cor_descricao','TEXT'); ac('produto_grades','custo','REAL');
   ac('produto_grades','preco_venda','REAL'); ac('produto_grades','margem_lucro','REAL');
