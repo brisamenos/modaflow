@@ -2,17 +2,17 @@
 function renderCRUDPage(opts) {
   const { title, addBtn, content } = opts;
   const ta = document.getElementById('topbar-actions');
-  if(addBtn) ta.innerHTML = `<button class="btn btn-primary" onclick="${addBtn.fn}"><i datÃ©a-lucide="plus"></i>${addBtn.label}</button>`;
+  if(addBtn) ta.innerHTML = `<button class="btn btn-primary" onclick="${addBtn.fn}"><i data-lucide="plus"></i>${addBtn.label}</button>`;
   document.getElementById('content').innerHTML = content;
-  setTimeout(()=>lucide.creatÃ©eIcons(),10);
+  setTimeout(()=>lucide.createIcons(),10);
 }
 
 // ===== CLIENTES =====
 // ===== CLIENTES � LISTAR =====
 async function renderClientes() {
   document.getElementById('topbar-actions').innerHTML = `
-    <button class="btn btn-primary" style="background:#16a34a;box-shadow:0 2px 8px rgba(22,163,74,.3)" onclick="navigatÃ©e('cadastrar-cliente')">
-      <i datÃ©a-lucide="plus"></i>NÃ£ovo Cliente
+    <button class="btn btn-primary" style="background:#16a34a;box-shadow:0 2px 8px rgba(22,163,74,.3)" onclick="navigate('cadastrar-cliente')">
+      <i data-lucide="plus"></i>Novo Cliente
     </button>`;
   await loadClientes();
 }
@@ -23,34 +23,34 @@ async function loadClientes(filtros={}) {
   const el = document.getElementById('content');
 
   let q = sb.from('clientes')
-    .select('id,nÃ£ome,nÃ£ome_abreviado,celular,email,cpf,datÃ©a_nascimento,creatÃ©ed_atÃ©,atÃ©ivo,ultima_compra')
-    .eq('atÃ©ivo',true).order('creatÃ©ed_atÃ©',{ascending:false});
+    .select('id,nome,nome_abreviado,celular,email,cpf,data_nascimento,created_at,ativo,ultima_compra')
+    .eq('ativo',true).order('created_at',{ascending:false});
 
-  if(filtros.nÃ£ome)    q = q.ilike('nÃ£ome',`%${filtros.nÃ£ome}%`);
+  if(filtros.nome)    q = q.ilike('nome',`%${filtros.nome}%`);
   if(filtros.celular) q = q.ilike('celular',`%${filtros.celular}%`);
   if(filtros.cpf)     q = q.ilike('cpf',`%${filtros.cpf}%`);
 
-  const {datÃ©a} = await q;
+  const {data} = await q;
 
-  const tableRows = (datÃ©a||[]).map(c => {
-    const datÃ©aCad = c.creatÃ©ed_atÃ©?new DatÃ©e(c.creatÃ©ed_atÃ©).toLocaleDatÃ©eString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'�';
-    const ultCompra = c.ultima_compra?new DatÃ©e(c.ultima_compra+'T00:00:00').toLocaleDatÃ©eString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'�';
+  const tableRows = (data||[]).map(c => {
+    const dataCad = c.created_at?new Date(c.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'�';
+    const ultCompra = c.ultima_compra?new Date(c.ultima_compra+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'�';
     let niverFmt = '�';
-    if(c.datÃ©a_nascimento) {
-      const d = new DatÃ©e(c.datÃ©a_nascimento+'T00:00:00');
-      niverFmt = `${String(d.getDatÃ©e()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+    if(c.data_nascimento) {
+      const d = new Date(c.data_nascimento+'T00:00:00');
+      niverFmt = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
     }
     return `<tr>
       <td style="padding:8px 10px;text-align:center"><span style="font-size:16px">??</span></td>
-      <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">${datÃ©aCad}</td>
-      <td style="padding:8px 10px;font-size:12px;font-family:monÃ£ospace">${c.celular||'�'}</td>
-      <td style="padding:8px 10px;font-size:13px;font-weight:600">${c.nÃ£ome||'�'}</td>
+      <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">${dataCad}</td>
+      <td style="padding:8px 10px;font-size:12px;font-family:monospace">${c.celular||'�'}</td>
+      <td style="padding:8px 10px;font-size:13px;font-weight:600">${c.nome||'�'}</td>
       <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">${c.email||'�'}</td>
       <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">${ultCompra}</td>
       <td style="padding:8px 10px;font-size:12px;text-align:center;color:var(--text-2)">${niverFmt}</td>
-      <td style="padding:8px 10px;white-space:nÃ£owrap">
-        <button onclick="_editClienteId='${c.id}';navigatÃ©e('cadastrar-cliente')" style="width:26px;height:26px;border:1px solid var(--border-2);border-radius:4px;background:white;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:var(--text-2);margin-right:3px" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-2)'"><i datÃ©a-lucide="square-pen" style="width:13px;height:13px"></i></button>
-        <button onclick="deleteCliente('${c.id}')" style="width:26px;height:26px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:var(--red)"><i datÃ©a-lucide="trash-2" style="width:13px;height:13px"></i></button>
+      <td style="padding:8px 10px;white-space:nowrap">
+        <button onclick="_editClienteId='${c.id}';navigate('cadastrar-cliente')" style="width:26px;height:26px;border:1px solid var(--border-2);border-radius:4px;background:white;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:var(--text-2);margin-right:3px" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-2)'"><i data-lucide="square-pen" style="width:13px;height:13px"></i></button>
+        <button onclick="deleteCliente('${c.id}')" style="width:26px;height:26px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:var(--red)"><i data-lucide="trash-2" style="width:13px;height:13px"></i></button>
       </td>
     </tr>`;
   }).join('');
@@ -60,35 +60,35 @@ async function loadClientes(filtros={}) {
     <!-- barra superior -->
     <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <button onclick="toggleClientesFiltro()" style="padding:7px 14px;border:1.5px solid var(--border-2);border-radius:var(--radius);background:white;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;color:var(--text-2)">
-        <i datÃ©a-lucide="sliders-horizontal" style="width:13px;height:13px"></i>Filtros Avan�ados
+        <i data-lucide="sliders-horizontal" style="width:13px;height:13px"></i>Filtros Avan�ados
       </button>
       <div style="display:flex;gap:0;flex:1;min-width:180px">
-        <input id="cl-nÃ£ome" class="filter-input" placeholder="NÃ£ome abreviado ou completo" style="border-radius:var(--radius) 0 0 var(--radius);flex:1">
-        <button onclick="buscarClientes()" style="padding:7px 12px;background:#2563eb;color:white;border:nÃ£one;border-radius:0 var(--radius) var(--radius) 0;cursor:pointer"><i datÃ©a-lucide="search" style="width:14px;height:14px"></i></button>
+        <input id="cl-nome" class="filter-input" placeholder="Nome abreviado ou completo" style="border-radius:var(--radius) 0 0 var(--radius);flex:1">
+        <button onclick="buscarClientes()" style="padding:7px 12px;background:#2563eb;color:white;border:none;border-radius:0 var(--radius) var(--radius) 0;cursor:pointer"><i data-lucide="search" style="width:14px;height:14px"></i></button>
       </div>
       <div style="display:flex;gap:0;flex:1;min-width:160px">
         <input id="cl-celular" class="filter-input" placeholder="Celular do cliente" style="border-radius:var(--radius) 0 0 var(--radius);flex:1">
-        <button onclick="buscarClientes()" style="padding:7px 12px;background:#2563eb;color:white;border:nÃ£one;border-radius:0 var(--radius) var(--radius) 0;cursor:pointer"><i datÃ©a-lucide="search" style="width:14px;height:14px"></i></button>
+        <button onclick="buscarClientes()" style="padding:7px 12px;background:#2563eb;color:white;border:none;border-radius:0 var(--radius) var(--radius) 0;cursor:pointer"><i data-lucide="search" style="width:14px;height:14px"></i></button>
       </div>
       <div style="display:flex;gap:0;flex:1;min-width:140px">
         <input id="cl-cpf" class="filter-input" placeholder="Digite CPF/CNPJ" style="border-radius:var(--radius) 0 0 var(--radius);flex:1">
-        <button onclick="buscarClientes()" style="padding:7px 12px;background:#2563eb;color:white;border:nÃ£one;border-radius:0 var(--radius) var(--radius) 0;cursor:pointer"><i datÃ©a-lucide="search" style="width:14px;height:14px"></i></button>
+        <button onclick="buscarClientes()" style="padding:7px 12px;background:#2563eb;color:white;border:none;border-radius:0 var(--radius) var(--radius) 0;cursor:pointer"><i data-lucide="search" style="width:14px;height:14px"></i></button>
       </div>
     </div>
 
-    <!-- filtro atÃ©ivo -->
+    <!-- filtro ativo -->
     <div style="padding:6px 16px;background:#f0fdf4;border-bottom:1px solid #bbf7d0;font-size:12px;display:flex;align-items:center;gap:6px">
-      <i datÃ©a-lucide="check-circle" style="width:13px;height:13px;color:var(--green)"></i>
-      <span style="color:var(--green);font-weight:600">Todos Clientes AtÃ©ivos</span>
+      <i data-lucide="check-circle" style="width:13px;height:13px;color:var(--green)"></i>
+      <span style="color:var(--green);font-weight:600">Todos Clientes Ativos</span>
     </div>
 
     <!-- tabela -->
     <div class="table-wrap"><table style="width:100%;border-collapse:collapse">
       <thead><tr style="background:#f8fafc;border-bottom:2px solid var(--border)">
-        <th style="padding:9px 10px;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;width:50px">StatÃ©us</th>
-        <th style="padding:9px 10px;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">DatÃ©a cadastro</th>
+        <th style="padding:9px 10px;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;width:50px">Status</th>
+        <th style="padding:9px 10px;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Data cadastro</th>
         <th style="padding:9px 10px;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Fone</th>
-        <th style="padding:9px 10px;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">NÃ£ome</th>
+        <th style="padding:9px 10px;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Nome</th>
         <th style="padding:9px 10px;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Email</th>
         <th style="padding:9px 10px;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">�ltima compra</th>
         <th style="padding:9px 10px;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;text-align:center">Niver Dia/M�s</th>
@@ -97,22 +97,22 @@ async function loadClientes(filtros={}) {
       <tbody>${tableRows||'<tr><td colspan="8" style="text-align:center;color:var(--text-2);padding:32px">Nenhum cliente cadastrado</td></tr>'}</tbody>
     </table></div>
   </div>`;
-  lucide.creatÃ©eIcons();
+  lucide.createIcons();
 }
 
 function buscarClientes() {
   loadClientes({
-    nÃ£ome: document.getElementById('cl-nÃ£ome')?.value||'',
+    nome: document.getElementById('cl-nome')?.value||'',
     celular: document.getElementById('cl-celular')?.value||'',
     cpf: document.getElementById('cl-cpf')?.value||''
   });
 }
 
-async function loadClienteSearch(q){await loadClientes({nÃ£ome:q});}
+async function loadClienteSearch(q){await loadClientes({nome:q});}
 
 async function deleteCliente(id) {
   if(!confirm('Excluir cliente?')) return;
-  await sb.from('clientes').updatÃ©e({atÃ©ivo:false}).eq('id',id);
+  await sb.from('clientes').update({ativo:false}).eq('id',id);
   toast('Cliente removido'); loadClientes();
 }
 
@@ -129,9 +129,9 @@ async function renderCadastrarCliente() {
   let cli = {};
   let filhos = [];
   if(clienteId) {
-    const [{datÃ©a:cd},{datÃ©a:fd}] = await Promise.all([
+    const [{data:cd},{data:fd}] = await Promise.all([
       sb.from('clientes').select('*').eq('id',clienteId).single(),
-      sb.from('cliente_filhos').select('*').eq('cliente_id',clienteId).order('nÃ£ome')
+      sb.from('cliente_filhos').select('*').eq('cliente_id',clienteId).order('nome')
     ]);
     cli = cd||{};
     filhos = fd||[];
@@ -139,16 +139,16 @@ async function renderCadastrarCliente() {
   _cadClienteId = clienteId;
   _filhosTemp = [];
 
-  const {datÃ©a:grades} = await sb.from('grades').select('id,nÃ£ome').eq('atÃ©ivo',true).order('nÃ£ome');
-  const datÃ©aCad = cli.creatÃ©ed_atÃ©
-    ? new DatÃ©e(cli.creatÃ©ed_atÃ©).toLocaleDatÃ©eString('pt-BR')
-    : new DatÃ©e().toLocaleDatÃ©eString('pt-BR');
+  const {data:grades} = await sb.from('grades').select('id,nome').eq('ativo',true).order('nome');
+  const dataCad = cli.created_at
+    ? new Date(cli.created_at).toLocaleDateString('pt-BR')
+    : new Date().toLocaleDateString('pt-BR');
 
   // Parse anivers�rio
   let aniDia='', aniMes='';
-  if(cli.datÃ©a_nascimento) {
-    const d = new DatÃ©e(cli.datÃ©a_nascimento+'T00:00:00');
-    aniDia = d.getDatÃ©e(); aniMes = d.getMonth()+1;
+  if(cli.data_nascimento) {
+    const d = new Date(cli.data_nascimento+'T00:00:00');
+    aniDia = d.getDate(); aniMes = d.getMonth()+1;
   }
 
   const html = `
@@ -161,7 +161,7 @@ async function renderCadastrarCliente() {
     <div style="display:flex;gap:0;border-bottom:2px solid var(--border);padding:0 8px">
       ${[['cli','Cliente'],['compl','Dados Complementares'],['filhos','Dados dos Filhos']].map(([t,l])=>`
         <button id="clic-tab-${t}" onclick="switchCliTab('${t}')"
-          style="padding:9px 18px;border:nÃ£one;background:nÃ£one;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;color:var(--text-2)">
+          style="padding:9px 18px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;color:var(--text-2)">
           ${l}
         </button>`).join('')}
     </div>
@@ -169,40 +169,40 @@ async function renderCadastrarCliente() {
     <!-- TAB: CLIENTE -->
     <div id="clic-tab-cli" style="padding:20px 24px">
       <div style="display:flex;justify-content:space-between;margin-bottom:16px;font-size:13px">
-        <div><strong>StatÃ©us:</strong> <span style="color:var(--green)">AtÃ©ivo</span></div>
-        <div><strong>DatÃ©a Cadastro:</strong> ${datÃ©aCad}</div>
+        <div><strong>Status:</strong> <span style="color:var(--green)">Ativo</span></div>
+        <div><strong>Data Cadastro:</strong> ${dataCad}</div>
       </div>
 
       <div class="form-group" style="margin-bottom:14px">
-        <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:nÃ£one">Celular *</label>
+        <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:none">Celular *</label>
         <input id="cl2-celular" value="${cli.celular||''}" placeholder="(__) ____-____"
           style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:14px;font-family:inherit"
           oninput="aplicarMaskCelular(this)">
         <div style="font-size:11px;color:var(--text-2);margin-top:3px">Informe apenas os dois d�gitos do DDD</div>
-        <div id="cl2-celular-err" style="font-size:12px;color:#dc2626;display:nÃ£one">Celular � obrigatÃ©�rio.</div>
+        <div id="cl2-celular-err" style="font-size:12px;color:#dc2626;display:none">Celular � obrigat�rio.</div>
       </div>
 
-      <div style="display:grid;grid-templatÃ©e-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
         <div class="form-group">
-          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:nÃ£one">NÃ£ome Completo *</label>
-          <input id="cl2-nÃ£ome" value="${cli.nÃ£ome||''}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit">
+          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:none">Nome Completo *</label>
+          <input id="cl2-nome" value="${cli.nome||''}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit">
         </div>
         <div class="form-group">
-          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:nÃ£one">NÃ£ome Abreviado *</label>
-          <input id="cl2-abrev" value="${cli.nÃ£ome_abreviado||''}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit">
+          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:none">Nome Abreviado *</label>
+          <input id="cl2-abrev" value="${cli.nome_abreviado||''}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit">
         </div>
       </div>
 
-      <div style="display:grid;grid-templatÃ©e-columns:1fr auto auto;gap:14px;margin-bottom:14px;align-items:end">
+      <div style="display:grid;grid-template-columns:1fr auto auto;gap:14px;margin-bottom:14px;align-items:end">
         <div class="form-group">
-          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:nÃ£one">Como nÃ£os conheceu *</label>
+          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:none">Como nos conheceu *</label>
           <select id="cl2-como" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;background:white;font-family:inherit">
             <option value="">Selecione uma op��o</option>
             ${await getComoConheceuOpts(cli.como_conheceu)}
           </select>
         </div>
         <div class="form-group" style="min-width:120px">
-          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:nÃ£one">Sexo *</label>
+          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:none">Sexo *</label>
           <div style="display:flex;align-items:center;gap:12px;padding:9px 0">
             <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
               <input type="radio" name="cl2-sexo" value="F" ${cli.sexo==='F'?'checked':''}> F
@@ -213,7 +213,7 @@ async function renderCadastrarCliente() {
           </div>
         </div>
         <div class="form-group" style="min-width:140px">
-          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:nÃ£one">Anivers�rio *</label>
+          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:none">Anivers�rio *</label>
           <div style="display:flex;align-items:center;gap:4px">
             <input id="cl2-ani-dia" type="number" min="1" max="31" placeholder="Dia" value="${aniDia}" style="width:60px;padding:9px 8px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;text-align:center;font-family:inherit">
             <span>/</span>
@@ -222,7 +222,7 @@ async function renderCadastrarCliente() {
         </div>
       </div>
 
-      <div style="display:grid;grid-templatÃ©e-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
         <div class="form-group">
           <label style="font-size:12px;font-weight:600;color:var(--text-2)">Email</label>
           <input id="cl2-email" type="email" value="${cli.email||''}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit">
@@ -240,8 +240,8 @@ async function renderCadastrarCliente() {
     </div>
 
     <!-- TAB: DADOS COMPLEMENTARES -->
-    <div id="clic-tab-compl" style="display:nÃ£one;padding:20px 24px">
-      <div style="display:grid;grid-templatÃ©e-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:14px">
+    <div id="clic-tab-compl" style="display:none;padding:20px 24px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:14px">
         <div class="form-group" style="grid-column:1/2">
           <label style="font-size:12px;font-weight:600;color:var(--text-2)">Tipo Pessoa</label>
           <select id="cl2-tipo" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;background:white;font-family:inherit">
@@ -262,19 +262,19 @@ async function renderCadastrarCliente() {
           <input id="cl2-ie" value="${cli.ie||''}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit">
         </div>
       </div>
-      <div style="display:grid;grid-templatÃ©e-columns:200px 1fr;gap:12px;margin-bottom:12px">
+      <div style="display:grid;grid-template-columns:200px 1fr;gap:12px;margin-bottom:12px">
         <div class="form-group">
-          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:nÃ£one">CEP *</label>
+          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:none">CEP *</label>
           <input id="cl2-cep" value="${cli.cep||''}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit" onblur="buscarCEP(this.value)">
         </div>
         <div class="form-group">
-          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:nÃ£one">Logradouro *</label>
+          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:none">Logradouro *</label>
           <input id="cl2-logradouro" value="${cli.logradouro||cli.endereco||''}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit">
         </div>
       </div>
-      <div style="display:grid;grid-templatÃ©e-columns:200px 1fr;gap:12px;margin-bottom:12px">
+      <div style="display:grid;grid-template-columns:200px 1fr;gap:12px;margin-bottom:12px">
         <div class="form-group">
-          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:nÃ£one">N�mero *</label>
+          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:none">N�mero *</label>
           <input id="cl2-numero" value="${cli.numero||''}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit">
         </div>
         <div class="form-group">
@@ -284,57 +284,57 @@ async function renderCadastrarCliente() {
       </div>
       <div style="margin-bottom:12px">
         <div class="form-group">
-          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:nÃ£one">Bairro*</label>
+          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:none">Bairro*</label>
           <input id="cl2-bairro" value="${cli.bairro||''}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit">
         </div>
       </div>
-      <div style="display:grid;grid-templatÃ©e-columns:200px 1fr;gap:12px">
+      <div style="display:grid;grid-template-columns:200px 1fr;gap:12px">
         <div class="form-group">
-          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:nÃ£one">UF*</label>
+          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:none">UF*</label>
           <input id="cl2-uf" value="${cli.estado||''}" maxlength="2" style="width:100%;padding:9px 12px;border:1.5px solid #cbd5e1;border-radius:var(--radius);font-size:13px;background:#f8fafc;font-family:inherit" readonly>
         </div>
         <div class="form-group">
-          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:nÃ£one">Cidade *</label>
+          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:none">Cidade *</label>
           <input id="cl2-cidade" value="${cli.cidade||''}" style="width:100%;padding:9px 12px;border:1.5px solid #cbd5e1;border-radius:var(--radius);font-size:13px;background:#f8fafc;font-family:inherit" readonly>
         </div>
       </div>
     </div>
 
     <!-- TAB: DADOS DOS FILHOS -->
-    <div id="clic-tab-filhos" style="display:nÃ£one;padding:20px 24px">
-      <div style="display:grid;grid-templatÃ©e-columns:1fr 1fr auto;gap:12px;margin-bottom:12px;align-items:end">
+    <div id="clic-tab-filhos" style="display:none;padding:20px 24px">
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:12px;margin-bottom:12px;align-items:end">
         <div class="form-group">
-          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:nÃ£one">NÃ£ome Completo *</label>
-          <input id="cf-nÃ£ome" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit">
+          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:none">Nome Completo *</label>
+          <input id="cf-nome" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit">
         </div>
         <div class="form-group">
-          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:nÃ£one">NÃ£ome Abreviado *</label>
+          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:none">Nome Abreviado *</label>
           <input id="cf-abrev" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit">
         </div>
         <div class="form-group" style="min-width:110px">
-          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:nÃ£one">Sexo *</label>
+          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:none">Sexo *</label>
           <div style="display:flex;align-items:center;gap:12px;padding:9px 0">
             <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="radio" name="cf-sexo" value="F"> F</label>
             <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="radio" name="cf-sexo" value="M"> M</label>
           </div>
         </div>
       </div>
-      <div style="display:grid;grid-templatÃ©e-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
         <div class="form-group">
-          <label style="font-size:12px;font-weight:600;color:var(--text-2)">DatÃ©a de Nascimento</label>
-          <input id="cf-nasc" type="datÃ©e" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit">
+          <label style="font-size:12px;font-weight:600;color:var(--text-2)">Data de Nascimento</label>
+          <input id="cf-nasc" type="date" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit">
         </div>
         <div class="form-group">
           <label style="font-size:12px;font-weight:600;color:var(--text-2)">Grade</label>
           <select id="cf-grade" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;background:white;font-family:inherit">
             <option value="">Selecione uma grade</option>
-            ${(grades||[]).map(g=>`<option value="${g.id}">${g.nÃ£ome}</option>`).join('')}
+            ${(grades||[]).map(g=>`<option value="${g.id}">${g.nome}</option>`).join('')}
           </select>
         </div>
       </div>
       <div style="margin-bottom:16px">
-        <button onclick="incluirFilho()" style="floatÃ©:right;padding:9px 16px;background:#16a34a;color:white;border:nÃ£one;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
-          <i datÃ©a-lucide="plus" style="width:14px;height:14px"></i>Incluir Filho
+        <button onclick="incluirFilho()" style="float:right;padding:9px 16px;background:#16a34a;color:white;border:none;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
+          <i data-lucide="plus" style="width:14px;height:14px"></i>Incluir Filho
         </button>
         <div style="clear:both"></div>
       </div>
@@ -347,27 +347,27 @@ async function renderCadastrarCliente() {
 
     <!-- RODAP� -->
     <div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center">
-      <button onclick="navigatÃ©e('clientes')" style="padding:8px 16px;background:#dc2626;color:white;border:nÃ£one;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
-        <i datÃ©a-lucide="arrow-left" style="width:13px;height:13px"></i>Voltar
+      <button onclick="navigate('clientes')" style="padding:8px 16px;background:#dc2626;color:white;border:none;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
+        <i data-lucide="arrow-left" style="width:13px;height:13px"></i>Voltar
       </button>
       <div style="flex:1"></div>
       <button onclick="limparFormCliente()" style="padding:8px 16px;background:white;color:var(--text-2);border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
-        <i datÃ©a-lucide="eraser" style="width:13px;height:13px"></i>Limpar
+        <i data-lucide="eraser" style="width:13px;height:13px"></i>Limpar
       </button>
-      <button onclick="salvarClienteCompleto()" style="padding:8px 18px;background:#2563eb;color:white;border:nÃ£one;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(37,99,235,.3)">
-        <i datÃ©a-lucide="save" style="width:13px;height:13px"></i>Salvar
+      <button onclick="salvarClienteCompleto()" style="padding:8px 18px;background:#2563eb;color:white;border:none;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(37,99,235,.3)">
+        <i data-lucide="save" style="width:13px;height:13px"></i>Salvar
       </button>
     </div>
   </div>`;
 
   document.getElementById('content').innerHTML = html;
-  setTimeout(()=>{ lucide.creatÃ©eIcons(); switchCliTab('cli'); },10);
+  setTimeout(()=>{ lucide.createIcons(); switchCliTab('cli'); },10);
 }
 
 async function getComoConheceuOpts(selected) {
   // Tentar buscar da tabela, fallback para padr�es
-  const {datÃ©a} = await sb.from('como_conheceu').select('id,descricao').eq('atÃ©ivo',true).order('descricao');
-  const opcoes = (datÃ©a||[]).length ? datÃ©a.map(o=>o.descricao) : ['Viu a Loja na rua','Indica��o de Cliente','Google','Facebook','Instagram','Outros'];
+  const {data} = await sb.from('como_conheceu').select('id,descricao').eq('ativo',true).order('descricao');
+  const opcoes = (data||[]).length ? data.map(o=>o.descricao) : ['Viu a Loja na rua','Indica��o de Cliente','Google','Facebook','Instagram','Outros'];
   return opcoes.map(o=>`<option value="${o}" ${selected===o?'selected':''}>${o}</option>`).join('');
 }
 
@@ -375,19 +375,19 @@ function switchCliTab(tab) {
   ['cli','compl','filhos'].forEach(t=>{
     const panel = document.getElementById(`clic-tab-${t}`);
     const btn   = document.getElementById(`clic-tab-${t}`+'-btn') || null;
-    if(panel) panel.style.display = t===tab ? 'block' : 'nÃ£one';
-    // updatÃ©e tab buttons
+    if(panel) panel.style.display = t===tab ? 'block' : 'none';
+    // update tab buttons
     const allBtns = document.querySelectorAll('[id^="clic-tab-"][id$="-btn"]');
     // fallback via loop
   });
-  // UpdatÃ©e button styles directly
+  // Update button styles directly
   ['cli','compl','filhos'].forEach(t=>{
     const btn = document.getElementById(`clic-tab-${t}`);
     if(!btn || !btn.tagName || btn.tagName!=='BUTTON') return;
   });
   // Select tab buttons by their onclick content
   document.querySelectorAll('[onclick*="switchCliTab"]').forEach(btn=>{
-    const isActive = btn.getAtÃ©tribute('onclick').includes(`'${tab}'`);
+    const isActive = btn.getAttribute('onclick').includes(`'${tab}'`);
     btn.style.color = isActive?'var(--accent)':'var(--text-2)';
     btn.style.borderBottomColor = isActive?'var(--accent)':'transparent';
   });
@@ -414,7 +414,7 @@ async function buscarCEP(cep) {
     set('cl2-bairro', d.bairro||'');
     set('cl2-cidade', d.localidade||'');
     set('cl2-uf', d.uf||'');
-  } catÃ©ch(e) {}
+  } catch(e) {}
 }
 
 function renderFilhosTable(filhos) {
@@ -428,19 +428,19 @@ function renderFilhosTable(filhos) {
     </div>`;
   return `<table style="width:100%;border-collapse:collapse">
     <thead><tr style="border-bottom:2px solid var(--border)">
-      <th style="padding:9px 12px;text-align:left;font-size:12px;font-weight:700;color:var(--text-2)">NÃ£ome</th>
+      <th style="padding:9px 12px;text-align:left;font-size:12px;font-weight:700;color:var(--text-2)">Nome</th>
       <th style="padding:9px 12px;text-align:left;font-size:12px;font-weight:700;color:var(--text-2)">Nascimento</th>
       <th style="padding:9px 12px;text-align:left;font-size:12px;font-weight:700;color:var(--text-2)">Grade</th>
       <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2)">Sexo</th>
       <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2)">A��es</th>
     </tr></thead>
     <tbody>${filhos.map((f,i)=>`<tr style="border-bottom:1px solid var(--border)">
-      <td style="padding:8px 12px;font-size:13px">${f.nÃ£ome}</td>
-      <td style="padding:8px 12px;font-size:12px;color:var(--text-2)">${f.datÃ©a_nascimento?new DatÃ©e(f.datÃ©a_nascimento+'T00:00:00').toLocaleDatÃ©eString('pt-BR'):'�'}</td>
-      <td style="padding:8px 12px;font-size:12px;color:var(--text-2)">${f.grade_nÃ£ome||'�'}</td>
+      <td style="padding:8px 12px;font-size:13px">${f.nome}</td>
+      <td style="padding:8px 12px;font-size:12px;color:var(--text-2)">${f.data_nascimento?new Date(f.data_nascimento+'T00:00:00').toLocaleDateString('pt-BR'):'�'}</td>
+      <td style="padding:8px 12px;font-size:12px;color:var(--text-2)">${f.grade_nome||'�'}</td>
       <td style="padding:8px 12px;text-align:center;font-size:12px">${f.sexo||'�'}</td>
       <td style="padding:8px 12px;text-align:center">
-        <button onclick="removerFilho(${i})" style="width:24px;height:24px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:var(--red)"><i datÃ©a-lucide="trash-2" style="width:12px;height:12px"></i></button>
+        <button onclick="removerFilho(${i})" style="width:24px;height:24px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:var(--red)"><i data-lucide="trash-2" style="width:12px;height:12px"></i></button>
       </td>
     </tr>`).join('')}
     </tbody>
@@ -448,19 +448,19 @@ function renderFilhosTable(filhos) {
 }
 
 async function incluirFilho() {
-  const nÃ£ome  = document.getElementById('cf-nÃ£ome')?.value?.trim();
+  const nome  = document.getElementById('cf-nome')?.value?.trim();
   const abrev = document.getElementById('cf-abrev')?.value?.trim();
   const sexo  = document.querySelector('input[name="cf-sexo"]:checked')?.value||'';
   const nasc  = document.getElementById('cf-nasc')?.value||null;
   const gid   = document.getElementById('cf-grade')?.value||null;
-  const gnÃ£ome = document.getElementById('cf-grade')?.options[document.getElementById('cf-grade')?.selectedIndex]?.text||'�';
-  if(!nÃ£ome) return toast('NÃ£ome do filho obrigatÃ©�rio','error');
-  const filho = {nÃ£ome, nÃ£ome_abreviado:abrev, sexo, datÃ©a_nascimento:nasc, grade_id:gid, grade_nÃ£ome:gnÃ£ome};
+  const gnome = document.getElementById('cf-grade')?.options[document.getElementById('cf-grade')?.selectedIndex]?.text||'�';
+  if(!nome) return toast('Nome do filho obrigat�rio','error');
+  const filho = {nome, nome_abreviado:abrev, sexo, data_nascimento:nasc, grade_id:gid, grade_nome:gnome};
 
   if(_cadClienteId) {
     const {error} = await sb.from('cliente_filhos').insert({...filho, cliente_id:_cadClienteId});
     if(error) return toast('Erro: '+error.message,'error');
-    const {datÃ©a:fd} = await sb.from('cliente_filhos').select('*').eq('cliente_id',_cadClienteId).order('nÃ£ome');
+    const {data:fd} = await sb.from('cliente_filhos').select('*').eq('cliente_id',_cadClienteId).order('nome');
     const el = document.getElementById('cf-lista');
     if(el) el.innerHTML = renderFilhosTable(fd||[]);
   } else {
@@ -468,10 +468,10 @@ async function incluirFilho() {
     const el = document.getElementById('cf-lista');
     if(el) el.innerHTML = renderFilhosTable(_filhosTemp);
   }
-  ['cf-nÃ£ome','cf-abrev','cf-nasc'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['cf-nome','cf-abrev','cf-nasc'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   document.getElementById('cf-grade').value='';
   const r=document.querySelector('input[name="cf-sexo"]:checked'); if(r) r.checked=false;
-  lucide.creatÃ©eIcons();
+  lucide.createIcons();
   toast('Filho inclu�do');
 }
 
@@ -485,11 +485,11 @@ function removerFilho(idx) {
   _filhosTemp.splice(idx,1);
   const el = document.getElementById('cf-lista');
   if(el) el.innerHTML = renderFilhosTable(_filhosTemp);
-  lucide.creatÃ©eIcons();
+  lucide.createIcons();
 }
 
 function limparFormCliente() {
-  const ids = ['cl2-celular','cl2-nÃ£ome','cl2-abrev','cl2-email','cl2-insta','cl2-obs',
+  const ids = ['cl2-celular','cl2-nome','cl2-abrev','cl2-email','cl2-insta','cl2-obs',
     'cl2-cpf','cl2-rg','cl2-ie','cl2-cep','cl2-logradouro','cl2-numero','cl2-compl','cl2-bairro'];
   ids.forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   document.getElementById('cl2-como').value='';
@@ -501,30 +501,30 @@ function limparFormCliente() {
 
 async function salvarClienteCompleto() {
   const celular = document.getElementById('cl2-celular')?.value?.trim();
-  const nÃ£ome    = document.getElementById('cl2-nÃ£ome')?.value?.trim();
+  const nome    = document.getElementById('cl2-nome')?.value?.trim();
   if(!celular) {
     const err = document.getElementById('cl2-celular-err');
     if(err) err.style.display='block';
     document.getElementById('cl2-celular').style.borderColor='#dc2626';
     switchCliTab('cli');
-    return toast('Celular obrigatÃ©�rio','error');
+    return toast('Celular obrigat�rio','error');
   }
-  if(!nÃ£ome) { switchCliTab('cli'); return toast('NÃ£ome completo obrigatÃ©�rio','error'); }
+  if(!nome) { switchCliTab('cli'); return toast('Nome completo obrigat�rio','error'); }
 
   const dia  = parseInt(document.getElementById('cl2-ani-dia')?.value||0);
   const mes  = parseInt(document.getElementById('cl2-ani-mes')?.value||0);
-  let datÃ©aNasc = null;
-  if(dia&&mes) datÃ©aNasc = `2000-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+  let dataNasc = null;
+  if(dia&&mes) dataNasc = `2000-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
 
   const payload = {
-    nÃ£ome,
-    nÃ£ome_abreviado: document.getElementById('cl2-abrev')?.value?.trim()||null,
+    nome,
+    nome_abreviado: document.getElementById('cl2-abrev')?.value?.trim()||null,
     celular,
     email:         document.getElementById('cl2-email')?.value||null,
     instagram:     document.getElementById('cl2-insta')?.value||null,
     sexo:          document.querySelector('input[name="cl2-sexo"]:checked')?.value||null,
     como_conheceu: document.getElementById('cl2-como')?.value||null,
-    datÃ©a_nascimento: datÃ©aNasc,
+    data_nascimento: dataNasc,
     observacoes:   document.getElementById('cl2-obs')?.value||null,
     tipo_pessoa:   document.getElementById('cl2-tipo')?.value||'PF',
     cpf:           document.getElementById('cl2-cpf')?.value||null,
@@ -541,10 +541,10 @@ async function salvarClienteCompleto() {
 
   let savedId = _cadClienteId;
   if(savedId) {
-    const {error} = await sb.from('clientes').updatÃ©e(payload).eq('id',savedId);
+    const {error} = await sb.from('clientes').update(payload).eq('id',savedId);
     if(error) return toast('Erro: '+error.message,'error');
   } else {
-    const {datÃ©a:nc,error} = await sb.from('clientes').insert(payload).select().single();
+    const {data:nc,error} = await sb.from('clientes').insert(payload).select().single();
     if(error) return toast('Erro: '+error.message,'error');
     savedId = nc.id;
     _cadClienteId = savedId;
@@ -561,41 +561,41 @@ async function salvarClienteCompleto() {
 // ===== COMO CONHECEU =====
 async function renderComoConheceu() {
   document.getElementById('topbar-actions').innerHTML='';
-  const {datÃ©a} = await sb.from('como_conheceu').select('*').eq('atÃ©ivo',true).order('descricao');
+  const {data} = await sb.from('como_conheceu').select('*').eq('ativo',true).order('descricao');
   document.getElementById('content').innerHTML = `
   <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;max-width:600px">
-    <div style="padding:12px 20px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700">Como nÃ£os Conheceu � Op��es</div>
+    <div style="padding:12px 20px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700">Como nos Conheceu � Op��es</div>
     <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
       <div class="form-group">
         <label>Descri��o *</label>
         <input id="cc-desc" placeholder="Ex: Indica��o de amigo" style="width:100%;padding:8px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit">
       </div>
       <div style="margin-top:10px;text-align:right">
-        <button onclick="salvarComoConheceu()" style="padding:8px 20px;background:#2563eb;color:white;border:nÃ£one;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Salvar</button>
+        <button onclick="salvarComoConheceu()" style="padding:8px 20px;background:#2563eb;color:white;border:none;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Salvar</button>
       </div>
     </div>
-    <div class="table-wrap"><table class="datÃ©a-table">
+    <div class="table-wrap"><table class="data-table">
       <thead><tr><th>Descri��o</th><th style="width:80px">A��o</th></tr></thead>
-      <tbody>${(datÃ©a||[]).map(r=>`<tr>
+      <tbody>${(data||[]).map(r=>`<tr>
         <td>${r.descricao}</td>
-        <td><button onclick="deletarComoConheceu('${r.id}')" style="width:26px;height:26px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:var(--red)"><i datÃ©a-lucide="trash-2" style="width:12px;height:12px"></i></button></td>
+        <td><button onclick="deletarComoConheceu('${r.id}')" style="width:26px;height:26px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:var(--red)"><i data-lucide="trash-2" style="width:12px;height:12px"></i></button></td>
       </tr>`).join('')||'<tr><td colspan="2" style="text-align:center;color:var(--text-2);padding:24px">Nenhuma op��o cadastrada</td></tr>'}
       </tbody>
     </table></div>
   </div>`;
-  lucide.creatÃ©eIcons();
+  lucide.createIcons();
 }
 
 async function salvarComoConheceu() {
   const desc = document.getElementById('cc-desc')?.value?.trim();
-  if(!desc) return toast('Descri��o obrigatÃ©�ria','error');
+  if(!desc) return toast('Descri��o obrigat�ria','error');
   await sb.from('como_conheceu').insert({descricao:desc});
   toast('Op��o salva'); renderComoConheceu();
 }
 
 async function deletarComoConheceu(id) {
   if(!confirm('Remover op��o?')) return;
-  await sb.from('como_conheceu').updatÃ©e({atÃ©ivo:false}).eq('id',id);
+  await sb.from('como_conheceu').update({ativo:false}).eq('id',id);
   toast('Removido'); renderComoConheceu();
 }
 
@@ -605,59 +605,59 @@ async function renderHistoricoClientes() {
   <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
     <div class="form-group" style="min-width:200px;flex:1">
       <label>Buscar cliente</label>
-      <input id="hc-nÃ£ome" class="filter-input" placeholder="NÃ£ome ou celular" style="width:100%">
+      <input id="hc-nome" class="filter-input" placeholder="Nome ou celular" style="width:100%">
     </div>
-    <button onclick="buscarHistoricoCliente()" class="btn btn-primary"><i datÃ©a-lucide="search"></i>Buscar</button>
+    <button onclick="buscarHistoricoCliente()" class="btn btn-primary"><i data-lucide="search"></i>Buscar</button>
   </div>
   <div id="hc-resultado"></div>`;
-  lucide.creatÃ©eIcons();
+  lucide.createIcons();
 }
 
 async function buscarHistoricoCliente() {
-  const q = document.getElementById('hc-nÃ£ome')?.value?.trim();
-  if(!q) return toast('Informe o nÃ£ome ou celular','error');
-  const {datÃ©a:clis} = await sb.from('clientes').select('id,nÃ£ome,celular').eq('atÃ©ivo',true).or(`nÃ£ome.ilike.%${q}%,celular.ilike.%${q}%`).limit(5);
+  const q = document.getElementById('hc-nome')?.value?.trim();
+  if(!q) return toast('Informe o nome ou celular','error');
+  const {data:clis} = await sb.from('clientes').select('id,nome,celular').eq('ativo',true).or(`nome.ilike.%${q}%,celular.ilike.%${q}%`).limit(5);
   const res = document.getElementById('hc-resultado');
-  if(!clis||!clis.length) { res.innerHTML='<div class="empty-statÃ©e"><p>Nenhum cliente encontrado</p></div>'; return; }
-  if(clis.length===1) { carregarHistoricoCliente(clis[0].id, clis[0].nÃ£ome); return; }
+  if(!clis||!clis.length) { res.innerHTML='<div class="empty-state"><p>Nenhum cliente encontrado</p></div>'; return; }
+  if(clis.length===1) { carregarHistoricoCliente(clis[0].id, clis[0].nome); return; }
   res.innerHTML = `<div class="card"><div class="card-body"><div style="font-size:13px;margin-bottom:8px;font-weight:600">Selecione o cliente:</div>${clis.map(c=>`
-    <div onclick="carregarHistoricoCliente('${c.id}','${c.nÃ£ome.replace(/'/g,"\\\\'")}');this.parentElement.remove()" style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;margin-bottom:6px;font-size:13px" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background=''">
-      <strong>${c.nÃ£ome}</strong> � ${c.celular||'�'}
+    <div onclick="carregarHistoricoCliente('${c.id}','${c.nome.replace(/'/g,"\\\\'")}');this.parentElement.remove()" style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;margin-bottom:6px;font-size:13px" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background=''">
+      <strong>${c.nome}</strong> � ${c.celular||'�'}
     </div>`).join('')}</div></div>`;
 }
 
-async function carregarHistoricoCliente(id, nÃ£ome) {
-  const {datÃ©a:vendas} = await sb.from('vendas').select('id,numero_venda,total,forma_pagamento,statÃ©us,creatÃ©ed_atÃ©,venda_itens(produto_nÃ£ome,quantidade,total)').eq('cliente_id',id).order('creatÃ©ed_atÃ©',{ascending:false});
-  const totalGasto = (vendas||[]).filter(v=>v.statÃ©us==='concluida').reduce((a,v)=>a+parseFloatÃ©(v.total||0),0);
+async function carregarHistoricoCliente(id, nome) {
+  const {data:vendas} = await sb.from('vendas').select('id,numero_venda,total,forma_pagamento,status,created_at,venda_itens(produto_nome,quantidade,total)').eq('cliente_id',id).order('created_at',{ascending:false});
+  const totalGasto = (vendas||[]).filter(v=>v.status==='concluida').reduce((a,v)=>a+parseFloat(v.total||0),0);
   document.getElementById('hc-resultado').innerHTML = `
-  <div style="font-size:15px;font-weight:700;margin-bottom:12px">${nÃ£ome} � ${(vendas||[]).length} compras | Total: ${fmt(totalGasto)}</div>
-  <div class="card"><div class="table-wrap"><table class="datÃ©a-table">
-    <thead><tr><th>#</th><th>DatÃ©a</th><th>Forma Pag.</th><th>Total</th><th>StatÃ©us</th><th>Itens</th></tr></thead>
+  <div style="font-size:15px;font-weight:700;margin-bottom:12px">${nome} � ${(vendas||[]).length} compras | Total: ${fmt(totalGasto)}</div>
+  <div class="card"><div class="table-wrap"><table class="data-table">
+    <thead><tr><th>#</th><th>Data</th><th>Forma Pag.</th><th>Total</th><th>Status</th><th>Itens</th></tr></thead>
     <tbody>${(vendas||[]).map(v=>`<tr>
       <td>#${v.numero_venda}</td>
-      <td>${fmtDatÃ©etime(v.creatÃ©ed_atÃ©)}</td>
+      <td>${fmtDatetime(v.created_at)}</td>
       <td style="text-transform:capitalize">${v.forma_pagamento||'�'}</td>
       <td><strong>${fmt(v.total)}</strong></td>
-      <td>${badgeStatÃ©us(v.statÃ©us)}</td>
-      <td style="font-size:11px;color:var(--text-2)">${(v.venda_itens||[]).map(i=>`${i.produto_nÃ£ome} (${i.quantidade})`).join(', ')||'�'}</td>
+      <td>${badgeStatus(v.status)}</td>
+      <td style="font-size:11px;color:var(--text-2)">${(v.venda_itens||[]).map(i=>`${i.produto_nome} (${i.quantidade})`).join(', ')||'�'}</td>
     </tr>`).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--text-2);padding:24px">Nenhuma compra</td></tr>'}
     </tbody>
   </table></div></div>`;
-  lucide.creatÃ©eIcons();
+  lucide.createIcons();
 }
 
 // ===== PAINEL DE CLIENTES =====
 async function renderPainelClientes() {
-  const nÃ£ow = new DatÃ©e();
-  const ini = `${nÃ£ow.getFullYear()}-${String(nÃ£ow.getMonth()+1).padStart(2,'0')}-01`;
-  const fim = nÃ£ow.toISOString().split('T')[0];
+  const now = new Date();
+  const ini = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+  const fim = now.toISOString().split('T')[0];
 
-  const [{datÃ©a:vendas},{datÃ©a:clientes}] = await Promise.all([
-    sb.from('vendas').select('total,cliente_id,clientes(nÃ£ome,celular)').gte('creatÃ©ed_atÃ©',ini).lte('creatÃ©ed_atÃ©',fim+'T23:59:59').eq('statÃ©us','concluida'),
-    sb.from('venda_itens').select('produto_nÃ£ome,quantidade').gte('creatÃ©ed_atÃ©',ini).lte('creatÃ©ed_atÃ©',fim+'T23:59:59')
+  const [{data:vendas},{data:clientes}] = await Promise.all([
+    sb.from('vendas').select('total,cliente_id,clientes(nome,celular)').gte('created_at',ini).lte('created_at',fim+'T23:59:59').eq('status','concluida'),
+    sb.from('venda_itens').select('produto_nome,quantidade').gte('created_at',ini).lte('created_at',fim+'T23:59:59')
   ]);
 
-  const totalVendas = (vendas||[]).reduce((a,v)=>a+parseFloatÃ©(v.total||0),0);
+  const totalVendas = (vendas||[]).reduce((a,v)=>a+parseFloat(v.total||0),0);
   const numVendas   = (vendas||[]).length;
   const ticketMedio = numVendas>0?(totalVendas/numVendas):0;
   const clientesUnicos = new Set((vendas||[]).filter(v=>v.cliente_id).map(v=>v.cliente_id)).size;
@@ -666,18 +666,18 @@ async function renderPainelClientes() {
   const cliMap = {};
   (vendas||[]).forEach(v=>{
     const key = v.cliente_id||'balcao';
-    const nÃ£ome = v.clientes?.nÃ£ome||'Cliente balc�o';
+    const nome = v.clientes?.nome||'Cliente balc�o';
     const fone = v.clientes?.celular||'';
-    if(!cliMap[key]) cliMap[key]={nÃ£ome,fone,total:0,pecas:0,freq:0};
-    cliMap[key].total+=parseFloatÃ©(v.total||0);
+    if(!cliMap[key]) cliMap[key]={nome,fone,total:0,pecas:0,freq:0};
+    cliMap[key].total+=parseFloat(v.total||0);
     cliMap[key].freq++;
   });
 
   // Top produtos
   const prodMap = {};
   (clientes||[]).forEach(i=>{
-    const catÃ© = i.produto_nÃ£ome?.split(' ')[0]||'Outro';
-    prodMap[catÃ©]=(prodMap[catÃ©]||0)+i.quantidade;
+    const cat = i.produto_nome?.split(' ')[0]||'Outro';
+    prodMap[cat]=(prodMap[cat]||0)+i.quantidade;
   });
 
   const topCli = Object.values(cliMap).sort((a,b)=>b.total-a.total).slice(0,50);
@@ -685,23 +685,23 @@ async function renderPainelClientes() {
 
   document.getElementById('content').innerHTML = `
   <div style="font-size:13px;color:var(--text-2);margin-bottom:12px">
-    Painel de Clientes por compras: ${new DatÃ©e(ini+'T00:00:00').toLocaleDatÃ©eString('pt-BR')} a ${new DatÃ©e(fim+'T00:00:00').toLocaleDatÃ©eString('pt-BR')}
-    <button onclick="toast('Filtrar per�odos: em breve','info')" style="margin-left:12px;padding:5px 12px;border:1px solid var(--border-2);border-radius:var(--radius);background:white;font-size:12px;cursor:pointer;font-family:inherit"><i datÃ©a-lucide="calendar" style="width:12px;height:12px;vertical-align:-2px;margin-right:4px"></i>Filtrar Per�odos</button>
+    Painel de Clientes por compras: ${new Date(ini+'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(fim+'T00:00:00').toLocaleDateString('pt-BR')}
+    <button onclick="toast('Filtrar per�odos: em breve','info')" style="margin-left:12px;padding:5px 12px;border:1px solid var(--border-2);border-radius:var(--radius);background:white;font-size:12px;cursor:pointer;font-family:inherit"><i data-lucide="calendar" style="width:12px;height:12px;vertical-align:-2px;margin-right:4px"></i>Filtrar Per�odos</button>
   </div>
-  <div class="statÃ©s-grid" style="margin-bottom:16px">
-    <div class="statÃ©-card" style="background:#2563eb;color:white;border:nÃ£one"><div style="font-size:11px;font-weight:600;opacity:.8;margin-bottom:4px">Vendas nÃ£o per�odo</div><div style="font-size:26px;font-weight:800">${fmtNum(totalVendas)}</div></div>
-    <div class="statÃ©-card" style="background:#16a34a;color:white;border:nÃ£one"><div style="font-size:11px;font-weight:600;opacity:.8;margin-bottom:4px">Pe�as vendidas</div><div style="font-size:26px;font-weight:800">${(clientes||[]).reduce((a,i)=>a+i.quantidade,0)}</div></div>
-    <div class="statÃ©-card" style="background:#d97706;color:white;border:nÃ£one"><div style="font-size:11px;font-weight:600;opacity:.8;margin-bottom:4px">Ticket m�dio</div><div style="font-size:26px;font-weight:800">${fmtNum(ticketMedio)}</div></div>
-    <div class="statÃ©-card" style="background:#7c3aed;color:white;border:nÃ£one"><div style="font-size:11px;font-weight:600;opacity:.8;margin-bottom:4px">Clientes que compraram</div><div style="font-size:26px;font-weight:800">${clientesUnicos}</div></div>
+  <div class="stats-grid" style="margin-bottom:16px">
+    <div class="stat-card" style="background:#2563eb;color:white;border:none"><div style="font-size:11px;font-weight:600;opacity:.8;margin-bottom:4px">Vendas no per�odo</div><div style="font-size:26px;font-weight:800">${fmtNum(totalVendas)}</div></div>
+    <div class="stat-card" style="background:#16a34a;color:white;border:none"><div style="font-size:11px;font-weight:600;opacity:.8;margin-bottom:4px">Pe�as vendidas</div><div style="font-size:26px;font-weight:800">${(clientes||[]).reduce((a,i)=>a+i.quantidade,0)}</div></div>
+    <div class="stat-card" style="background:#d97706;color:white;border:none"><div style="font-size:11px;font-weight:600;opacity:.8;margin-bottom:4px">Ticket m�dio</div><div style="font-size:26px;font-weight:800">${fmtNum(ticketMedio)}</div></div>
+    <div class="stat-card" style="background:#7c3aed;color:white;border:none"><div style="font-size:11px;font-weight:600;opacity:.8;margin-bottom:4px">Clientes que compraram</div><div style="font-size:26px;font-weight:800">${clientesUnicos}</div></div>
   </div>
-  <div style="display:grid;grid-templatÃ©e-columns:2fr 1fr;gap:16px">
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px">
     <div>
-      <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px">Clientes que mais compraram na loja (atÃ©� 100)</div>
-      <div class="card"><div class="table-wrap"><table class="datÃ©a-table" style="font-size:12px">
-        <thead><tr><th>Celular</th><th>NÃ£ome</th><th style="text-align:right">Valor total</th><th style="text-align:center">Freq</th></tr></thead>
+      <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px">Clientes que mais compraram na loja (at� 100)</div>
+      <div class="card"><div class="table-wrap"><table class="data-table" style="font-size:12px">
+        <thead><tr><th>Celular</th><th>Nome</th><th style="text-align:right">Valor total</th><th style="text-align:center">Freq</th></tr></thead>
         <tbody>${topCli.map(c=>`<tr>
-          <td style="font-family:monÃ£ospace">${c.fone||'�'}</td>
-          <td><strong>${c.nÃ£ome}</strong></td>
+          <td style="font-family:monospace">${c.fone||'�'}</td>
+          <td><strong>${c.nome}</strong></td>
           <td style="text-align:right">${fmtNum(c.total)}</td>
           <td style="text-align:center">${c.freq}</td>
         </tr>`).join('')}</tbody>
@@ -715,7 +715,7 @@ async function renderPainelClientes() {
       </div></div>
     </div>
   </div>`;
-  lucide.creatÃ©eIcons();
+  lucide.createIcons();
 }
 
 
@@ -729,8 +729,8 @@ async function renderImportarClientes() {
       <div style="padding:16px 22px;border-bottom:1px solid var(--border)">
         <h3 style="font-size:15px;font-weight:700;margin-bottom:6px">Importar Clientes via CSV</h3>
         <p style="font-size:12.5px;color:var(--text-2);margin:0">
-          CompatÃ©�vel com o formatÃ©o de backup: <strong>ID; DatÃ©a cadastro; NÃ£ome; Abreviado; Celular; Sexo; Dia Aniv; M�s Aniv; Email; Instagram; AtÃ©ivo; Limite; CPF; CEP; Logradouro; N�mero; Complemento; Bairro; UF; Cidade</strong>
-          <br>Separador: <code style="background:#f1f5f9;padding:1px 5px;border-radius:3px">;</code> � Encoding: UTF-8 ou LatÃ©in-1
+          Compat�vel com o formato de backup: <strong>ID; Data cadastro; Nome; Abreviado; Celular; Sexo; Dia Aniv; M�s Aniv; Email; Instagram; Ativo; Limite; CPF; CEP; Logradouro; N�mero; Complemento; Bairro; UF; Cidade</strong>
+          <br>Separador: <code style="background:#f1f5f9;padding:1px 5px;border-radius:3px">;</code> � Encoding: UTF-8 ou Latin-1
         </p>
       </div>
 
@@ -741,11 +741,11 @@ async function renderImportarClientes() {
           onclick="document.getElementById('ic-file').click()"
           ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='#eff6ff'"
           ondragleave="this.style.borderColor='var(--border-2)';this.style.background='var(--bg)'"
-          ondrop="event.preventDefault();this.style.borderColor='var(--border-2)';this.style.background='var(--bg)';previewClientesCSV(event.datÃ©aTransfer.files[0])">
-          <i datÃ©a-lucide="upload-cloud" style="width:40px;height:40px;color:var(--text-2);margin-bottom:10px"></i>
+          ondrop="event.preventDefault();this.style.borderColor='var(--border-2)';this.style.background='var(--bg)';previewClientesCSV(event.dataTransfer.files[0])">
+          <i data-lucide="upload-cloud" style="width:40px;height:40px;color:var(--text-2);margin-bottom:10px"></i>
           <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px">Clique para selecionar o arquivo CSV</div>
           <div style="font-size:12px;color:var(--text-2)">ou arraste e solte aqui</div>
-          <input type="file" id="ic-file" accept=".csv" style="display:nÃ£one" onchange="previewClientesCSV(this.files[0])">
+          <input type="file" id="ic-file" accept=".csv" style="display:none" onchange="previewClientesCSV(this.files[0])">
         </div>
       </div>
 
@@ -753,7 +753,7 @@ async function renderImportarClientes() {
       <div id="ic-preview" style="padding:0 22px 20px"></div>
     </div>
   </div>`;
-  setTimeout(()=>lucide.creatÃ©eIcons(),10);
+  setTimeout(()=>lucide.createIcons(),10);
 }
 
 function parseCSVLineCliente(line) {
@@ -772,11 +772,11 @@ function parseCSVLineCliente(line) {
 async function previewClientesCSV(file) {
   if(!file) return;
 
-  // Ler como UTF-8, fallback LatÃ©in-1
+  // Ler como UTF-8, fallback Latin-1
   let text = '';
   try {
     text = await file.text();
-  } catÃ©ch(e) {
+  } catch(e) {
     const buf = await file.arrayBuffer();
     text = new TextDecoder('windows-1252').decode(buf);
   }
@@ -786,30 +786,30 @@ async function previewClientesCSV(file) {
   // Detectar se tem cabe�alho (primeira c�lula n�o num�rica)
   const firstCell = parseCSVLineCliente(lines[0])[0].replace(/^\uFEFF/,'');
   const hasHeader = isNaN(parseInt(firstCell));
-  const datÃ©aLines = hasHeader ? lines.slice(1) : lines;
+  const dataLines = hasHeader ? lines.slice(1) : lines;
 
-  const rows = datÃ©aLines
+  const rows = dataLines
     .map(l=>parseCSVLineCliente(l))
-    .filter(r=>r.length>=5 && r[2]); // precisa ter pelo menÃ£os nÃ£ome
+    .filter(r=>r.length>=5 && r[2]); // precisa ter pelo menos nome
 
   if(!rows.length) {
     document.getElementById('ic-preview').innerHTML =
-      '<div class="empty-statÃ©e" style="padding:32px"><i datÃ©a-lucide="alert-circle"></i><p>Nenhuma linha v�lida encontrada nÃ£o arquivo</p></div>';
-    lucide.creatÃ©eIcons(); return;
+      '<div class="empty-state" style="padding:32px"><i data-lucide="alert-circle"></i><p>Nenhuma linha v�lida encontrada no arquivo</p></div>';
+    lucide.createIcons(); return;
   }
 
   window._icRows = rows;
 
   const preview = rows.slice(0,5).map(r=>
-    `<tr><td style="font-size:12px;color:var(--text-2)">${r[0]||'�'}</td><td style="font-size:12px">${r[1]||'�'}</td><td style="font-size:13px;font-weight:600">${r[2]||'�'}</td><td style="font-size:12px">${r[3]||'�'}</td><td style="font-family:monÃ£ospace;font-size:12px">${r[4]||'�'}</td><td style="font-size:12px;text-align:center">${r[5]||'�'}</td><td style="font-size:12px;text-align:center">${r[6]||''}/${r[7]||''}</td><td style="font-size:11px;color:var(--text-2)">${r[8]||'�'}</td></tr>`
+    `<tr><td style="font-size:12px;color:var(--text-2)">${r[0]||'�'}</td><td style="font-size:12px">${r[1]||'�'}</td><td style="font-size:13px;font-weight:600">${r[2]||'�'}</td><td style="font-size:12px">${r[3]||'�'}</td><td style="font-family:monospace;font-size:12px">${r[4]||'�'}</td><td style="font-size:12px;text-align:center">${r[5]||'�'}</td><td style="font-size:12px;text-align:center">${r[6]||''}/${r[7]||''}</td><td style="font-size:11px;color:var(--text-2)">${r[8]||'�'}</td></tr>`
   ).join('');
 
   document.getElementById('ic-preview').innerHTML = `
   <div style="margin-top:16px">
-    <div style="display:grid;grid-templatÃ©e-columns:repeatÃ©(3,1fr);gap:12px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
       <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--radius);padding:12px;text-align:center">
         <div style="font-size:24px;font-weight:800;color:var(--green)">${rows.length}</div>
-        <div style="font-size:12px;color:var(--green)">Clientes nÃ£o arquivo</div>
+        <div style="font-size:12px;color:var(--green)">Clientes no arquivo</div>
       </div>
       <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--radius);padding:12px;text-align:center">
         <div style="font-size:24px;font-weight:800;color:var(--accent)">${rows.filter(r=>r[4]).length}</div>
@@ -828,7 +828,7 @@ async function previewClientesCSV(file) {
         <thead><tr style="background:#f8fafc;border-bottom:2px solid var(--border)">
           <th style="padding:7px 10px;text-align:left;color:var(--text-2)">ID</th>
           <th style="padding:7px 10px;text-align:left;color:var(--text-2)">Cadastro</th>
-          <th style="padding:7px 10px;text-align:left;color:var(--text-2)">NÃ£ome</th>
+          <th style="padding:7px 10px;text-align:left;color:var(--text-2)">Nome</th>
           <th style="padding:7px 10px;text-align:left;color:var(--text-2)">Abreviado</th>
           <th style="padding:7px 10px;text-align:left;color:var(--text-2)">Celular</th>
           <th style="padding:7px 10px;text-align:center;color:var(--text-2)">Sexo</th>
@@ -842,11 +842,11 @@ async function previewClientesCSV(file) {
 
     <!-- Aviso -->
     <div style="background:#fefce8;border:1px solid #fde68a;border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;font-size:12.5px;color:#854d0e">
-      <strong>Aviso:</strong> Clientes com o mesmo celular ser�o <strong>atÃ©ualizados</strong>. NÃ£ovos celulares ser�o criados como nÃ£ovos clientes.
+      <strong>Aviso:</strong> Clientes com o mesmo celular ser�o <strong>atualizados</strong>. Novos celulares ser�o criados como novos clientes.
     </div>
 
-    <!-- Progresso (oculto atÃ©� importar) -->
-    <div id="ic-progress-wrap" style="display:nÃ£one;margin-bottom:16px">
+    <!-- Progresso (oculto at� importar) -->
+    <div id="ic-progress-wrap" style="display:none;margin-bottom:16px">
       <div style="font-size:12px;color:var(--text-2);margin-bottom:6px" id="ic-progress-label">Importando...</div>
       <div style="background:var(--border);border-radius:99px;height:8px;overflow:hidden">
         <div id="ic-progress-bar" style="height:100%;background:var(--accent);width:0%;transition:width .15s;border-radius:99px"></div>
@@ -855,16 +855,16 @@ async function previewClientesCSV(file) {
 
     <!-- Bot�es -->
     <div style="display:flex;justify-content:flex-end;gap:10px">
-      <button onclick="renderImportarClientes()" class="btn btn-secondary"><i datÃ©a-lucide="x"></i>Cancelar</button>
+      <button onclick="renderImportarClientes()" class="btn btn-secondary"><i data-lucide="x"></i>Cancelar</button>
       <button id="ic-btn-import" onclick="executarImportacaoClientes()" class="btn btn-primary" style="background:#16a34a;box-shadow:0 2px 8px rgba(22,163,74,.3)">
-        <i datÃ©a-lucide="download"></i>Importar ${rows.length} clientes
+        <i data-lucide="download"></i>Importar ${rows.length} clientes
       </button>
     </div>
   </div>`;
-  lucide.creatÃ©eIcons();
+  lucide.createIcons();
 }
 
-function parseDatÃ©eBR(str) {
+function parseDateBR(str) {
   // dd/mm/yyyy ? yyyy-mm-dd
   if(!str) return null;
   const p = str.trim().split('/');
@@ -879,7 +879,7 @@ async function executarImportacaoClientes() {
   if(!rows||!rows.length) return toast('Nenhum dado para importar','error');
 
   const btn = document.getElementById('ic-btn-import');
-  if(btn) { btn.disabled=true; btn.innerHTML='<i datÃ©a-lucide="loader"></i>Importando...'; lucide.creatÃ©eIcons(); }
+  if(btn) { btn.disabled=true; btn.innerHTML='<i data-lucide="loader"></i>Importando...'; lucide.createIcons(); }
   document.getElementById('ic-progress-wrap').style.display='block';
 
   const setProgress = (n, total, msg) => {
@@ -889,7 +889,7 @@ async function executarImportacaoClientes() {
     if(lbl) lbl.textContent = msg;
   };
 
-  let criados=0, atÃ©ualizados=0, erros=0;
+  let criados=0, atualizados=0, erros=0;
 
   // Processar em lotes de 20 para n�o sobrecarregar
   const BATCH = 20;
@@ -899,25 +899,25 @@ async function executarImportacaoClientes() {
 
     try {
       // Montar payload
-      // Colunas: [0]ID [1]DatÃ©aCad [2]NÃ£ome [3]Abrev [4]Celular [5]Sexo [6]DiaAniv [7]MesAniv [8]Email [9]Insta [10]AtÃ©ivo [11]Limite [12]CPF [13]CEP [14]Logradouro [15]Numero [16]Compl [17]Bairro [18]UF [19]Cidade
+      // Colunas: [0]ID [1]DataCad [2]Nome [3]Abrev [4]Celular [5]Sexo [6]DiaAniv [7]MesAniv [8]Email [9]Insta [10]Ativo [11]Limite [12]CPF [13]CEP [14]Logradouro [15]Numero [16]Compl [17]Bairro [18]UF [19]Cidade
       const celular = (r[4]||'').trim();
-      const nÃ£ome    = (r[2]||'').trim();
-      if(!nÃ£ome) { erros++; continue; }
+      const nome    = (r[2]||'').trim();
+      if(!nome) { erros++; continue; }
 
-      // DatÃ©a de cadastro
-      const datÃ©aCad = parseDatÃ©eBR(r[1]);
+      // Data de cadastro
+      const dataCad = parseDateBR(r[1]);
 
-      // Anivers�rio: guardar como datÃ©a fict�cia anÃ£o 2000
-      let datÃ©aNasc = null;
+      // Anivers�rio: guardar como data fict�cia ano 2000
+      let dataNasc = null;
       const dia = parseInt(r[6]||0), mes = parseInt(r[7]||0);
-      if(dia>0 && mes>0) datÃ©aNasc = `2000-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+      if(dia>0 && mes>0) dataNasc = `2000-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
 
       const payload = {
-        nÃ£ome,
-        nÃ£ome_abreviado: (r[3]||'').trim()||null,
+        nome,
+        nome_abreviado: (r[3]||'').trim()||null,
         celular: celular||null,
         sexo: (r[5]||'').trim()||null,
-        datÃ©a_nascimento: datÃ©aNasc,
+        data_nascimento: dataNasc,
         email: (r[8]||'').trim()||null,
         instagram: (r[9]||'').trim()||null,
         cpf: (r[12]||'').replace(/\D/g,'')||null,
@@ -928,38 +928,38 @@ async function executarImportacaoClientes() {
         bairro: (r[17]||'').trim()||null,
         estado: (r[18]||'').trim()||null,
         cidade: (r[19]||'').trim()||null,
-        atÃ©ivo: true
+        ativo: true
       };
 
       if(celular) {
         // Tentar encontrar pelo celular
-        const {datÃ©a:existing} = await sb.from('clientes')
+        const {data:existing} = await sb.from('clientes')
           .select('id').eq('celular',celular).maybeSingle();
         if(existing) {
-          await sb.from('clientes').updatÃ©e(payload).eq('id',existing.id);
-          atÃ©ualizados++;
+          await sb.from('clientes').update(payload).eq('id',existing.id);
+          atualizados++;
         } else {
           await sb.from('clientes').insert(payload);
           criados++;
         }
       } else {
-        // Sem celular � inserir apenas se nÃ£ome n�o existe
-        const {datÃ©a:ex2} = await sb.from('clientes')
-          .select('id').eq('nÃ£ome',nÃ£ome).eq('atÃ©ivo',true).maybeSingle();
+        // Sem celular � inserir apenas se nome n�o existe
+        const {data:ex2} = await sb.from('clientes')
+          .select('id').eq('nome',nome).eq('ativo',true).maybeSingle();
         if(!ex2) {
           await sb.from('clientes').insert(payload);
           criados++;
         } else {
-          atÃ©ualizados++;
+          atualizados++;
         }
       }
-    } catÃ©ch(e) {
+    } catch(e) {
       erros++;
       console.error('Erro linha',i, e);
     }
   }
 
-  document.getElementById('ic-progress-wrap').style.display='nÃ£one';
+  document.getElementById('ic-progress-wrap').style.display='none';
   document.getElementById('ic-preview').innerHTML = `
   <div style="text-align:center;padding:32px">
     <div style="font-size:40px;margin-bottom:12px">?</div>
@@ -970,24 +970,24 @@ async function executarImportacaoClientes() {
         <div style="font-size:12px;color:var(--green)">Criados</div>
       </div>
       <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--radius);padding:12px 20px;text-align:center">
-        <div style="font-size:24px;font-weight:800;color:var(--accent)">${atÃ©ualizados}</div>
-        <div style="font-size:12px;color:var(--accent)">AtÃ©ualizados</div>
+        <div style="font-size:24px;font-weight:800;color:var(--accent)">${atualizados}</div>
+        <div style="font-size:12px;color:var(--accent)">Atualizados</div>
       </div>
       ${erros>0?`<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:var(--radius);padding:12px 20px;text-align:center"><div style="font-size:24px;font-weight:800;color:var(--red)">${erros}</div><div style="font-size:12px;color:var(--red)">Erros</div></div>`:''}
     </div>
-    <button onclick="navigatÃ©e('clientes')" class="btn btn-primary">
-      <i datÃ©a-lucide="users"></i>Ver Clientes
+    <button onclick="navigate('clientes')" class="btn btn-primary">
+      <i data-lucide="users"></i>Ver Clientes
     </button>
   </div>`;
-  lucide.creatÃ©eIcons();
+  lucide.createIcons();
 }
 
 // ===== PRODUTOS =====
 // ===== PRODUTOS � LISTA =====
 async function renderProdutos() {
   document.getElementById('topbar-actions').innerHTML = `
-    <button class="btn btn-primary" style="background:#16a34a;border:nÃ£one;box-shadow:0 2px 8px rgba(22,163,74,.3)" onclick="navigatÃ©e('cadastrar-produto')">
-      <i datÃ©a-lucide="plus"></i>Incluir NÃ£ovo Produto
+    <button class="btn btn-primary" style="background:#16a34a;border:none;box-shadow:0 2px 8px rgba(22,163,74,.3)" onclick="navigate('cadastrar-produto')">
+      <i data-lucide="plus"></i>Incluir Novo Produto
     </button>`;
   await renderListaProdutosEstoque();
 }
@@ -999,17 +999,17 @@ async function renderListaProdutosEstoque() {
   if(!el) return;
 
   // Buscar op��es dos selects
-  const [{datÃ©a:catÃ©s},{datÃ©a:forns},{datÃ©a:grades}] = await Promise.all([
-    sb.from('catÃ©egorias').select('id,nÃ£ome').eq('atÃ©ivo',true).order('nÃ£ome'),
-    sb.from('fornecedores').select('id,razao_social').eq('atÃ©ivo',true).order('razao_social'),
-    sb.from('grades').select('id,nÃ£ome').eq('atÃ©ivo',true).order('nÃ£ome')
+  const [{data:cats},{data:forns},{data:grades}] = await Promise.all([
+    sb.from('categorias').select('id,nome').eq('ativo',true).order('nome'),
+    sb.from('fornecedores').select('id,razao_social').eq('ativo',true).order('razao_social'),
+    sb.from('grades').select('id,nome').eq('ativo',true).order('nome')
   ]);
 
   el.innerHTML = `
   <div style="display:flex;gap:0;align-items:flex-start">
 
     <!-- SIDEBAR FILTRO -->
-    <div style="width:220px;flex-shrink:0;background:white;border:1px solid var(--border);border-right:nÃ£one;border-radius:var(--radius-lg) 0 0 var(--radius-lg);padding:16px 14px;min-height:400px">
+    <div style="width:220px;flex-shrink:0;background:white;border:1px solid var(--border);border-right:none;border-radius:var(--radius-lg) 0 0 var(--radius-lg);padding:16px 14px;min-height:400px">
       <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px">Filtro</div>
 
       <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Informe o Produto</div>
@@ -1024,9 +1024,9 @@ async function renderListaProdutosEstoque() {
 
       <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Filtros adicionais</div>
       <div style="display:flex;flex-direction:column;gap:7px">
-        <select id="lp-catÃ©" style="padding:7px 10px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:12px;background:white">
-          <option value="">Todas as catÃ©egorias</option>
-          ${(catÃ©s||[]).map(c=>`<option value="${c.id}">${c.nÃ£ome}</option>`).join('')}
+        <select id="lp-cat" style="padding:7px 10px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:12px;background:white">
+          <option value="">Todas as categorias</option>
+          ${(cats||[]).map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}
         </select>
         <select id="lp-forn" style="padding:7px 10px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:12px;background:white">
           <option value="">Todos os fornecedores</option>
@@ -1034,17 +1034,17 @@ async function renderListaProdutosEstoque() {
         </select>
         <select id="lp-grade" style="padding:7px 10px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:12px;background:white">
           <option value="">Todas as grades</option>
-          ${(grades||[]).map(g=>`<option value="${g.id}">${g.nÃ£ome}</option>`).join('')}
+          ${(grades||[]).map(g=>`<option value="${g.id}">${g.nome}</option>`).join('')}
         </select>
         <select id="lp-gen" style="padding:7px 10px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:12px;background:white">
           <option value="">Todos os g�neros</option>
-          <option value="F">FemininÃ£o</option>
-          <option value="M">MasculinÃ£o</option>
+          <option value="F">Feminino</option>
+          <option value="M">Masculino</option>
           <option value="U">Unissex</option>
           <option value="J">Juvenil</option>
         </select>
-        <button onclick="buscarListaProdutos()" style="padding:8px;background:#2563eb;color:white;border:nÃ£one;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">
-          <i datÃ©a-lucide="search" style="width:14px;height:14px"></i>Buscar
+        <button onclick="buscarListaProdutos()" style="padding:8px;background:#2563eb;color:white;border:none;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">
+          <i data-lucide="search" style="width:14px;height:14px"></i>Buscar
         </button>
         <button onclick="limparListaProdutos()" style="padding:8px;background:white;color:var(--text-2);border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
           Limpar
@@ -1062,10 +1062,10 @@ async function renderListaProdutosEstoque() {
           <div style="display:flex;align-items:center;gap:10px">
             <div style="display:flex;align-items:center;gap:6px">
               <span style="font-size:11px;font-weight:600;color:var(--text-2)">Etiqueta</span>
-              <label style="position:relatÃ©ive;display:inline-block;width:38px;height:20px;cursor:pointer">
-                <input type="checkbox" id="lp-etiqueta" style="opacity:0;width:0;height:0" onchange="atÃ©ualizarToggleEtiqueta(this)">
+              <label style="position:relative;display:inline-block;width:38px;height:20px;cursor:pointer">
+                <input type="checkbox" id="lp-etiqueta" style="opacity:0;width:0;height:0" onchange="atualizarToggleEtiqueta(this)">
                 <span id="lp-toggle-span" style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#16a34a;border-radius:20px;transition:.3s">
-                  <span style="position:absolute;left:3px;top:3px;width:14px;height:14px;background:white;border-radius:50%;transition:.3s;transform:translatÃ©eX(18px)"></span>
+                  <span style="position:absolute;left:3px;top:3px;width:14px;height:14px;background:white;border-radius:50%;transition:.3s;transform:translateX(18px)"></span>
                 </span>
               </label>
             </div>
@@ -1079,29 +1079,29 @@ async function renderListaProdutosEstoque() {
         </div>
 
         <div style="display:flex;gap:8px;align-items:center;margin-left:auto;flex-wrap:wrap">
-          <button onclick="adicionarFilaImpressao()" style="padding:8px 14px;background:#7c3aed;color:white;border:nÃ£one;border-radius:var(--radius);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">
+          <button onclick="adicionarFilaImpressao()" style="padding:8px 14px;background:#7c3aed;color:white;border:none;border-radius:var(--radius);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">
             Adicionar fila de impress�o
           </button>
-          <div style="position:relatÃ©ive">
+          <div style="position:relative">
             <button onclick="verFilaImpressao()" style="padding:8px 14px;background:white;color:var(--text);border:2px solid var(--border-2);border-radius:var(--radius);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">
               Ver Fila
             </button>
             <span id="fila-badge" style="position:absolute;top:-7px;right:-7px;background:#ef4444;color:white;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">${_filaImpressao.length}</span>
           </div>
-          <button onclick="imprimirEtiquetas()" style="padding:8px 16px;background:#0891b2;color:white;border:nÃ£one;border-radius:var(--radius);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">
+          <button onclick="imprimirEtiquetas()" style="padding:8px 16px;background:#0891b2;color:white;border:none;border-radius:var(--radius);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">
             Imprimir Etiqueta
           </button>
-          <button onclick="ajudaEtiquetas()" style="width:28px;height:28px;background:#2563eb;color:white;border:nÃ£one;border-radius:50%;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center">?</button>
+          <button onclick="ajudaEtiquetas()" style="width:28px;height:28px;background:#2563eb;color:white;border:none;border-radius:50%;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center">?</button>
         </div>
       </div>
 
       <!-- BANNER INFO -->
       <div style="padding:10px 18px;background:#eff6ff;border-bottom:1px solid #bfdbfe;display:flex;align-items:flex-start;gap:8px">
-        <i datÃ©a-lucide="info" style="width:15px;height:15px;color:#2563eb;flex-shrink:0;margin-top:1px"></i>
+        <i data-lucide="info" style="width:15px;height:15px;color:#2563eb;flex-shrink:0;margin-top:1px"></i>
         <div style="font-size:12px;color:#1e40af">
-          <strong>NOVO:</strong> Lan�amos nÃ£ovos bot�es para facilitar as impress�es de etiquetas.
+          <strong>NOVO:</strong> Lan�amos novos bot�es para facilitar as impress�es de etiquetas.
           Assista o v�deo tutorial de como usar esses bot�es de impress�o:
-          <span style="color:#2563eb;font-weight:700;cursor:pointer;text-decoratÃ©ion:underline" onclick="ajudaEtiquetas()">CLIQUE AQUI E ASSISTA AGORA.</span>
+          <span style="color:#2563eb;font-weight:700;cursor:pointer;text-decoration:underline" onclick="ajudaEtiquetas()">CLIQUE AQUI E ASSISTA AGORA.</span>
         </div>
       </div>
 
@@ -1124,15 +1124,15 @@ async function renderListaProdutosEstoque() {
   const toggle = document.getElementById('lp-etiqueta');
   if(toggle) toggle.checked = true;
 
-  setTimeout(()=>{ lucide.creatÃ©eIcons(); buscarListaProdutos(); },10);
+  setTimeout(()=>{ lucide.createIcons(); buscarListaProdutos(); },10);
 }
 
-function atÃ©ualizarToggleEtiqueta(el) {
+function atualizarToggleEtiqueta(el) {
   const span = document.getElementById('lp-toggle-span');
   if(!span) return;
   span.style.background = el.checked?'#16a34a':'#94a3b8';
   const ball = span.querySelector('span');
-  if(ball) ball.style.transform = el.checked?'translatÃ©eX(18px)':'translatÃ©eX(0)';
+  if(ball) ball.style.transform = el.checked?'translateX(18px)':'translateX(0)';
 }
 
 async function buscarListaProdutos() {
@@ -1142,25 +1142,25 @@ async function buscarListaProdutos() {
 
   const ean    = document.getElementById('lp-ean')?.value.trim()||'';
   const codigo = document.getElementById('lp-codigo')?.value.trim()||'';
-  const catÃ©    = document.getElementById('lp-catÃ©')?.value||'';
+  const cat    = document.getElementById('lp-cat')?.value||'';
   const forn   = document.getElementById('lp-forn')?.value||'';
   const gradeF = document.getElementById('lp-grade')?.value||'';
   const gen    = document.getElementById('lp-gen')?.value||'';
 
   let q = sb.from('produto_grades')
-    .select('id,tamanho,ean,estoque,custo,preco_venda,cor_descricao,cor_hexa,produto_id,produtos!inner(id,nÃ£ome,codigo,sku,marca,ncm,genero,atÃ©ivo,creatÃ©ed_atÃ©,fornecedor_id,catÃ©egoria_id,grade_id,catÃ©egorias(nÃ£ome),fornecedores(razao_social),grades(nÃ£ome))')
-    .eq('produtos.atÃ©ivo', true)
+    .select('id,tamanho,ean,estoque,custo,preco_venda,cor_descricao,cor_hexa,produto_id,produtos!inner(id,nome,codigo,sku,marca,ncm,genero,ativo,created_at,fornecedor_id,categoria_id,grade_id,categorias(nome),fornecedores(razao_social),grades(nome))')
+    .eq('produtos.ativo', true)
     .order('produto_id');
 
   if(ean)    q = q.ilike('ean', `%${ean}%`);
   if(codigo) q = q.ilike('produtos.codigo', `%${codigo}%`);
-  if(catÃ©)    q = q.eq('produtos.catÃ©egoria_id', catÃ©);
+  if(cat)    q = q.eq('produtos.categoria_id', cat);
   if(forn)   q = q.eq('produtos.fornecedor_id', forn);
   if(gradeF) q = q.eq('produtos.grade_id', gradeF);
   if(gen)    q = q.eq('produtos.genero', gen);
 
-  const {datÃ©a, error} = await q;
-  const rows = datÃ©a||[];
+  const {data, error} = await q;
+  const rows = data||[];
 
   if(error||!rows.length) {
     wrap.innerHTML = `<div style="padding:24px;text-align:center;color:var(--text-2);font-size:13px">Nenhum produto encontrado.</div>`;
@@ -1172,21 +1172,21 @@ async function buscarListaProdutos() {
   // Guardar para fila
   window._lpRows = rows;
 
-  const totalValor = rows.reduce((a,r)=>a+((r.estoque||0)*parseFloatÃ©(r.preco_venda||r.produtos?.preco_venda||0)),0);
+  const totalValor = rows.reduce((a,r)=>a+((r.estoque||0)*parseFloat(r.preco_venda||r.produtos?.preco_venda||0)),0);
   const tableRows = rows.map(r => {
     const p = r.produtos;
-    const datÃ©aCad = p.creatÃ©ed_atÃ©?new DatÃ©e(p.creatÃ©ed_atÃ©).toLocaleDatÃ©eString('pt-BR'):'�';
+    const dataCad = p.created_at?new Date(p.created_at).toLocaleDateString('pt-BR'):'�';
     const corDot  = r.cor_hexa?`<span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:${r.cor_hexa};border:1px solid rgba(0,0,0,.15);vertical-align:-2px;margin-right:4px"></span>`:'';
-    const totalLinha = (r.estoque||0)*parseFloatÃ©(r.preco_venda||p?.preco_venda||0);
-    const genMap = {F:'FemininÃ£o',M:'MasculinÃ£o',U:'Unissex',J:'Juvenil'};
+    const totalLinha = (r.estoque||0)*parseFloat(r.preco_venda||p?.preco_venda||0);
+    const genMap = {F:'Feminino',M:'Masculino',U:'Unissex',J:'Juvenil'};
     return `<tr>
-      <td style="padding:7px 10px;text-align:center"><input type="checkbox" datÃ©a-gid="${r.id}" class="lp-check"></td>
-      <td style="padding:7px 10px;font-size:12px;color:var(--text-2);white-space:nÃ£owrap">${datÃ©aCad}</td>
+      <td style="padding:7px 10px;text-align:center"><input type="checkbox" data-gid="${r.id}" class="lp-check"></td>
+      <td style="padding:7px 10px;font-size:12px;color:var(--text-2);white-space:nowrap">${dataCad}</td>
       <td style="padding:7px 10px;font-size:12px">${p?.marca||'�'}</td>
-      <td style="padding:7px 10px;font-size:11px;font-family:monÃ£ospace;color:var(--text-2)">${p?.ncm||'�'}</td>
+      <td style="padding:7px 10px;font-size:11px;font-family:monospace;color:var(--text-2)">${p?.ncm||'�'}</td>
       <td style="padding:7px 10px;font-size:12px">${p?.codigo||'�'}</td>
-      <td style="padding:7px 10px;font-size:11px;font-family:monÃ£ospace">${r.ean||'�'}</td>
-      <td style="padding:7px 10px;font-size:12px"><strong>${p?.nÃ£ome||'�'}</strong>${r.cor_descricao?`<br><small>${corDot}${r.cor_descricao}</small>`:''}</td>
+      <td style="padding:7px 10px;font-size:11px;font-family:monospace">${r.ean||'�'}</td>
+      <td style="padding:7px 10px;font-size:12px"><strong>${p?.nome||'�'}</strong>${r.cor_descricao?`<br><small>${corDot}${r.cor_descricao}</small>`:''}</td>
       <td style="padding:7px 10px;font-size:12px;text-align:center">${r.tamanho||'�'}</td>
       <td style="padding:7px 10px;font-size:12px;text-align:center">${genMap[p?.genero]||'�'}</td>
       <td style="padding:7px 10px;font-size:12px;text-align:right">${fmtNum(r.custo||0)}</td>
@@ -1202,7 +1202,7 @@ async function buscarListaProdutos() {
       <thead style="position:sticky;top:0;z-index:1">
         <tr style="background:#f8fafc;border-bottom:2px solid var(--border)">
           <th style="padding:9px 10px;width:36px"><input type="checkbox" id="lp-chk-all" onchange="document.querySelectorAll('.lp-check').forEach(c=>c.checked=this.checked)"></th>
-          <th style="padding:9px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;white-space:nÃ£owrap">DatÃ©a<br>Cadastro</th>
+          <th style="padding:9px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">Data<br>Cadastro</th>
           <th style="padding:9px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Marca</th>
           <th style="padding:9px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">NCM</th>
           <th style="padding:9px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">C�digo</th>
@@ -1226,20 +1226,20 @@ async function buscarListaProdutos() {
   const badge = document.getElementById('fila-badge');
   if(badge) badge.textContent = _filaImpressao.length;
 
-  lucide.creatÃ©eIcons();
+  lucide.createIcons();
 }
 
 function limparListaProdutos() {
   ['lp-ean','lp-codigo'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
-  ['lp-catÃ©','lp-forn','lp-grade','lp-gen','lp-opcao'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
+  ['lp-cat','lp-forn','lp-grade','lp-gen','lp-opcao'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
   buscarListaProdutos();
 }
 
 function adicionarFilaImpressao() {
-  const selecionados = [...document.querySelectorAll('.lp-check:checked')].map(c=>c.getAtÃ©tribute('datÃ©a-gid'));
+  const selecionados = [...document.querySelectorAll('.lp-check:checked')].map(c=>c.getAttribute('data-gid'));
   if(!selecionados.length) {
-    // Se nenhum selecionado, adiciona todos da listagem atÃ©ual
-    const todos = [...document.querySelectorAll('.lp-check')].map(c=>c.getAtÃ©tribute('datÃ©a-gid'));
+    // Se nenhum selecionado, adiciona todos da listagem atual
+    const todos = [...document.querySelectorAll('.lp-check')].map(c=>c.getAttribute('data-gid'));
     if(!todos.length) return toast('Nenhum produto na lista','error');
     _filaImpressao = [...new Set([..._filaImpressao, ...todos])];
   } else {
@@ -1252,33 +1252,33 @@ function adicionarFilaImpressao() {
 
 function verFilaImpressao() {
   if(!_filaImpressao.length) {
-    openModal(`<div class="modal-header"><h3>Fila de Impress�o</h3><button class="modal-close" onclick="closeModalDirect()"><i datÃ©a-lucide="x"></i></button></div>
-    <div class="modal-body"><div class="empty-statÃ©e"><i datÃ©a-lucide="printer"></i><p>Fila vazia. Selecione produtos e clique em "Adicionar fila de impress�o".</p></div></div>
+    openModal(`<div class="modal-header"><h3>Fila de Impress�o</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
+    <div class="modal-body"><div class="empty-state"><i data-lucide="printer"></i><p>Fila vazia. Selecione produtos e clique em "Adicionar fila de impress�o".</p></div></div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModalDirect()">Fechar</button></div>`,'modal-sm');
     return;
   }
   const rows = (window._lpRows||[]).filter(r=>_filaImpressao.includes(r.id));
   openModal(`
-    <div class="modal-header"><h3>Fila de Impress�o (${_filaImpressao.length})</h3><button class="modal-close" onclick="closeModalDirect()"><i datÃ©a-lucide="x"></i></button></div>
+    <div class="modal-header"><h3>Fila de Impress�o (${_filaImpressao.length})</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
     <div class="modal-body">
-      <div class="table-wrap"><table class="datÃ©a-table" style="font-size:12px">
+      <div class="table-wrap"><table class="data-table" style="font-size:12px">
         <thead><tr><th>Produto</th><th>EAN</th><th>Grade</th><th>Pre�o</th><th></th></tr></thead>
         <tbody>${rows.map(r=>`<tr>
-          <td>${r.produtos?.nÃ£ome||'�'}</td>
-          <td style="font-family:monÃ£ospace">${r.ean||'�'}</td>
+          <td>${r.produtos?.nome||'�'}</td>
+          <td style="font-family:monospace">${r.ean||'�'}</td>
           <td>${r.tamanho||'�'}</td>
           <td>${fmtNum(r.preco_venda||r.produtos?.preco_venda||0)}</td>
-          <td><button onclick="removerDaFila('${r.id}')" style="background:nÃ£one;border:nÃ£one;cursor:pointer;color:var(--red)"><i datÃ©a-lucide="x" style="width:14px;height:14px"></i></button></td>
+          <td><button onclick="removerDaFila('${r.id}')" style="background:none;border:none;cursor:pointer;color:var(--red)"><i data-lucide="x" style="width:14px;height:14px"></i></button></td>
         </tr>`).join('')}
         </tbody>
       </table></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-danger" onclick="_filaImpressao=[];document.getElementById('fila-badge').textContent=0;closeModalDirect();toast('Fila limpa')">
-        <i datÃ©a-lucide="trash-2"></i>Limpar fila
+        <i data-lucide="trash-2"></i>Limpar fila
       </button>
       <button class="btn btn-primary" style="background:#0891b2" onclick="closeModalDirect();imprimirEtiquetas()">
-        <i datÃ©a-lucide="printer"></i>Imprimir
+        <i data-lucide="printer"></i>Imprimir
       </button>
     </div>`,'modal-lg');
 }
@@ -1292,7 +1292,7 @@ function removerDaFila(id) {
 
 function imprimirEtiquetas() {
   const ids = _filaImpressao.length ? _filaImpressao
-    : [...document.querySelectorAll('.lp-check:checked')].map(c=>c.getAtÃ©tribute('datÃ©a-gid'));
+    : [...document.querySelectorAll('.lp-check:checked')].map(c=>c.getAttribute('data-gid'));
 
   if(!ids.length) return toast('Nenhum produto selecionado para impress�o','error');
 
@@ -1300,8 +1300,8 @@ function imprimirEtiquetas() {
   if(!prods.length) return toast('Carregue os produtos primeiro','error');
 
   const etiquetas = prods.map(r=>`
-    <div style="width:62mm;min-height:38mm;border:1px solid #ccc;padding:6px;display:inline-block;margin:4px;font-family:monÃ£ospace;vertical-align:top;page-break-inside:avoid">
-      <div style="font-size:8pt;font-weight:bold;white-space:nÃ£owrap;overflow:hidden;text-overflow:ellipsis">${r.produtos?.nÃ£ome||''}</div>
+    <div style="width:62mm;min-height:38mm;border:1px solid #ccc;padding:6px;display:inline-block;margin:4px;font-family:monospace;vertical-align:top;page-break-inside:avoid">
+      <div style="font-size:8pt;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.produtos?.nome||''}</div>
       <div style="font-size:7pt;color:#555">${r.tamanho||''} ${r.cor_descricao?'� '+r.cor_descricao:''}</div>
       <div style="font-size:10pt;font-weight:bold;margin:2px 0">R$ ${fmtNum(r.preco_venda||r.produtos?.preco_venda||0)}</div>
       <div style="font-size:6.5pt;letter-spacing:2px">${r.ean||''}</div>
@@ -1324,12 +1324,12 @@ function imprimirEtiquetas() {
 
 function ajudaEtiquetas() {
   openModal(`
-    <div class="modal-header"><h3>Como usar as Etiquetas</h3><button class="modal-close" onclick="closeModalDirect()"><i datÃ©a-lucide="x"></i></button></div>
+    <div class="modal-header"><h3>Como usar as Etiquetas</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
     <div class="modal-body">
       <div class="info-list">
-        <div class="info-row"><span class="label">1. Adicionar fila de impress�o</span><span class="value">Selecione os produtos (checkbox) e clique nÃ£o bot�o roxo para adicion�-los � fila</span></div>
+        <div class="info-row"><span class="label">1. Adicionar fila de impress�o</span><span class="value">Selecione os produtos (checkbox) e clique no bot�o roxo para adicion�-los � fila</span></div>
         <div class="info-row"><span class="label">2. Ver Fila</span><span class="value">Veja todos os produtos na fila antes de imprimir. � poss�vel remover individualmente.</span></div>
-        <div class="info-row"><span class="label">3. Imprimir Etiqueta</span><span class="value">Gera um layout de etiquetas 62x38mm com nÃ£ome, tamanho, cor, pre�o e c�digo de barras</span></div>
+        <div class="info-row"><span class="label">3. Imprimir Etiqueta</span><span class="value">Gera um layout de etiquetas 62x38mm com nome, tamanho, cor, pre�o e c�digo de barras</span></div>
       </div>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModalDirect()">Entendi</button></div>`,'modal-md');
@@ -1343,15 +1343,15 @@ async function loadProdutos(filtros={}) {
       <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:8px;align-items:center">
         <div style="display:flex;gap:0;flex:1;min-width:220px">
           <input id="pf-ean" class="filter-input" placeholder="Buscar produtos pela c�d. barras" style="border-radius:var(--radius) 0 0 var(--radius);flex:1;min-width:120px">
-          <button class="btn btn-primary" style="border-radius:0 var(--radius) var(--radius) 0;padding:7px 12px" onclick="aplicarFiltrosProdutos()"><i datÃ©a-lucide="barcode"></i>Pesquisar</button>
+          <button class="btn btn-primary" style="border-radius:0 var(--radius) var(--radius) 0;padding:7px 12px" onclick="aplicarFiltrosProdutos()"><i data-lucide="barcode"></i>Pesquisar</button>
         </div>
         <div style="display:flex;gap:0;flex:1;min-width:220px">
           <input id="pf-desc" class="filter-input" placeholder="Buscar produtos pela descri��o" style="border-radius:var(--radius) 0 0 var(--radius);flex:1;min-width:120px">
-          <button class="btn btn-primary" style="border-radius:0 var(--radius) var(--radius) 0;padding:7px 12px" onclick="aplicarFiltrosProdutos()"><i datÃ©a-lucide="search"></i>Pesquisar</button>
+          <button class="btn btn-primary" style="border-radius:0 var(--radius) var(--radius) 0;padding:7px 12px" onclick="aplicarFiltrosProdutos()"><i data-lucide="search"></i>Pesquisar</button>
         </div>
         <div style="display:flex;gap:0;flex:1;min-width:160px">
           <input id="pf-cod" class="filter-input" placeholder="Buscar produtos pelo C�digo" style="border-radius:var(--radius) 0 0 var(--radius);flex:1;min-width:100px">
-          <button class="btn btn-primary" style="border-radius:0 var(--radius) var(--radius) 0;padding:7px 12px" onclick="aplicarFiltrosProdutos()"><i datÃ©a-lucide="search"></i>Pesquisar</button>
+          <button class="btn btn-primary" style="border-radius:0 var(--radius) var(--radius) 0;padding:7px 12px" onclick="aplicarFiltrosProdutos()"><i data-lucide="search"></i>Pesquisar</button>
         </div>
         <div style="display:flex;gap:6px;align-items:center;margin-left:auto">
           <select id="pf-acao" class="filter-select" style="min-width:180px">
@@ -1359,31 +1359,31 @@ async function loadProdutos(filtros={}) {
             <option value="excluir">Excluir selecionados</option>
             <option value="exportar">Exportar selecionados</option>
           </select>
-          <button class="btn btn-secondary btn-sm" onclick="toggleFiltrosAvancados()"><i datÃ©a-lucide="sliders-horizontal"></i>Filtros Avan�ados</button>
+          <button class="btn btn-secondary btn-sm" onclick="toggleFiltrosAvancados()"><i data-lucide="sliders-horizontal"></i>Filtros Avan�ados</button>
         </div>
       </div>
       <!-- Filtros Avan�ados (oculto por padr�o) -->
-      <div id="filtros-avancados" style="display:nÃ£one;padding:12px 16px;background:#f8fafc;border-bottom:1px solid var(--border);gap:10px;flex-wrap:wrap">
+      <div id="filtros-avancados" style="display:none;padding:12px 16px;background:#f8fafc;border-bottom:1px solid var(--border);gap:10px;flex-wrap:wrap">
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
           <div class="form-group" style="min-width:140px"><label>Fornecedor</label>
             <select id="pf-forn" class="filter-select"><option value="">Todos</option></select></div>
-          <div class="form-group" style="min-width:130px"><label>CatÃ©egoria</label>
-            <select id="pf-catÃ©" class="filter-select"><option value="">Todas</option></select></div>
+          <div class="form-group" style="min-width:130px"><label>Categoria</label>
+            <select id="pf-cat" class="filter-select"><option value="">Todas</option></select></div>
           <div class="form-group" style="min-width:120px"><label>G�nero</label>
             <select id="pf-gen" class="filter-select">
-              <option value="">Todos</option><option value="F">FemininÃ£o</option>
-              <option value="M">MasculinÃ£o</option><option value="U">Unissex</option><option value="J">Juvenil</option>
+              <option value="">Todos</option><option value="F">Feminino</option>
+              <option value="M">Masculino</option><option value="U">Unissex</option><option value="J">Juvenil</option>
             </select></div>
           <div class="form-group" style="min-width:110px"><label>Grade</label>
             <select id="pf-grade" class="filter-select"><option value="">Todas</option></select></div>
-          <button class="btn btn-primary btn-sm" onclick="aplicarFiltrosProdutos()" style="margin-bottom:1px"><i datÃ©a-lucide="filter"></i>Aplicar</button>
-          <button class="btn btn-secondary btn-sm" onclick="limparFiltros()" style="margin-bottom:1px"><i datÃ©a-lucide="x"></i>Limpar</button>
+          <button class="btn btn-primary btn-sm" onclick="aplicarFiltrosProdutos()" style="margin-bottom:1px"><i data-lucide="filter"></i>Aplicar</button>
+          <button class="btn btn-secondary btn-sm" onclick="limparFiltros()" style="margin-bottom:1px"><i data-lucide="x"></i>Limpar</button>
         </div>
       </div>
       <!-- Tabela -->
       <div id="produtos-table-wrap"><div class="loading" style="padding:32px;text-align:center">Carregando...</div></div>
     </div>`;
-  setTimeout(()=>lucide.creatÃ©eIcons(),10);
+  setTimeout(()=>lucide.createIcons(),10);
   await carregarTabelaProdutos({});
   await carregarSelectsFiltros();
 }
@@ -1391,24 +1391,24 @@ async function loadProdutos(filtros={}) {
 function toggleFiltrosAvancados() {
   const el = document.getElementById('filtros-avancados');
   if(!el) return;
-  el.style.display = el.style.display === 'nÃ£one' ? 'flex' : 'nÃ£one';
-  lucide.creatÃ©eIcons();
+  el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+  lucide.createIcons();
 }
 
 async function carregarSelectsFiltros() {
-  const [{datÃ©a:forns},{datÃ©a:catÃ©s},{datÃ©a:grades}] = await Promise.all([
-    sb.from('fornecedores').select('id,razao_social').eq('atÃ©ivo',true).order('razao_social'),
-    sb.from('catÃ©egorias').select('id,nÃ£ome').eq('atÃ©ivo',true).order('nÃ£ome'),
-    sb.from('grades').select('id,nÃ£ome').eq('atÃ©ivo',true).order('nÃ£ome')
+  const [{data:forns},{data:cats},{data:grades}] = await Promise.all([
+    sb.from('fornecedores').select('id,razao_social').eq('ativo',true).order('razao_social'),
+    sb.from('categorias').select('id,nome').eq('ativo',true).order('nome'),
+    sb.from('grades').select('id,nome').eq('ativo',true).order('nome')
   ]);
   const sel = (id, rows, label) => {
     const el = document.getElementById(id);
     if(!el) return;
-    rows.forEach(r => el.add(new Option(r.razao_social||r.nÃ£ome, r.id)));
+    rows.forEach(r => el.add(new Option(r.razao_social||r.nome, r.id)));
   };
   sel('pf-forn', forns||[], 'razao_social');
-  sel('pf-catÃ©', catÃ©s||[], 'nÃ£ome');
-  sel('pf-grade', grades||[], 'nÃ£ome');
+  sel('pf-cat', cats||[], 'nome');
+  sel('pf-grade', grades||[], 'nome');
 }
 
 async function aplicarFiltrosProdutos() {
@@ -1416,15 +1416,15 @@ async function aplicarFiltrosProdutos() {
   const desc  = document.getElementById('pf-desc')?.value.trim()||'';
   const cod   = document.getElementById('pf-cod')?.value.trim()||'';
   const forn  = document.getElementById('pf-forn')?.value||'';
-  const catÃ©   = document.getElementById('pf-catÃ©')?.value||'';
+  const cat   = document.getElementById('pf-cat')?.value||'';
   const gen   = document.getElementById('pf-gen')?.value||'';
   const grade = document.getElementById('pf-grade')?.value||'';
-  await carregarTabelaProdutos({ean,desc,cod,forn,catÃ©,gen,grade});
+  await carregarTabelaProdutos({ean,desc,cod,forn,cat,gen,grade});
 }
 
 function limparFiltros() {
   ['pf-ean','pf-desc','pf-cod'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
-  ['pf-forn','pf-catÃ©','pf-gen','pf-grade'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
+  ['pf-forn','pf-cat','pf-gen','pf-grade'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
   carregarTabelaProdutos({});
 }
 
@@ -1435,42 +1435,42 @@ async function carregarTabelaProdutos(filtros) {
 
   // Buscar variantes (produto_grades) com join de produtos
   let q = sb.from('produto_grades')
-    .select('id,tamanho,ean,cor_hexa,cor_descricao,estoque,custo,preco_venda,margem_lucro,produto_id,produtos!inner(id,nÃ£ome,sku,codigo,marca,catÃ©egoria_id,fornecedor_id,grade_id,genero,atÃ©ivo,catÃ©egorias(nÃ£ome),fornecedores(razao_social),grades(id,nÃ£ome))')
-    .eq('produtos.atÃ©ivo', true)
+    .select('id,tamanho,ean,cor_hexa,cor_descricao,estoque,custo,preco_venda,margem_lucro,produto_id,produtos!inner(id,nome,sku,codigo,marca,categoria_id,fornecedor_id,grade_id,genero,ativo,categorias(nome),fornecedores(razao_social),grades(id,nome))')
+    .eq('produtos.ativo', true)
     .order('produto_id');
 
   // Filtros
-  if(filtros.desc) q = q.ilike('produtos.nÃ£ome', `%${filtros.desc}%`);
+  if(filtros.desc) q = q.ilike('produtos.nome', `%${filtros.desc}%`);
   if(filtros.ean)  q = q.ilike('ean', `%${filtros.ean}%`);
   if(filtros.cod)  q = q.ilike('produtos.codigo', `%${filtros.cod}%`);
-  if(filtros.catÃ©)  q = q.eq('produtos.catÃ©egoria_id', filtros.catÃ©);
+  if(filtros.cat)  q = q.eq('produtos.categoria_id', filtros.cat);
   if(filtros.forn) q = q.eq('produtos.fornecedor_id', filtros.forn);
   if(filtros.gen)  q = q.eq('produtos.genero', filtros.gen);
   if(filtros.grade)q = q.eq('produtos.grade_id', filtros.grade);
 
-  const {datÃ©a, error} = await q;
+  const {data, error} = await q;
 
   if(error) {
     // Fallback: mostrar produtos sem variantes tamb�m
-    const {datÃ©a:prods} = await sb.from('produtos').select('*,catÃ©egorias(nÃ£ome),grades(nÃ£ome)').eq('atÃ©ivo',true).order('nÃ£ome');
+    const {data:prods} = await sb.from('produtos').select('*,categorias(nome),grades(nome)').eq('ativo',true).order('nome');
     renderTabelaProdutosFallback(prods||[]);
     return;
   }
 
   // Agrupar variantes por produto
   const prodMap = {};
-  (datÃ©a||[]).forEach(v => {
+  (data||[]).forEach(v => {
     const pid = v.produto_id;
     if(!prodMap[pid]) prodMap[pid] = { prod: v.produtos, variantes: [] };
     prodMap[pid].variantes.push(v);
   });
 
   // Buscar produtos sem variantes
-  const {datÃ©a:prodsSemVar} = await sb.from('produtos')
-    .select('*,catÃ©egorias(nÃ£ome),grades(nÃ£ome)')
-    .eq('atÃ©ivo',true)
-    .nÃ£ot('id','in',`(${Object.keys(prodMap).map(id=>`'${id}'`).join(',')})`)
-    .order('nÃ£ome');
+  const {data:prodsSemVar} = await sb.from('produtos')
+    .select('*,categorias(nome),grades(nome)')
+    .eq('ativo',true)
+    .not('id','in',`(${Object.keys(prodMap).map(id=>`'${id}'`).join(',')})`)
+    .order('nome');
 
   (prodsSemVar||[]).forEach(p => {
     prodMap[p.id] = prodMap[p.id] || { prod: p, variantes: [] };
@@ -1479,20 +1479,20 @@ async function carregarTabelaProdutos(filtros) {
   const entries = Object.values(prodMap);
 
   if(!entries.length) {
-    wrap.innerHTML = '<div class="empty-statÃ©e" style="padding:48px"><i datÃ©a-lucide="package"></i><h3>Nenhum produto encontrado</h3></div>';
-    lucide.creatÃ©eIcons(); return;
+    wrap.innerHTML = '<div class="empty-state" style="padding:48px"><i data-lucide="package"></i><h3>Nenhum produto encontrado</h3></div>';
+    lucide.createIcons(); return;
   }
 
   let rows = '';
   entries.forEach(({prod, variantes}) => {
-    const numVar = MatÃ©h.max(variantes.length, 1);
+    const numVar = Math.max(variantes.length, 1);
     if(variantes.length === 0) {
       // Produto sem variantes
       rows += `<tr>
-        <td style="padding:8px 12px"><input type="checkbox" datÃ©a-pid="${prod.id}"></td>
+        <td style="padding:8px 12px"><input type="checkbox" data-pid="${prod.id}"></td>
         <td style="padding:8px 10px;font-size:12px;color:var(--text-2)" rowspan="1">${prod.sku||'�'}</td>
         <td style="padding:8px 10px;font-size:12px" rowspan="1">${prod.codigo||'�'}</td>
-        <td style="padding:8px 10px;font-size:13px;font-weight:600" rowspan="1">${prod.nÃ£ome}</td>
+        <td style="padding:8px 10px;font-size:13px;font-weight:600" rowspan="1">${prod.nome}</td>
         <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">�</td>
         <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">�</td>
         <td style="padding:8px 10px">�</td>
@@ -1500,8 +1500,8 @@ async function carregarTabelaProdutos(filtros) {
         <td style="padding:8px 10px;font-size:12px;text-align:center">0</td>
         <td style="padding:8px 10px">
           <div style="display:flex;gap:4px">
-            <button title="Editar produto" onclick="navigatÃ©e('cadastrar-produto');_editProdId='${prod.id}'" style="width:28px;height:28px;border:1px solid var(--border-2);border-radius:4px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2)" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-2)'"><i datÃ©a-lucide="square-pen" style="width:13px;height:13px"></i></button>
-            <button title="Excluir produto" onclick="deleteProduto('${prod.id}')" style="width:28px;height:28px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--red)"><i datÃ©a-lucide="trash-2" style="width:13px;height:13px"></i></button>
+            <button title="Editar produto" onclick="navigate('cadastrar-produto');_editProdId='${prod.id}'" style="width:28px;height:28px;border:1px solid var(--border-2);border-radius:4px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2)" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-2)'"><i data-lucide="square-pen" style="width:13px;height:13px"></i></button>
+            <button title="Excluir produto" onclick="deleteProduto('${prod.id}')" style="width:28px;height:28px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--red)"><i data-lucide="trash-2" style="width:13px;height:13px"></i></button>
           </div>
         </td>
       </tr>`;
@@ -1514,19 +1514,19 @@ async function carregarTabelaProdutos(filtros) {
         const isFirst = vi === 0;
         const rowBg = vi % 2 === 0 ? '' : 'background:#f8fafc';
         rows += `<tr style="${rowBg}">
-          ${isFirst ? `<td style="padding:8px 12px;vertical-align:top" rowspan="${numVar}"><input type="checkbox" datÃ©a-pid="${prod.id}"></td>
+          ${isFirst ? `<td style="padding:8px 12px;vertical-align:top" rowspan="${numVar}"><input type="checkbox" data-pid="${prod.id}"></td>
           <td style="padding:8px 10px;font-size:12px;color:var(--text-2);vertical-align:top" rowspan="${numVar}">${prod.sku||'�'}</td>
           <td style="padding:8px 10px;font-size:12px;vertical-align:top" rowspan="${numVar}">${prod.codigo||'�'}</td>
-          <td style="padding:8px 10px;font-size:13px;font-weight:600;vertical-align:top" rowspan="${numVar}">${prod.nÃ£ome}</td>` : ''}
+          <td style="padding:8px 10px;font-size:13px;font-weight:600;vertical-align:top" rowspan="${numVar}">${prod.nome}</td>` : ''}
           <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">${v.ean||'�'}</td>
           <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">${v.tamanho||'�'}</td>
-          <td style="padding:8px 10px;font-size:12px;white-space:nÃ£owrap">${corDot}${corLabel}</td>
+          <td style="padding:8px 10px;font-size:12px;white-space:nowrap">${corDot}${corLabel}</td>
           <td style="padding:8px 10px;font-size:13px;font-weight:600">${v.preco_venda?fmt(v.preco_venda):(prod.preco_venda?fmt(prod.preco_venda):'�')}</td>
           <td style="padding:8px 10px;font-size:12px;text-align:center">${v.estoque??0}</td>
           ${isFirst ? `<td style="padding:8px 10px;vertical-align:top" rowspan="${numVar}">
             <div style="display:flex;gap:4px">
-              <button title="Editar produto" onclick="_editProdId='${prod.id}';navigatÃ©e('cadastrar-produto')" style="width:28px;height:28px;border:1px solid var(--border-2);border-radius:4px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2)" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-2)'"><i datÃ©a-lucide="square-pen" style="width:13px;height:13px"></i></button>
-              <button title="Excluir produto" onclick="deleteProduto('${prod.id}')" style="width:28px;height:28px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--red)"><i datÃ©a-lucide="trash-2" style="width:13px;height:13px"></i></button>
+              <button title="Editar produto" onclick="_editProdId='${prod.id}';navigate('cadastrar-produto')" style="width:28px;height:28px;border:1px solid var(--border-2);border-radius:4px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2)" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-2)'"><i data-lucide="square-pen" style="width:13px;height:13px"></i></button>
+              <button title="Excluir produto" onclick="deleteProduto('${prod.id}')" style="width:28px;height:28px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--red)"><i data-lucide="trash-2" style="width:13px;height:13px"></i></button>
             </div>
           </td>` : ''}
         </tr>`;
@@ -1538,9 +1538,9 @@ async function carregarTabelaProdutos(filtros) {
     <div style="padding:8px 16px;background:#f8fafc;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-2)">
       <strong>${entries.length}</strong> produto(s) encontrado(s)
     </div>
-    <div class="table-wrap"><table class="datÃ©a-table" style="font-size:13px">
+    <div class="table-wrap"><table class="data-table" style="font-size:13px">
       <thead><tr>
-        <th style="width:36px"><input type="checkbox" id="chk-all" onchange="document.querySelectorAll('[datÃ©a-pid]').forEach(c=>c.checked=this.checked)"></th>
+        <th style="width:36px"><input type="checkbox" id="chk-all" onchange="document.querySelectorAll('[data-pid]').forEach(c=>c.checked=this.checked)"></th>
         <th style="min-width:80px">SKU</th>
         <th style="min-width:90px">C�digo</th>
         <th style="min-width:180px">Descri��o</th>
@@ -1553,39 +1553,39 @@ async function carregarTabelaProdutos(filtros) {
       </tr></thead>
       <tbody>${rows}</tbody>
     </table></div>`;
-  lucide.creatÃ©eIcons();
+  lucide.createIcons();
 }
 
 function renderTabelaProdutosFallback(prods) {
   const wrap = document.getElementById('produtos-table-wrap');
   if(!wrap) return;
   let rows = prods.map(p=>`<tr>
-    <td style="padding:8px 12px"><input type="checkbox" datÃ©a-pid="${p.id}"></td>
+    <td style="padding:8px 12px"><input type="checkbox" data-pid="${p.id}"></td>
     <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">${p.sku||'�'}</td>
     <td style="padding:8px 10px;font-size:12px">${p.codigo||'�'}</td>
-    <td style="padding:8px 10px;font-size:13px;font-weight:600">${p.nÃ£ome}</td>
+    <td style="padding:8px 10px;font-size:13px;font-weight:600">${p.nome}</td>
     <td colspan="3" style="padding:8px 10px;font-size:12px;color:var(--text-3)">Sem variantes</td>
     <td style="padding:8px 10px;font-size:13px;font-weight:600">${fmt(p.preco_venda)}</td>
     <td style="padding:8px 10px;text-align:center">�</td>
     <td style="padding:8px 10px">
       <div style="display:flex;gap:4px">
-        <button onclick="_editProdId='${p.id}';navigatÃ©e('cadastrar-produto')" style="width:28px;height:28px;border:1px solid var(--border-2);border-radius:4px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2)"><i datÃ©a-lucide="square-pen" style="width:13px;height:13px"></i></button>
-        <button onclick="deleteProduto('${p.id}')" style="width:28px;height:28px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--red)"><i datÃ©a-lucide="trash-2" style="width:13px;height:13px"></i></button>
+        <button onclick="_editProdId='${p.id}';navigate('cadastrar-produto')" style="width:28px;height:28px;border:1px solid var(--border-2);border-radius:4px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2)"><i data-lucide="square-pen" style="width:13px;height:13px"></i></button>
+        <button onclick="deleteProduto('${p.id}')" style="width:28px;height:28px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--red)"><i data-lucide="trash-2" style="width:13px;height:13px"></i></button>
       </div>
     </td>
   </tr>`).join('');
-  wrap.innerHTML = `<div class="table-wrap"><table class="datÃ©a-table">
+  wrap.innerHTML = `<div class="table-wrap"><table class="data-table">
     <thead><tr><th style="width:36px"><input type="checkbox"></th><th>SKU</th><th>C�digo</th><th>Descri��o</th><th colspan="3"></th><th>Vlr Venda UN</th><th>Qtde</th><th>A��o</th></tr></thead>
     <tbody>${rows||'<tr><td colspan="10" style="text-align:center;color:var(--text-2);padding:32px">Nenhum produto</td></tr>'}</tbody>
   </table></div>`;
-  lucide.creatÃ©eIcons();
+  lucide.createIcons();
 }
 
 async function loadProdutosSearch(q){await carregarTabelaProdutos({desc:q});}
 
 async function deleteProduto(id) {
   if(!confirm('Excluir produto?')) return;
-  await sb.from('produtos').updatÃ©e({atÃ©ivo:false}).eq('id',id);
+  await sb.from('produtos').update({ativo:false}).eq('id',id);
   toast('Produto removido');
   carregarTabelaProdutos({});
 }
@@ -1599,19 +1599,19 @@ async function renderCadastrarProduto() {
   const prodId = _editProdId || null;
   _editProdId = null;
 
-  const [{datÃ©a:cols},{datÃ©a:forns},{datÃ©a:marcas},{datÃ©a:catÃ©s},{datÃ©a:grades},{datÃ©a:cores}] = await Promise.all([
-    sb.from('colecoes').select('id,nÃ£ome').eq('atÃ©ivo',true).order('nÃ£ome'),
-    sb.from('fornecedores').select('id,razao_social').eq('atÃ©ivo',true).order('razao_social'),
-    sb.from('produtos').select('marca').eq('atÃ©ivo',true).nÃ£ot('marca','is',null),
-    sb.from('catÃ©egorias').select('id,nÃ£ome').eq('atÃ©ivo',true).order('nÃ£ome'),
-    sb.from('grades').select('id,nÃ£ome,valores').eq('atÃ©ivo',true).order('nÃ£ome'),
-    sb.from('produto_grades').select('cor_hexa,cor_descricao').nÃ£ot('cor_descricao','is',null)
+  const [{data:cols},{data:forns},{data:marcas},{data:cats},{data:grades},{data:cores}] = await Promise.all([
+    sb.from('colecoes').select('id,nome').eq('ativo',true).order('nome'),
+    sb.from('fornecedores').select('id,razao_social').eq('ativo',true).order('razao_social'),
+    sb.from('produtos').select('marca').eq('ativo',true).not('marca','is',null),
+    sb.from('categorias').select('id,nome').eq('ativo',true).order('nome'),
+    sb.from('grades').select('id,nome,valores').eq('ativo',true).order('nome'),
+    sb.from('produto_grades').select('cor_hexa,cor_descricao').not('cor_descricao','is',null)
   ]);
 
   let prod = {};
   let variantesExistentes = [];
   if(prodId) {
-    const [{datÃ©a:p},{datÃ©a:vars}] = await Promise.all([
+    const [{data:p},{data:vars}] = await Promise.all([
       sb.from('produtos').select('*').eq('id',prodId).single(),
       sb.from('produto_grades').select('*').eq('produto_id',prodId).order('tamanho')
     ]);
@@ -1633,7 +1633,7 @@ async function renderCadastrarProduto() {
 
     <!-- LEGENDA LATERAL -->
     <div style="width:180px;flex-shrink:0;background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;position:sticky;top:0">
-      <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">StatÃ©us da varia��o</div>
+      <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Status da varia��o</div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <span style="width:16px;height:16px;border-radius:3px;background:#86efac;flex-shrink:0"></span>
         <span style="font-size:12px">Em cadastro</span>
@@ -1658,10 +1658,10 @@ async function renderCadastrarProduto() {
         </div>
         <div style="padding:18px 20px;display:flex;flex-direction:column;gap:14px">
           <!-- Linha 1: Cole��o + Fornecedor + Marca -->
-          <div style="display:grid;grid-templatÃ©e-columns:1fr 1fr 1fr;gap:12px">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
             <div class="form-group">
               <label style="color:#d97706">Informar a cole��o</label>
-              <select id="cp-colecao"><option value="">Selecione</option>${opts(cols,'id','nÃ£ome',prod.colecao_id)}</select>
+              <select id="cp-colecao"><option value="">Selecione</option>${opts(cols,'id','nome',prod.colecao_id)}</select>
             </div>
             <div class="form-group">
               <label style="color:#d97706">Fornecedor</label>
@@ -1670,59 +1670,59 @@ async function renderCadastrarProduto() {
             <div class="form-group">
               <label>Marca</label>
               <input id="cp-marca" value="${prod.marca||''}" placeholder="Digite ou selecione" list="marcas-list">
-              <datÃ©alist id="marcas-list">${marcasUnicas.map(m=>`<option value="${m}">`).join('')}</datÃ©alist>
+              <datalist id="marcas-list">${marcasUnicas.map(m=>`<option value="${m}">`).join('')}</datalist>
             </div>
           </div>
-          <!-- Linha 2: C�digo Ref + G�nero + CatÃ©egoria -->
-          <div style="display:grid;grid-templatÃ©e-columns:1fr 1fr 1fr;gap:12px">
+          <!-- Linha 2: C�digo Ref + G�nero + Categoria -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
             <div class="form-group">
               <label style="color:#d97706">C�digo produto (Refer�ncia)</label>
               <div style="display:flex;gap:0">
                 <input id="cp-codigo" value="${prod.codigo||''}" style="flex:1;border-radius:var(--radius) 0 0 var(--radius)">
-                <button onclick="gerarCodProd()" style="padding:8px 10px;background:#2563eb;color:white;border-radius:0 var(--radius) var(--radius) 0;font-size:11px;font-weight:600;white-space:nÃ£owrap;font-family:inherit">Gerar C�d. Prod</button>
+                <button onclick="gerarCodProd()" style="padding:8px 10px;background:#2563eb;color:white;border-radius:0 var(--radius) var(--radius) 0;font-size:11px;font-weight:600;white-space:nowrap;font-family:inherit">Gerar C�d. Prod</button>
               </div>
             </div>
             <div class="form-group">
               <label>G�nero</label>
               <select id="cp-genero">
                 <option value="">Selecione</option>
-                <option value="F" ${prod.genero==='F'?'selected':''}>FemininÃ£o</option>
-                <option value="M" ${prod.genero==='M'?'selected':''}>MasculinÃ£o</option>
+                <option value="F" ${prod.genero==='F'?'selected':''}>Feminino</option>
+                <option value="M" ${prod.genero==='M'?'selected':''}>Masculino</option>
                 <option value="U" ${prod.genero==='U'?'selected':''}>Unissex</option>
                 <option value="J" ${prod.genero==='J'?'selected':''}>Juvenil/Infantil</option>
               </select>
             </div>
             <div class="form-group">
-              <label>CatÃ©egoria</label>
-              <select id="cp-catÃ©egoria"><option value="">Selecione</option>${opts(catÃ©s,'id','nÃ£ome',prod.catÃ©egoria_id)}</select>
+              <label>Categoria</label>
+              <select id="cp-categoria"><option value="">Selecione</option>${opts(cats,'id','nome',prod.categoria_id)}</select>
             </div>
           </div>
           <!-- Linha 3: NCM + Descri��o NCM -->
-          <div style="display:grid;grid-templatÃ©e-columns:1fr 2fr;gap:12px">
+          <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px">
             <div class="form-group">
               <label style="color:#d97706">C�digo NCM</label>
               <div style="display:flex;gap:0">
                 <input id="cp-ncm" value="${prod.ncm||''}" placeholder="00000000" style="flex:1;border-radius:var(--radius) 0 0 var(--radius)">
-                <button onclick="gerarNCMPadrao()" style="padding:8px 10px;background:#2563eb;color:white;border-radius:0 var(--radius) var(--radius) 0;font-size:11px;font-weight:600;white-space:nÃ£owrap;font-family:inherit">Gerar NCM padr�o</button>
+                <button onclick="gerarNCMPadrao()" style="padding:8px 10px;background:#2563eb;color:white;border-radius:0 var(--radius) var(--radius) 0;font-size:11px;font-weight:600;white-space:nowrap;font-family:inherit">Gerar NCM padr�o</button>
               </div>
             </div>
             <div class="form-group">
               <label>Descri��o NCM</label>
               <div style="display:flex;gap:0">
                 <input id="cp-ncm-desc" value="${prod.ncm_descricao||''}" placeholder="Descri��o..." style="flex:1;border-radius:var(--radius) 0 0 var(--radius)">
-                <button onclick="buscarNCM()" style="padding:8px 11px;background:#e2e8f0;border-radius:0 var(--radius) var(--radius) 0;display:flex;align-items:center;color:var(--text-2)"><i datÃ©a-lucide="search" style="width:14px;height:14px"></i></button>
+                <button onclick="buscarNCM()" style="padding:8px 11px;background:#e2e8f0;border-radius:0 var(--radius) var(--radius) 0;display:flex;align-items:center;color:var(--text-2)"><i data-lucide="search" style="width:14px;height:14px"></i></button>
               </div>
             </div>
           </div>
-          <!-- Linha 4: Descri��o produto (SKU + NÃ£ome) -->
-          <div style="display:grid;grid-templatÃ©e-columns:160px 1fr;gap:12px">
+          <!-- Linha 4: Descri��o produto (SKU + Nome) -->
+          <div style="display:grid;grid-template-columns:160px 1fr;gap:12px">
             <div class="form-group">
               <label>SKU</label>
               <input id="cp-sku" value="${prod.sku||''}" placeholder="SKU">
             </div>
             <div class="form-group">
               <label style="color:#d97706">Descri��o produto *</label>
-              <input id="cp-nÃ£ome" value="${prod.nÃ£ome||''}" placeholder="NÃ£ome/descri��o do produto">
+              <input id="cp-nome" value="${prod.nome||''}" placeholder="Nome/descri��o do produto">
             </div>
           </div>
         </div>
@@ -1735,12 +1735,12 @@ async function renderCadastrarProduto() {
         </div>
         <div style="padding:18px 20px;display:flex;flex-direction:column;gap:14px">
           <!-- Linha 1: Grade + Cor + Custo + Margem + Valor venda -->
-          <div style="display:grid;grid-templatÃ©e-columns:160px 180px 1fr 1fr 1fr;gap:12px">
+          <div style="display:grid;grid-template-columns:160px 180px 1fr 1fr 1fr;gap:12px">
             <div class="form-group">
               <label style="color:#d97706">Grade</label>
-              <select id="cp-grade" onchange="atÃ©ualizarGradeOpcoes()">
+              <select id="cp-grade" onchange="atualizarGradeOpcoes()">
                 <option value="">Selecione</option>
-                ${(grades||[]).map(g=>`<option value="${g.id}" datÃ©a-vals='${JSON.stringify(g.valores||[])}'>${g.nÃ£ome}</option>`).join('')}
+                ${(grades||[]).map(g=>`<option value="${g.id}" data-vals='${JSON.stringify(g.valores||[])}'>${g.nome}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
@@ -1748,7 +1748,7 @@ async function renderCadastrarProduto() {
               <div style="display:flex;gap:6px;align-items:center">
                 <input type="color" id="cp-cor-hex" value="#cccccc" style="width:36px;height:36px;border:1.5px solid var(--border-2);border-radius:6px;cursor:pointer;padding:2px">
                 <input id="cp-cor-desc" placeholder="Ex: Preto" list="cores-list" style="flex:1">
-                <datÃ©alist id="cores-list">${[...new Set((cores||[]).map(c=>c.cor_descricao).filter(Boolean))].map(c=>`<option value="${c}">`).join('')}</datÃ©alist>
+                <datalist id="cores-list">${[...new Set((cores||[]).map(c=>c.cor_descricao).filter(Boolean))].map(c=>`<option value="${c}">`).join('')}</datalist>
               </div>
             </div>
             <div class="form-group">
@@ -1765,12 +1765,12 @@ async function renderCadastrarProduto() {
             </div>
           </div>
           <!-- Linha 2: EAN + EAN Lido + Tamanho + Qtde -->
-          <div style="display:grid;grid-templatÃ©e-columns:1fr 1fr 120px 120px;gap:12px">
+          <div style="display:grid;grid-template-columns:1fr 1fr 120px 120px;gap:12px">
             <div class="form-group">
               <label style="color:#d97706">C�digo de barras (EAN)</label>
               <div style="display:flex;gap:0">
                 <input id="cp-ean" placeholder="C�digo EAN" style="flex:1;border-radius:var(--radius) 0 0 var(--radius)">
-                <button onclick="gerarEAN()" style="padding:8px 10px;background:#2563eb;color:white;border-radius:0 var(--radius) var(--radius) 0;font-size:11px;font-weight:600;white-space:nÃ£owrap;font-family:inherit">Gerar C�d. EAN</button>
+                <button onclick="gerarEAN()" style="padding:8px 10px;background:#2563eb;color:white;border-radius:0 var(--radius) var(--radius) 0;font-size:11px;font-weight:600;white-space:nowrap;font-family:inherit">Gerar C�d. EAN</button>
               </div>
             </div>
             <div class="form-group">
@@ -1792,7 +1792,7 @@ async function renderCadastrarProduto() {
       </div>
 
       <!-- VARIANTES J� CADASTRADAS -->
-      <div id="cp-variantes-lista" style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;${variantesExistentes.length?'':'display:nÃ£one'}">
+      <div id="cp-variantes-lista" style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;${variantesExistentes.length?'':'display:none'}">
         <div style="background:#f1f5f9;padding:11px 20px;border-bottom:1px solid var(--border)">
           <span style="font-size:13px;font-weight:700;color:var(--text)">Varia��es cadastradas</span>
         </div>
@@ -1803,23 +1803,23 @@ async function renderCadastrarProduto() {
 
       <!-- RODAP� -->
       <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 20px;display:flex;gap:10px;align-items:center">
-        <button class="btn btn-secondary" onclick="navigatÃ©e('produtos')"><i datÃ©a-lucide="arrow-left"></i>Voltar</button>
+        <button class="btn btn-secondary" onclick="navigate('produtos')"><i data-lucide="arrow-left"></i>Voltar</button>
         <div style="flex:1"></div>
-        <div style="position:relatÃ©ive">
+        <div style="position:relative">
           <button class="btn btn-secondary" onclick="toggleOutrasAcoes()" id="btn-outras-acoes">
-            <i datÃ©a-lucide="chevron-down"></i>Outras a��es
+            <i data-lucide="chevron-down"></i>Outras a��es
           </button>
-          <div id="outras-acoes-menu" style="display:nÃ£one;position:absolute;bottom:calc(100% + 4px);right:0;background:white;border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);min-width:180px;z-index:100;padding:4px">
+          <div id="outras-acoes-menu" style="display:none;position:absolute;bottom:calc(100% + 4px);right:0;background:white;border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);min-width:180px;z-index:100;padding:4px">
             <div onclick="limparFormVariacao()" style="padding:8px 14px;font-size:13px;cursor:pointer;border-radius:6px" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background=''">
-              <i datÃ©a-lucide="eraser" style="width:13px;height:13px;margin-right:6px"></i>Limpar varia��o
+              <i data-lucide="eraser" style="width:13px;height:13px;margin-right:6px"></i>Limpar varia��o
             </div>
-            <div onclick="deleteProduto('${prodId||''}');navigatÃ©e('produtos')" style="padding:8px 14px;font-size:13px;cursor:pointer;color:var(--red);border-radius:6px" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background=''">
-              <i datÃ©a-lucide="trash-2" style="width:13px;height:13px;margin-right:6px"></i>Excluir produto
+            <div onclick="deleteProduto('${prodId||''}');navigate('produtos')" style="padding:8px 14px;font-size:13px;cursor:pointer;color:var(--red);border-radius:6px" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background=''">
+              <i data-lucide="trash-2" style="width:13px;height:13px;margin-right:6px"></i>Excluir produto
             </div>
           </div>
         </div>
-        <button class="btn btn-secondary" onclick="salvarDadosGerais()"><i datÃ©a-lucide="edit"></i>Editar dados gerais</button>
-        <button class="btn btn-primary" style="background:#16a34a;box-shadow:0 2px 8px rgba(22,163,74,.3)" onclick="salvarProdutoCompleto()"><i datÃ©a-lucide="save"></i>Salvar</button>
+        <button class="btn btn-secondary" onclick="salvarDadosGerais()"><i data-lucide="edit"></i>Editar dados gerais</button>
+        <button class="btn btn-primary" style="background:#16a34a;box-shadow:0 2px 8px rgba(22,163,74,.3)" onclick="salvarProdutoCompleto()"><i data-lucide="save"></i>Salvar</button>
       </div>
 
     </div>
@@ -1827,47 +1827,47 @@ async function renderCadastrarProduto() {
 
   document.getElementById('content').innerHTML = html;
   _cadProdId = prodId;
-  setTimeout(()=>lucide.creatÃ©eIcons(),10);
+  setTimeout(()=>lucide.createIcons(),10);
 }
 
 function renderVariantesTable(variantes) {
   if(!variantes.length) return '';
-  return `<div class="table-wrap"><table class="datÃ©a-table" style="font-size:12px">
+  return `<div class="table-wrap"><table class="data-table" style="font-size:12px">
     <thead><tr><th>Tamanho</th><th>Cor</th><th>EAN</th><th>Custo</th><th>Margem</th><th>Valor Venda</th><th>Qtde</th><th>A��o</th></tr></thead>
     <tbody>${variantes.map(v=>`<tr>
       <td>${v.tamanho||'�'}</td>
-      <td style="white-space:nÃ£owrap">${v.cor_hexa?`<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${v.cor_hexa};border:1px solid rgba(0,0,0,.15);vertical-align:-2px;margin-right:4px"></span>`:''}${v.cor_descricao||'�'}</td>
-      <td style="font-family:monÃ£ospace;font-size:11px">${v.ean||'�'}</td>
+      <td style="white-space:nowrap">${v.cor_hexa?`<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${v.cor_hexa};border:1px solid rgba(0,0,0,.15);vertical-align:-2px;margin-right:4px"></span>`:''}${v.cor_descricao||'�'}</td>
+      <td style="font-family:monospace;font-size:11px">${v.ean||'�'}</td>
       <td>${v.custo?fmt(v.custo):'�'}</td>
       <td>${v.margem_lucro?fmtNum(v.margem_lucro)+'%':'�'}</td>
       <td><strong>${v.preco_venda?fmt(v.preco_venda):'�'}</strong></td>
       <td>${v.estoque??0}</td>
-      <td><button onclick="editarVariante('${v.id}')" style="width:26px;height:26px;border:1px solid var(--border-2);border-radius:4px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2)"><i datÃ©a-lucide="square-pen" style="width:12px;height:12px"></i></button></td>
+      <td><button onclick="editarVariante('${v.id}')" style="width:26px;height:26px;border:1px solid var(--border-2);border-radius:4px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2)"><i data-lucide="square-pen" style="width:12px;height:12px"></i></button></td>
     </tr>`).join('')}
     </tbody>
   </table></div>`;
 }
 
-function atÃ©ualizarGradeOpcoes() {
+function atualizarGradeOpcoes() {
   const sel = document.getElementById('cp-grade');
   const opt = sel?.options[sel.selectedIndex];
-  const vals = opt ? JSON.parse(opt.getAtÃ©tribute('datÃ©a-vals')||'[]') : [];
+  const vals = opt ? JSON.parse(opt.getAttribute('data-vals')||'[]') : [];
   const tamSel = document.getElementById('cp-tamanho');
   if(!tamSel) return;
   tamSel.innerHTML = `<option value="">�</option>` + vals.map(v=>`<option value="${v}">${v}</option>`).join('');
 }
 
 function calcMargemVariacao() {
-  const custo = parseFloatÃ©(document.getElementById('cp-custo')?.value||0);
-  const preco = parseFloatÃ©(document.getElementById('cp-preco')?.value||0);
+  const custo = parseFloat(document.getElementById('cp-custo')?.value||0);
+  const preco = parseFloat(document.getElementById('cp-preco')?.value||0);
   const m = preco>0 ? ((preco-custo)/preco*100) : 0;
   const mEl = document.getElementById('cp-margem');
   if(mEl) mEl.value = m.toFixed(2);
 }
 
 function calcPrecoVariacao() {
-  const custo  = parseFloatÃ©(document.getElementById('cp-custo')?.value||0);
-  const margem = parseFloatÃ©(document.getElementById('cp-margem')?.value||0);
+  const custo  = parseFloat(document.getElementById('cp-custo')?.value||0);
+  const margem = parseFloat(document.getElementById('cp-margem')?.value||0);
   if(margem > 0 && margem < 100 && custo > 0) {
     const preco = custo / (1 - margem/100);
     const pEl = document.getElementById('cp-preco');
@@ -1876,7 +1876,7 @@ function calcPrecoVariacao() {
 }
 
 function gerarCodProd() {
-  const cod = 'P' + DatÃ©e.nÃ£ow().toString().slice(-8);
+  const cod = 'P' + Date.now().toString().slice(-8);
   const el = document.getElementById('cp-codigo');
   if(el) el.value = cod;
 }
@@ -1895,7 +1895,7 @@ function buscarNCM() {
 }
 
 function gerarEAN() {
-  const base = '789' + MatÃ©h.floor(MatÃ©h.random()*1000000000).toString().padStart(9,'0');
+  const base = '789' + Math.floor(Math.random()*1000000000).toString().padStart(9,'0');
   let sum = 0;
   for(let i=0;i<12;i++) sum += parseInt(base[i]) * (i%2===0?1:3);
   const check = (10 - (sum%10)) % 10;
@@ -1905,7 +1905,7 @@ function gerarEAN() {
 
 function toggleOutrasAcoes() {
   const m = document.getElementById('outras-acoes-menu');
-  if(m) { m.style.display = m.style.display==='nÃ£one'?'block':'nÃ£one'; lucide.creatÃ©eIcons(); }
+  if(m) { m.style.display = m.style.display==='none'?'block':'none'; lucide.createIcons(); }
 }
 
 function limparFormVariacao() {
@@ -1914,11 +1914,11 @@ function limparFormVariacao() {
   const qtde=document.getElementById('cp-qtde');if(qtde)qtde.value='0';
   const tam=document.getElementById('cp-tamanho');if(tam)tam.value='';
   const cor=document.getElementById('cp-cor-hex');if(cor)cor.value='#cccccc';
-  const m=document.getElementById('outras-acoes-menu');if(m)m.style.display='nÃ£one';
+  const m=document.getElementById('outras-acoes-menu');if(m)m.style.display='none';
 }
 
 async function editarVariante(varId) {
-  const {datÃ©a:v} = await sb.from('produto_grades').select('*').eq('id',varId).single();
+  const {data:v} = await sb.from('produto_grades').select('*').eq('id',varId).single();
   if(!v) return;
   const e = id => document.getElementById(id);
   if(e('cp-ean'))       e('cp-ean').value = v.ean||'';
@@ -1936,25 +1936,25 @@ async function editarVariante(varId) {
 let _editVarianteId = null;
 
 async function salvarDadosGerais() {
-  const nÃ£ome = document.getElementById('cp-nÃ£ome')?.value?.trim();
-  if(!nÃ£ome) return toast('Descri��o do produto obrigatÃ©�ria','error');
+  const nome = document.getElementById('cp-nome')?.value?.trim();
+  if(!nome) return toast('Descri��o do produto obrigat�ria','error');
   const payload = {
-    nÃ£ome,
+    nome,
     sku:       document.getElementById('cp-sku')?.value||null,
     codigo:    document.getElementById('cp-codigo')?.value||null,
     marca:     document.getElementById('cp-marca')?.value||null,
     colecao_id:document.getElementById('cp-colecao')?.value||null,
     fornecedor_id:document.getElementById('cp-fornecedor')?.value||null,
-    catÃ©egoria_id: document.getElementById('cp-catÃ©egoria')?.value||null,
+    categoria_id: document.getElementById('cp-categoria')?.value||null,
     genero:    document.getElementById('cp-genero')?.value||null,
     ncm:       document.getElementById('cp-ncm')?.value||null,
     ncm_descricao: document.getElementById('cp-ncm-desc')?.value||null
   };
   if(_cadProdId) {
-    const {error} = await sb.from('produtos').updatÃ©e(payload).eq('id',_cadProdId);
+    const {error} = await sb.from('produtos').update(payload).eq('id',_cadProdId);
     if(error) return toast('Erro: '+error.message,'error');
   } else {
-    const {datÃ©a:np,error} = await sb.from('produtos').insert(payload).select().single();
+    const {data:np,error} = await sb.from('produtos').insert(payload).select().single();
     if(error) return toast('Erro: '+error.message,'error');
     _cadProdId = np.id;
   }
@@ -1963,17 +1963,17 @@ async function salvarDadosGerais() {
 
 async function salvarProdutoCompleto() {
   // 1. Salvar dados gerais
-  const nÃ£ome = document.getElementById('cp-nÃ£ome')?.value?.trim();
-  if(!nÃ£ome) return toast('Descri��o do produto obrigatÃ©�ria','error');
+  const nome = document.getElementById('cp-nome')?.value?.trim();
+  if(!nome) return toast('Descri��o do produto obrigat�ria','error');
 
   const payload = {
-    nÃ£ome,
+    nome,
     sku:       document.getElementById('cp-sku')?.value||null,
     codigo:    document.getElementById('cp-codigo')?.value||null,
     marca:     document.getElementById('cp-marca')?.value||null,
     colecao_id:document.getElementById('cp-colecao')?.value||null,
     fornecedor_id:document.getElementById('cp-fornecedor')?.value||null,
-    catÃ©egoria_id: document.getElementById('cp-catÃ©egoria')?.value||null,
+    categoria_id: document.getElementById('cp-categoria')?.value||null,
     grade_id:   document.getElementById('cp-grade')?.value||null,
     genero:    document.getElementById('cp-genero')?.value||null,
     ncm:       document.getElementById('cp-ncm')?.value||null,
@@ -1982,10 +1982,10 @@ async function salvarProdutoCompleto() {
 
   let prodId = _cadProdId;
   if(prodId) {
-    const {error} = await sb.from('produtos').updatÃ©e(payload).eq('id',prodId);
+    const {error} = await sb.from('produtos').update(payload).eq('id',prodId);
     if(error) return toast('Erro ao salvar produto: '+error.message,'error');
   } else {
-    const {datÃ©a:np,error} = await sb.from('produtos').insert(payload).select().single();
+    const {data:np,error} = await sb.from('produtos').insert(payload).select().single();
     if(error) return toast('Erro ao criar produto: '+error.message,'error');
     prodId = np.id;
     _cadProdId = prodId;
@@ -1997,9 +1997,9 @@ async function salvarProdutoCompleto() {
   const eanLido  = document.getElementById('cp-ean-lido')?.value||'';
   const corHex   = document.getElementById('cp-cor-hex')?.value||null;
   const corDesc  = document.getElementById('cp-cor-desc')?.value||null;
-  const custo    = parseFloatÃ©(document.getElementById('cp-custo')?.value||0)||null;
-  const margem   = parseFloatÃ©(document.getElementById('cp-margem')?.value||0)||null;
-  const preco    = parseFloatÃ©(document.getElementById('cp-preco')?.value||0)||null;
+  const custo    = parseFloat(document.getElementById('cp-custo')?.value||0)||null;
+  const margem   = parseFloat(document.getElementById('cp-margem')?.value||0)||null;
+  const preco    = parseFloat(document.getElementById('cp-preco')?.value||0)||null;
   const qtde     = parseInt(document.getElementById('cp-qtde')?.value||0);
 
   const varPayload = {
@@ -2011,19 +2011,19 @@ async function salvarProdutoCompleto() {
   };
 
   const chaveKey = _editVarianteId ? {id:_editVarianteId} : null;
-  const {datÃ©a:existing} = chaveKey
+  const {data:existing} = chaveKey
     ? await sb.from('produto_grades').select('id').eq('id',_editVarianteId).maybeSingle()
-    : await sb.from('produto_grades').select('id').matÃ©ch({produto_id:prodId,tamanho}).maybeSingle();
+    : await sb.from('produto_grades').select('id').match({produto_id:prodId,tamanho}).maybeSingle();
 
   if(existing) {
-    await sb.from('produto_grades').updatÃ©e(varPayload).eq('id',existing.id);
+    await sb.from('produto_grades').update(varPayload).eq('id',existing.id);
   } else {
     await sb.from('produto_grades').insert(varPayload);
   }
   _editVarianteId = null;
 
   // 3. Recarregar variantes
-  const {datÃ©a:vars} = await sb.from('produto_grades').select('*').eq('produto_id',prodId).order('tamanho');
+  const {data:vars} = await sb.from('produto_grades').select('*').eq('produto_id',prodId).order('tamanho');
   const listaEl = document.getElementById('cp-variantes-lista');
   const tableEl = document.getElementById('cp-variantes-table');
   if(listaEl && tableEl) {
@@ -2032,7 +2032,7 @@ async function salvarProdutoCompleto() {
   }
   limparFormVariacao();
   toast('Produto salvo com sucesso');
-  lucide.creatÃ©eIcons();
+  lucide.createIcons();
 }
 
 // ===== FORNECEDORES =====
@@ -2041,45 +2041,45 @@ let _editFornId = null;
 
 async function renderFornecedores() {
   document.getElementById('topbar-actions').innerHTML = `
-    <button class="btn btn-primary" style="background:#16a34a;box-shadow:0 2px 8px rgba(22,163,74,.3)" onclick="navigatÃ©e('cadastrar-fornecedor')">
-      <i datÃ©a-lucide="plus"></i>NÃ£ovo Fornecedor
+    <button class="btn btn-primary" style="background:#16a34a;box-shadow:0 2px 8px rgba(22,163,74,.3)" onclick="navigate('cadastrar-fornecedor')">
+      <i data-lucide="plus"></i>Novo Fornecedor
     </button>`;
   await loadFornecedores();
 }
 
 async function loadFornecedores(q='') {
-  let query = sb.from('fornecedores').select('*').eq('atÃ©ivo',true).order('razao_social');
+  let query = sb.from('fornecedores').select('*').eq('ativo',true).order('razao_social');
   if(q) query = query.ilike('razao_social',`%${q}%`);
-  const {datÃ©a} = await query;
+  const {data} = await query;
   document.getElementById('content').innerHTML = `
     <div class="card">
       <div class="filters">
         <input class="filter-input" placeholder="Buscar fornecedor..." oninput="loadFornSearch(this.value)">
       </div>
-      <div class="table-wrap"><table class="datÃ©a-table">
-        <thead><tr><th>NÃ£ome / Raz�o Social</th><th>CNPJ</th><th>E-mail</th><th>Telefone</th><th>Cidade</th><th>A��es</th></tr></thead>
-        <tbody>${(datÃ©a||[]).map(f=>`<tr>
-          <td><strong>${f.razao_social}</strong>${f.nÃ£ome_fantasia?`<br><small style="color:var(--text-2)">${f.nÃ£ome_fantasia}</small>`:''}</td>
-          <td style="font-family:monÃ£ospace;font-size:12px">${f.cnpj||f.cpf||'�'}</td>
+      <div class="table-wrap"><table class="data-table">
+        <thead><tr><th>Nome / Raz�o Social</th><th>CNPJ</th><th>E-mail</th><th>Telefone</th><th>Cidade</th><th>A��es</th></tr></thead>
+        <tbody>${(data||[]).map(f=>`<tr>
+          <td><strong>${f.razao_social}</strong>${f.nome_fantasia?`<br><small style="color:var(--text-2)">${f.nome_fantasia}</small>`:''}</td>
+          <td style="font-family:monospace;font-size:12px">${f.cnpj||f.cpf||'�'}</td>
           <td style="font-size:12px">${f.email||'�'}</td>
           <td>${f.telefone||f.celular||'�'}</td>
           <td>${f.cidade||'�'}</td>
           <td><div class="actions">
-            <button title="Editar" onclick="_editFornId='${f.id}';navigatÃ©e('cadastrar-fornecedor')" style="width:28px;height:28px;border:1px solid var(--border-2);border-radius:4px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2)" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-2)'"><i datÃ©a-lucide="square-pen" style="width:13px;height:13px"></i></button>
-            <button title="Excluir" onclick="deleteForn('${f.id}')" style="width:28px;height:28px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--red)"><i datÃ©a-lucide="trash-2" style="width:13px;height:13px"></i></button>
+            <button title="Editar" onclick="_editFornId='${f.id}';navigate('cadastrar-fornecedor')" style="width:28px;height:28px;border:1px solid var(--border-2);border-radius:4px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2)" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-2)'"><i data-lucide="square-pen" style="width:13px;height:13px"></i></button>
+            <button title="Excluir" onclick="deleteForn('${f.id}')" style="width:28px;height:28px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--red)"><i data-lucide="trash-2" style="width:13px;height:13px"></i></button>
           </div></td>
         </tr>`).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--text-2);padding:32px">Nenhum fornecedor cadastrado</td></tr>'}
         </tbody>
       </table></div>
     </div>`;
-  lucide.creatÃ©eIcons();
+  lucide.createIcons();
 }
 
 async function loadFornSearch(q){await loadFornecedores(q);}
 
 async function deleteForn(id) {
   if(!confirm('Excluir fornecedor?')) return;
-  await sb.from('fornecedores').updatÃ©e({atÃ©ivo:false}).eq('id',id);
+  await sb.from('fornecedores').update({ativo:false}).eq('id',id);
   toast('Fornecedor removido');
   loadFornecedores();
 }
@@ -2093,20 +2093,20 @@ async function renderCadastrarFornecedor() {
   let f = {};
   let marcas = [];
   if(fornId) {
-    const [{datÃ©a:fd},{datÃ©a:md}] = await Promise.all([
+    const [{data:fd},{data:md}] = await Promise.all([
       sb.from('fornecedores').select('*').eq('id',fornId).single(),
-      sb.from('fornecedor_marcas').select('*').eq('fornecedor_id',fornId).order('nÃ£ome')
+      sb.from('fornecedor_marcas').select('*').eq('fornecedor_id',fornId).order('nome')
     ]);
     f = fd||{};
     marcas = md||[];
   }
 
-  const datÃ©aCad = f.creatÃ©ed_atÃ©
-    ? new DatÃ©e(f.creatÃ©ed_atÃ©).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'})
-    : new DatÃ©e().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const dataCad = f.created_at
+    ? new Date(f.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'})
+    : new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
 
   const obsMax = 240;
-  const obsAtÃ©ual = (f.observacoes||'').length;
+  const obsAtual = (f.observacoes||'').length;
 
   const html = `
   <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
@@ -2116,24 +2116,24 @@ async function renderCadastrarFornecedor() {
       <h2 style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:14px">Cadastrar Fornecedor</h2>
 
       <!-- TABS -->
-      <div style="display:flex;gap:0;border-bottom:nÃ£one">
-        <button id="tab-forn-btn" onclick="switchFornTab('forn')" style="padding:8px 20px;border:1px solid var(--border);border-bottom:nÃ£one;border-radius:var(--radius) var(--radius) 0 0;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;background:white;color:var(--accent);border-color:var(--accent);margin-right:2px">Fornecedor</button>
-        <button id="tab-marcas-btn" onclick="switchFornTab('marcas')" style="padding:8px 20px;border:1px solid var(--border);border-bottom:nÃ£one;border-radius:var(--radius) var(--radius) 0 0;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;background:#f8fafc;color:var(--text-2);margin-right:2px">Marcas</button>
-        <button id="tab-dados-btn" onclick="switchFornTab('dados')" style="padding:8px 20px;border:1px solid var(--border);border-bottom:nÃ£one;border-radius:var(--radius) var(--radius) 0 0;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;background:#f8fafc;color:var(--text-2)">Dados Complementares</button>
+      <div style="display:flex;gap:0;border-bottom:none">
+        <button id="tab-forn-btn" onclick="switchFornTab('forn')" style="padding:8px 20px;border:1px solid var(--border);border-bottom:none;border-radius:var(--radius) var(--radius) 0 0;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;background:white;color:var(--accent);border-color:var(--accent);margin-right:2px">Fornecedor</button>
+        <button id="tab-marcas-btn" onclick="switchFornTab('marcas')" style="padding:8px 20px;border:1px solid var(--border);border-bottom:none;border-radius:var(--radius) var(--radius) 0 0;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;background:#f8fafc;color:var(--text-2);margin-right:2px">Marcas</button>
+        <button id="tab-dados-btn" onclick="switchFornTab('dados')" style="padding:8px 20px;border:1px solid var(--border);border-bottom:none;border-radius:var(--radius) var(--radius) 0 0;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;background:#f8fafc;color:var(--text-2)">Dados Complementares</button>
       </div>
     </div>
 
     <!-- DATA CADASTRO -->
     <div style="padding:10px 24px;background:#f8fafc;border-bottom:1px solid var(--border);text-align:right">
-      <span style="font-size:12px;color:var(--text-2)"><strong>DatÃ©a Cadastro:</strong> ${datÃ©aCad}</span>
+      <span style="font-size:12px;color:var(--text-2)"><strong>Data Cadastro:</strong> ${dataCad}</span>
     </div>
 
     <!-- TAB: FORNECEDOR -->
     <div id="tab-forn" style="padding:24px">
-      <div style="display:grid;grid-templatÃ©e-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px">
         <div class="form-group">
-          <label>NÃ£ome *</label>
-          <input id="fn-nÃ£ome" value="${f.razao_social||''}" placeholder="NÃ£ome ou Raz�o Social">
+          <label>Nome *</label>
+          <input id="fn-nome" value="${f.razao_social||''}" placeholder="Nome ou Raz�o Social">
         </div>
         <div class="form-group">
           <label>E-mail</label>
@@ -2146,31 +2146,31 @@ async function renderCadastrarFornecedor() {
       </div>
       <div class="form-group" style="margin-bottom:8px">
         <label>Observa��o</label>
-        <textarea id="fn-obs" maxlength="${obsMax}" oninput="document.getElementById('fn-obs-count').textContent=(${obsMax}-this.value.length)+' characters restantes.'" style="min-height:80px;resize:vertical" placeholder="Informa��es complementares, exemplo: nÃ£ome da pessoa de contatÃ©o, pontos fortes e fracos, etc">${f.observacoes||''}</textarea>
-        <div id="fn-obs-count" style="font-size:11px;color:var(--text-2);margin-top:3px">${obsMax-obsAtÃ©ual} characters restantes.</div>
+        <textarea id="fn-obs" maxlength="${obsMax}" oninput="document.getElementById('fn-obs-count').textContent=(${obsMax}-this.value.length)+' characters restantes.'" style="min-height:80px;resize:vertical" placeholder="Informa��es complementares, exemplo: nome da pessoa de contato, pontos fortes e fracos, etc">${f.observacoes||''}</textarea>
+        <div id="fn-obs-count" style="font-size:11px;color:var(--text-2);margin-top:3px">${obsMax-obsAtual} characters restantes.</div>
       </div>
     </div>
 
     <!-- TAB: MARCAS -->
-    <div id="tab-marcas" style="display:nÃ£one;padding:24px">
+    <div id="tab-marcas" style="display:none;padding:24px">
       <div style="display:flex;gap:8px;margin-bottom:16px">
-        <input id="fn-marca-nÃ£ova" class="filter-input" placeholder="NÃ£ome da marca" style="flex:1">
-        <button class="btn btn-primary" onclick="adicionarMarcaForn()"><i datÃ©a-lucide="plus"></i>Adicionar</button>
+        <input id="fn-marca-nova" class="filter-input" placeholder="Nome da marca" style="flex:1">
+        <button class="btn btn-primary" onclick="adicionarMarcaForn()"><i data-lucide="plus"></i>Adicionar</button>
       </div>
       <div id="fn-marcas-lista">
-        ${marcas.length ? `<div class="table-wrap"><table class="datÃ©a-table">
+        ${marcas.length ? `<div class="table-wrap"><table class="data-table">
           <thead><tr><th>Marca</th><th style="width:60px">A��o</th></tr></thead>
           <tbody>${marcas.map(m=>`<tr>
-            <td>${m.nÃ£ome}</td>
-            <td><button onclick="removerMarcaForn('${m.id}')" style="width:26px;height:26px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--red)"><i datÃ©a-lucide="trash-2" style="width:12px;height:12px"></i></button></td>
+            <td>${m.nome}</td>
+            <td><button onclick="removerMarcaForn('${m.id}')" style="width:26px;height:26px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--red)"><i data-lucide="trash-2" style="width:12px;height:12px"></i></button></td>
           </tr>`).join('')}</tbody>
-        </table></div>` : '<div class="empty-statÃ©e" style="padding:32px"><i datÃ©a-lucide="tag"></i><p>Nenhuma marca vinculada</p></div>'}
+        </table></div>` : '<div class="empty-state" style="padding:32px"><i data-lucide="tag"></i><p>Nenhuma marca vinculada</p></div>'}
       </div>
     </div>
 
     <!-- TAB: DADOS COMPLEMENTARES -->
-    <div id="tab-dados" style="display:nÃ£one;padding:24px">
-      <div style="display:grid;grid-templatÃ©e-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div id="tab-dados" style="display:none;padding:24px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
         <div class="form-group">
           <label>CNPJ / CPF</label>
           <input id="fn-cnpj" value="${f.cnpj||f.cpf||''}" placeholder="00.000.000/0000-00">
@@ -2180,17 +2180,17 @@ async function renderCadastrarFornecedor() {
           <input id="fn-ie" value="${f.ie||''}">
         </div>
       </div>
-      <div style="display:grid;grid-templatÃ©e-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
         <div class="form-group">
-          <label>NÃ£ome Fantasia</label>
-          <input id="fn-fantasia" value="${f.nÃ£ome_fantasia||''}">
+          <label>Nome Fantasia</label>
+          <input id="fn-fantasia" value="${f.nome_fantasia||''}">
         </div>
         <div class="form-group">
-          <label>ContatÃ©o</label>
-          <input id="fn-contatÃ©o" value="${f.contatÃ©o||''}" placeholder="NÃ£ome da pessoa de contatÃ©o">
+          <label>Contato</label>
+          <input id="fn-contato" value="${f.contato||''}" placeholder="Nome da pessoa de contato">
         </div>
       </div>
-      <div style="display:grid;grid-templatÃ©e-columns:1fr 1fr 80px;gap:16px;margin-bottom:16px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:16px;margin-bottom:16px">
         <div class="form-group">
           <label>Endere�o</label>
           <input id="fn-endereco" value="${f.endereco||''}">
@@ -2204,7 +2204,7 @@ async function renderCadastrarFornecedor() {
           <input id="fn-uf" value="${f.estado||''}" maxlength="2" placeholder="UF">
         </div>
       </div>
-      <div style="display:grid;grid-templatÃ©e-columns:1fr 1fr;gap:16px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div class="form-group">
           <label>Celular</label>
           <input id="fn-celular" value="${f.celular||''}">
@@ -2218,18 +2218,18 @@ async function renderCadastrarFornecedor() {
 
     <!-- RODAP� -->
     <div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center">
-      <button class="btn btn-secondary" onclick="navigatÃ©e('fornecedores')"><i datÃ©a-lucide="list"></i>Listar</button>
-      ${fornId?`<button class="btn btn-secondary" onclick="_editFornId='${fornId}';renderCadastrarFornecedor()"><i datÃ©a-lucide="edit"></i>Editar</button>`:''}
+      <button class="btn btn-secondary" onclick="navigate('fornecedores')"><i data-lucide="list"></i>Listar</button>
+      ${fornId?`<button class="btn btn-secondary" onclick="_editFornId='${fornId}';renderCadastrarFornecedor()"><i data-lucide="edit"></i>Editar</button>`:''}
       <div style="flex:1"></div>
-      <button class="btn btn-secondary" onclick="limparFormForn()"><i datÃ©a-lucide="eraser"></i>Limpar</button>
-      <button class="btn btn-primary" style="background:#1d4ed8;box-shadow:0 2px 8px rgba(29,78,216,.3)" onclick="salvarFornecedor('${fornId||''}')"><i datÃ©a-lucide="save"></i>Salvar</button>
+      <button class="btn btn-secondary" onclick="limparFormForn()"><i data-lucide="eraser"></i>Limpar</button>
+      <button class="btn btn-primary" style="background:#1d4ed8;box-shadow:0 2px 8px rgba(29,78,216,.3)" onclick="salvarFornecedor('${fornId||''}')"><i data-lucide="save"></i>Salvar</button>
     </div>
 
   </div>`;
 
   document.getElementById('content').innerHTML = html;
   window._editFornId_current = fornId;
-  setTimeout(()=>lucide.creatÃ©eIcons(),10);
+  setTimeout(()=>lucide.createIcons(),10);
 }
 
 function switchFornTab(tab) {
@@ -2238,7 +2238,7 @@ function switchFornTab(tab) {
     const btn   = document.getElementById(`tab-${t}-btn`);
     if(!panel||!btn) return;
     const active = t === tab;
-    panel.style.display = active ? 'block' : 'nÃ£one';
+    panel.style.display = active ? 'block' : 'none';
     btn.style.background  = active ? 'white' : '#f8fafc';
     btn.style.color       = active ? 'var(--accent)' : 'var(--text-2)';
     btn.style.fontWeight  = active ? '600' : '500';
@@ -2247,21 +2247,21 @@ function switchFornTab(tab) {
 }
 
 async function adicionarMarcaForn() {
-  const nÃ£ome = document.getElementById('fn-marca-nÃ£ova')?.value?.trim();
-  if(!nÃ£ome) return toast('Informe o nÃ£ome da marca','error');
+  const nome = document.getElementById('fn-marca-nova')?.value?.trim();
+  if(!nome) return toast('Informe o nome da marca','error');
   const fornId = window._editFornId_current;
   if(!fornId) {
     // Guardar temporariamente para salvar junto com o fornecedor
     window._marcasTemp = window._marcasTemp||[];
-    window._marcasTemp.push(nÃ£ome);
+    window._marcasTemp.push(nome);
     const lista = document.getElementById('fn-marcas-lista');
-    if(lista) lista.innerHTML += `<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">${nÃ£ome} <span style="color:var(--text-3);font-size:11px">(ser� salvo com o fornecedor)</span></div>`;
-    document.getElementById('fn-marca-nÃ£ova').value='';
+    if(lista) lista.innerHTML += `<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">${nome} <span style="color:var(--text-3);font-size:11px">(ser� salvo com o fornecedor)</span></div>`;
+    document.getElementById('fn-marca-nova').value='';
     return;
   }
-  const {error} = await sb.from('fornecedor_marcas').insert({fornecedor_id:fornId, nÃ£ome});
+  const {error} = await sb.from('fornecedor_marcas').insert({fornecedor_id:fornId, nome});
   if(error) return toast('Erro: '+error.message,'error');
-  document.getElementById('fn-marca-nÃ£ova').value='';
+  document.getElementById('fn-marca-nova').value='';
   toast('Marca adicionada');
   _editFornId = fornId;
   renderCadastrarFornecedor();
@@ -2276,8 +2276,8 @@ async function removerMarcaForn(id) {
 }
 
 function limparFormForn() {
-  ['fn-nÃ£ome','fn-email','fn-telefone','fn-obs','fn-cnpj','fn-ie','fn-fantasia',
-   'fn-contatÃ©o','fn-endereco','fn-cidade','fn-uf','fn-celular','fn-site'].forEach(id=>{
+  ['fn-nome','fn-email','fn-telefone','fn-obs','fn-cnpj','fn-ie','fn-fantasia',
+   'fn-contato','fn-endereco','fn-cidade','fn-uf','fn-celular','fn-site'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.value='';
   });
@@ -2286,17 +2286,17 @@ function limparFormForn() {
 }
 
 async function salvarFornecedor(id) {
-  const nÃ£ome = document.getElementById('fn-nÃ£ome')?.value?.trim();
-  if(!nÃ£ome) return toast('NÃ£ome obrigatÃ©�rio','error');
+  const nome = document.getElementById('fn-nome')?.value?.trim();
+  if(!nome) return toast('Nome obrigat�rio','error');
   const payload = {
-    razao_social: nÃ£ome,
+    razao_social: nome,
     email:        document.getElementById('fn-email')?.value||null,
     telefone:     document.getElementById('fn-telefone')?.value||null,
     observacoes:  document.getElementById('fn-obs')?.value||null,
     cnpj:         document.getElementById('fn-cnpj')?.value||null,
     ie:           document.getElementById('fn-ie')?.value||null,
-    nÃ£ome_fantasia:document.getElementById('fn-fantasia')?.value||null,
-    contatÃ©o:      document.getElementById('fn-contatÃ©o')?.value||null,
+    nome_fantasia:document.getElementById('fn-fantasia')?.value||null,
+    contato:      document.getElementById('fn-contato')?.value||null,
     endereco:     document.getElementById('fn-endereco')?.value||null,
     cidade:       document.getElementById('fn-cidade')?.value||null,
     estado:       document.getElementById('fn-uf')?.value||null,
@@ -2305,16 +2305,16 @@ async function salvarFornecedor(id) {
   };
   let savedId = id;
   if(id) {
-    const {error} = await sb.from('fornecedores').updatÃ©e(payload).eq('id',id);
+    const {error} = await sb.from('fornecedores').update(payload).eq('id',id);
     if(error) return toast('Erro: '+error.message,'error');
   } else {
-    const {datÃ©a:nf,error} = await sb.from('fornecedores').insert(payload).select().single();
+    const {data:nf,error} = await sb.from('fornecedores').insert(payload).select().single();
     if(error) return toast('Erro: '+error.message,'error');
     savedId = nf.id;
     // Salvar marcas tempor�rias
     if(window._marcasTemp?.length) {
-      for(const nÃ£ome of window._marcasTemp)
-        await sb.from('fornecedor_marcas').insert({fornecedor_id:savedId, nÃ£ome});
+      for(const nome of window._marcasTemp)
+        await sb.from('fornecedor_marcas').insert({fornecedor_id:savedId, nome});
       window._marcasTemp=[];
     }
   }
@@ -2324,137 +2324,137 @@ async function salvarFornecedor(id) {
   renderCadastrarFornecedor();
 }
 
-// ===== SIMPLE CRUD (CatÃ©egorias, Grades, Cole��es, Vendedores) =====
+// ===== SIMPLE CRUD (Categorias, Grades, Cole��es, Vendedores) =====
 async function renderSimpleCRUD(table, fields, title, cols, renderFn) {
-  const {datÃ©a} = await sb.from(table).select('*').eq('atÃ©ivo',true).order('nÃ£ome');
-  renderFn(datÃ©a||[]);
+  const {data} = await sb.from(table).select('*').eq('ativo',true).order('nome');
+  renderFn(data||[]);
 }
 
-async function renderCatÃ©egorias() {
-  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary" onclick="openSimpleModal('catÃ©egorias','CatÃ©egoria')"><i datÃ©a-lucide="plus"></i>NÃ£ova CatÃ©egoria</button>`;
-  await loadSimple('catÃ©egorias','CatÃ©egoria',['nÃ£ome','descricao']);
+async function renderCategorias() {
+  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary" onclick="openSimpleModal('categorias','Categoria')"><i data-lucide="plus"></i>Nova Categoria</button>`;
+  await loadSimple('categorias','Categoria',['nome','descricao']);
 }
 
 async function renderColecoes() {
-  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary" onclick="openSimpleModal('colecoes','Cole��o')"><i datÃ©a-lucide="plus"></i>NÃ£ova Cole��o</button>`;
-  await loadSimple('colecoes','Cole��o',['nÃ£ome','temporada','anÃ£o']);
+  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary" onclick="openSimpleModal('colecoes','Cole��o')"><i data-lucide="plus"></i>Nova Cole��o</button>`;
+  await loadSimple('colecoes','Cole��o',['nome','temporada','ano']);
 }
 
 async function renderGrades() {
-  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary" onclick="openGradeModal()"><i datÃ©a-lucide="plus"></i>NÃ£ova Grade</button>`;
-  const {datÃ©a} = await sb.from('grades').select('*').eq('atÃ©ivo',true);
+  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary" onclick="openGradeModal()"><i data-lucide="plus"></i>Nova Grade</button>`;
+  const {data} = await sb.from('grades').select('*').eq('ativo',true);
   document.getElementById('content').innerHTML = `
     <div class="card">
-      <div class="table-wrap"><table class="datÃ©a-table">
-        <thead><tr><th>NÃ£ome</th><th>Tipo</th><th>Valores</th><th>A��es</th></tr></thead>
-        <tbody>${(datÃ©a||[]).map(g=>`<tr>
-          <td><strong>${g.nÃ£ome}</strong></td><td>${g.tipo||'�'}</td>
+      <div class="table-wrap"><table class="data-table">
+        <thead><tr><th>Nome</th><th>Tipo</th><th>Valores</th><th>A��es</th></tr></thead>
+        <tbody>${(data||[]).map(g=>`<tr>
+          <td><strong>${g.nome}</strong></td><td>${g.tipo||'�'}</td>
           <td><div style="display:flex;flex-wrap:wrap;gap:4px">${(g.valores||[]).map(v=>`<span class="badge badge-blue">${v}</span>`).join('')}</div></td>
-          <td><button class="btn btn-sm btn-danger" onclick="deleteRecord('grades','${g.id}',renderGrades)"><i datÃ©a-lucide="trash-2"></i></button></td>
+          <td><button class="btn btn-sm btn-danger" onclick="deleteRecord('grades','${g.id}',renderGrades)"><i data-lucide="trash-2"></i></button></td>
         </tr>`).join('')}
         </tbody>
       </table></div>
     </div>`;
-  lucide.creatÃ©eIcons();
+  lucide.createIcons();
 }
 
 function openGradeModal() {
   openModal(`
-    <div class="modal-header"><h3>NÃ£ova Grade</h3><button class="modal-close" onclick="closeModalDirect()"><i datÃ©a-lucide="x"></i></button></div>
+    <div class="modal-header"><h3>Nova Grade</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
     <div class="modal-body">
       <div class="form-grid">
-        <div class="form-group"><label>NÃ£ome *</label><input id="gr-nÃ£ome"></div>
+        <div class="form-group"><label>Nome *</label><input id="gr-nome"></div>
         <div class="form-group"><label>Tipo</label><select id="gr-tipo"><option value="tamanho">Tamanho</option><option value="numeracao">Numera��o</option><option value="unico">�nico</option></select></div>
         <div class="form-group"><label>Valores (separados por v�rgula)</label><input id="gr-vals" placeholder="PP,P,M,G,GG,XGG"></div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModalDirect()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveGrade()"><i datÃ©a-lucide="save"></i>Salvar</button>
+      <button class="btn btn-primary" onclick="saveGrade()"><i data-lucide="save"></i>Salvar</button>
     </div>`,'modal-md');
 }
 
 async function saveGrade() {
-  const nÃ£ome=document.getElementById('gr-nÃ£ome').value.trim();
-  if(!nÃ£ome) return toast('NÃ£ome obrigatÃ©�rio','error');
+  const nome=document.getElementById('gr-nome').value.trim();
+  if(!nome) return toast('Nome obrigat�rio','error');
   const vals=document.getElementById('gr-vals').value.split(',').map(v=>v.trim()).filter(Boolean);
-  await sb.from('grades').insert({nÃ£ome,tipo:document.getElementById('gr-tipo').value,valores:vals});
+  await sb.from('grades').insert({nome,tipo:document.getElementById('gr-tipo').value,valores:vals});
   closeModalDirect();toast('Grade salva');renderGrades();
 }
 
 async function loadSimple(table, label, fields) {
-  const {datÃ©a} = await sb.from(table).select('*').eq('atÃ©ivo',true).order('nÃ£ome');
+  const {data} = await sb.from(table).select('*').eq('ativo',true).order('nome');
   document.getElementById('content').innerHTML = `
     <div class="card">
-      <div class="table-wrap"><table class="datÃ©a-table">
+      <div class="table-wrap"><table class="data-table">
         <thead><tr>${fields.map(f=>`<th>${f}</th>`).join('')}<th>A��es</th></tr></thead>
-        <tbody>${(datÃ©a||[]).map(r=>`<tr>${fields.map(f=>`<td>${r[f]||'�'}</td>`).join('')}
-          <td><button class="btn btn-sm btn-danger" onclick="deleteRecord('${table}','${r.id}',render${label.replace('�','c').replace('�','a').replace(' ','')})"><i datÃ©a-lucide="trash-2"></i></button></td>
+        <tbody>${(data||[]).map(r=>`<tr>${fields.map(f=>`<td>${r[f]||'�'}</td>`).join('')}
+          <td><button class="btn btn-sm btn-danger" onclick="deleteRecord('${table}','${r.id}',render${label.replace('�','c').replace('�','a').replace(' ','')})"><i data-lucide="trash-2"></i></button></td>
         </tr>`).join('')||`<tr><td colspan="${fields.length+1}" style="text-align:center;color:var(--text-2)">Nenhum registro</td></tr>`}
         </tbody>
       </table></div>
     </div>`;
-  lucide.creatÃ©eIcons();
+  lucide.createIcons();
 }
 
 async function openSimpleModal(table, label) {
   const fields = {
-    catÃ©egorias:[{id:'s-nÃ£ome',label:'NÃ£ome',type:'text'},{id:'s-desc',label:'Descri��o',type:'text'}],
-    colecoes:[{id:'s-nÃ£ome',label:'NÃ£ome',type:'text'},{id:'s-temp',label:'Temporada',type:'text'},{id:'s-anÃ£o',label:'AnÃ£o',type:'number'}]
+    categorias:[{id:'s-nome',label:'Nome',type:'text'},{id:'s-desc',label:'Descri��o',type:'text'}],
+    colecoes:[{id:'s-nome',label:'Nome',type:'text'},{id:'s-temp',label:'Temporada',type:'text'},{id:'s-ano',label:'Ano',type:'number'}]
   };
-  const flds = fields[table]||[{id:'s-nÃ£ome',label:'NÃ£ome',type:'text'}];
+  const flds = fields[table]||[{id:'s-nome',label:'Nome',type:'text'}];
   openModal(`
-    <div class="modal-header"><h3>NÃ£ova ${label}</h3><button class="modal-close" onclick="closeModalDirect()"><i datÃ©a-lucide="x"></i></button></div>
+    <div class="modal-header"><h3>Nova ${label}</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
     <div class="modal-body"><div class="form-grid">${flds.map(f=>`<div class="form-group"><label>${f.label}</label><input id="${f.id}" type="${f.type}"></div>`).join('')}</div></div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModalDirect()">Cancelar</button>
-    <button class="btn btn-primary" onclick="saveSimple('${table}','${label}')"><i datÃ©a-lucide="save"></i>Salvar</button></div>`,'modal-sm');
+    <button class="btn btn-primary" onclick="saveSimple('${table}','${label}')"><i data-lucide="save"></i>Salvar</button></div>`,'modal-sm');
 }
 
 async function saveSimple(table, label) {
-  const map={catÃ©egorias:{nÃ£ome:document.getElementById('s-nÃ£ome')?.value?.trim(),descricao:document.getElementById('s-desc')?.value},colecoes:{nÃ£ome:document.getElementById('s-nÃ£ome')?.value?.trim(),temporada:document.getElementById('s-temp')?.value,anÃ£o:document.getElementById('s-anÃ£o')?.value||null}};
-  const payload=map[table]||{nÃ£ome:document.getElementById('s-nÃ£ome')?.value?.trim()};
-  if(!payload.nÃ£ome) return toast('NÃ£ome obrigatÃ©�rio','error');
+  const map={categorias:{nome:document.getElementById('s-nome')?.value?.trim(),descricao:document.getElementById('s-desc')?.value},colecoes:{nome:document.getElementById('s-nome')?.value?.trim(),temporada:document.getElementById('s-temp')?.value,ano:document.getElementById('s-ano')?.value||null}};
+  const payload=map[table]||{nome:document.getElementById('s-nome')?.value?.trim()};
+  if(!payload.nome) return toast('Nome obrigat�rio','error');
   await sb.from(table).insert(payload);
   closeModalDirect();toast(`${label} salva`);
-  navigatÃ©e(currentPage);
+  navigate(currentPage);
 }
 
 async function deleteRecord(table, id, cb) {
   if(!confirm('Excluir registro?')) return;
-  await sb.from(table).updatÃ©e({atÃ©ivo:false}).eq('id',id);
+  await sb.from(table).update({ativo:false}).eq('id',id);
   toast('Removido');if(cb)cb();
 }
 
 // ===== VENDEDORES =====
 async function renderVendedores() {
-  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary" onclick="openVendedorModal()"><i datÃ©a-lucide="plus"></i>NÃ£ovo Vendedor</button>`;
-  const {datÃ©a} = await sb.from('vendedores').select('*').eq('atÃ©ivo',true).order('nÃ£ome');
+  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary" onclick="openVendedorModal()"><i data-lucide="plus"></i>Novo Vendedor</button>`;
+  const {data} = await sb.from('vendedores').select('*').eq('ativo',true).order('nome');
   document.getElementById('content').innerHTML = `
     <div class="card">
-      <div class="table-wrap"><table class="datÃ©a-table">
-        <thead><tr><th>NÃ£ome</th><th>CPF</th><th>Telefone</th><th>Comiss�o %</th><th>Meta Mensal</th><th>A��es</th></tr></thead>
-        <tbody>${(datÃ©a||[]).map(v=>`<tr>
-          <td><strong>${v.nÃ£ome}</strong></td><td>${v.cpf||'�'}</td><td>${v.telefone||'�'}</td>
+      <div class="table-wrap"><table class="data-table">
+        <thead><tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>Comiss�o %</th><th>Meta Mensal</th><th>A��es</th></tr></thead>
+        <tbody>${(data||[]).map(v=>`<tr>
+          <td><strong>${v.nome}</strong></td><td>${v.cpf||'�'}</td><td>${v.telefone||'�'}</td>
           <td>${fmtNum(v.comissao_percentual)}%</td><td>${fmt(v.meta_mensal)}</td>
           <td><div class="actions">
-            <button class="btn btn-sm btn-secondary" onclick="openVendedorModal('${v.id}')"><i datÃ©a-lucide="edit-2"></i></button>
-            <button class="btn btn-sm btn-danger" onclick="deleteVend('${v.id}')"><i datÃ©a-lucide="trash-2"></i></button>
+            <button class="btn btn-sm btn-secondary" onclick="openVendedorModal('${v.id}')"><i data-lucide="edit-2"></i></button>
+            <button class="btn btn-sm btn-danger" onclick="deleteVend('${v.id}')"><i data-lucide="trash-2"></i></button>
           </div></td>
         </tr>`).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--text-2)">Nenhum vendedor</td></tr>'}
         </tbody>
       </table></div>
     </div>`;
-  lucide.creatÃ©eIcons();
+  lucide.createIcons();
 }
 
 async function openVendedorModal(id=null) {
   let v={};
-  if(id){const {datÃ©a}=await sb.from('vendedores').select('*').eq('id',id).single();v=datÃ©a||{};}
+  if(id){const {data}=await sb.from('vendedores').select('*').eq('id',id).single();v=data||{};}
   openModal(`
-    <div class="modal-header"><h3>${id?'Editar':'NÃ£ovo'} Vendedor</h3><button class="modal-close" onclick="closeModalDirect()"><i datÃ©a-lucide="x"></i></button></div>
+    <div class="modal-header"><h3>${id?'Editar':'Novo'} Vendedor</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
     <div class="modal-body">
       <div class="form-grid">
-        <div class="form-row"><div class="form-group"><label>NÃ£ome *</label><input id="vd-nÃ£ome" value="${v.nÃ£ome||''}"></div>
+        <div class="form-row"><div class="form-group"><label>Nome *</label><input id="vd-nome" value="${v.nome||''}"></div>
         <div class="form-group"><label>CPF</label><input id="vd-cpf" value="${v.cpf||''}"></div></div>
         <div class="form-row"><div class="form-group"><label>Telefone</label><input id="vd-tel" value="${v.telefone||''}"></div>
         <div class="form-group"><label>Usu�rio</label><input id="vd-email" value="${v.email||''}"></div></div>
@@ -2464,15 +2464,15 @@ async function openVendedorModal(id=null) {
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModalDirect()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveVendedor('${id||''}')"><i datÃ©a-lucide="save"></i>Salvar</button>
+      <button class="btn btn-primary" onclick="saveVendedor('${id||''}')"><i data-lucide="save"></i>Salvar</button>
     </div>`,'modal-md');
 }
 
 async function saveVendedor(id) {
-  const payload={nÃ£ome:document.getElementById('vd-nÃ£ome').value.trim(),cpf:document.getElementById('vd-cpf').value,telefone:document.getElementById('vd-tel').value,email:document.getElementById('vd-email').value,comissao_percentual:parseFloatÃ©(document.getElementById('vd-com').value||0),meta_mensal:parseFloatÃ©(document.getElementById('vd-meta').value||0)};
-  if(!payload.nÃ£ome) return toast('NÃ£ome obrigatÃ©�rio','error');
-  if(id){await sb.from('vendedores').updatÃ©e(payload).eq('id',id);}else{await sb.from('vendedores').insert(payload);}
+  const payload={nome:document.getElementById('vd-nome').value.trim(),cpf:document.getElementById('vd-cpf').value,telefone:document.getElementById('vd-tel').value,email:document.getElementById('vd-email').value,comissao_percentual:parseFloat(document.getElementById('vd-com').value||0),meta_mensal:parseFloat(document.getElementById('vd-meta').value||0)};
+  if(!payload.nome) return toast('Nome obrigat�rio','error');
+  if(id){await sb.from('vendedores').update(payload).eq('id',id);}else{await sb.from('vendedores').insert(payload);}
   closeModalDirect();toast('Vendedor salvo');renderVendedores();
 }
 
-async function deleteVend(id){if(!confirm('Excluir?'))return;await sb.from('vendedores').updatÃ©e({atÃ©ivo:false}).eq('id',id);toast('Removido');renderVendedores();}
+async function deleteVend(id){if(!confirm('Excluir?'))return;await sb.from('vendedores').update({ativo:false}).eq('id',id);toast('Removido');renderVendedores();}

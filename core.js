@@ -24,7 +24,7 @@ function login() {
 
 function logout() {
   localStorage.removeItem('loja_session');
-  document.getElementById('app').style.display = 'nÃ£one';
+  document.getElementById('app').style.display = 'none';
   document.getElementById('auth-screen').style.display = 'flex';
 }
 
@@ -36,13 +36,13 @@ function checkSession() {
 }
 
 function initApp() {
-  document.getElementById('auth-screen').style.display = 'nÃ£one';
+  document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   const name = currentUser.email?.split('@')[0]||'Usuário';
   document.getElementById('sidebar-user-name').textContent = name;
-  document.getElementById('topnav-initial').textContent = name.charAtÃ©(0).toUpperCase();
-  lucide.creatÃ©eIcons();
-  navigatÃ©e('dashboard');
+  document.getElementById('topnav-initial').textContent = name.charAt(0).toUpperCase();
+  lucide.createIcons();
+  navigate('dashboard');
   // Fechar dropdowns ao clicar fora
   document.addEventListener('click', e => {
     if(!e.target.closest('.nav-group')) closeNGs();
@@ -52,12 +52,12 @@ function initApp() {
 // ===== NAVIGATION =====
 const pageTitles = {
   dashboard:'Dashboard',pdv:'PDV — Registrar Venda',bag:'BAG — Pré-venda',
-  clientes:'Cadastrar Clientes','cadastrar-cliente':'Cadastrar Cliente','historico-clientes':'Histórico de Clientes','painel-clientes':'Painel de Clientes','como-conheceu':'Como nÃ£os Conheceu','importar-clientes':'Importar Clientes',produtos:'Produtos',catÃ©egorias:'CatÃ©egorias',colecoes:'Coleções',
+  clientes:'Cadastrar Clientes','cadastrar-cliente':'Cadastrar Cliente','historico-clientes':'Histórico de Clientes','painel-clientes':'Painel de Clientes','como-conheceu':'Como nos Conheceu','importar-clientes':'Importar Clientes',produtos:'Produtos',categorias:'Categorias',colecoes:'Coleções',
   grades:'Grades',vendedores:'Vendedores',fornecedores:'Fornecedores',
   'relacao-vendas':'Relação de Vendas','consulta-vendas':'Consulta Vendas',
   crediario:'Gestão Crediário','contas-receber':'Contas a Receber',
   metas:'Metas de Vendas','painel-vendas':'Painel de Vendas',comissoes:'Comissões',
-  'nÃ£otas-fiscais':'NÃ£otas Fiscais',duplicatÃ©as:'DuplicatÃ©as a Pagar',
+  'notas-fiscais':'Notas Fiscais',duplicatas:'Duplicatas a Pagar',
   'gestao-estoque':'Gestão de Estoque','parametros-estoque':'Parâmetros estoque','conferencia-estoque':'Conferência Estoque','visao-geral-estoque':'Visão Geral — Estoque','visao-detalhada-estoque':'Visão Detalhada — Estoque','giro-estoque':'Giro de Estoque','curva-abc':'Curva ABC','transferencia-lojas':'Transferência entre Lojas','importar-csv':'Importar Estoque CSV','cadastrar-produto':'Cadastro Produto — Estoque','cadastrar-fornecedor':'Cadastrar Fornecedor',
   caixa:'Caixa Diário','painel-financeiro':'Painel Financeiro',
   despesas:'Despesas','contas-pagar':'Contas a Pagar',
@@ -71,9 +71,9 @@ const pageGroup = {
   'consulta-vendas':'ng-vendas',trocas:'ng-vendas',
   crediario:'ng-crediario','contas-receber':'ng-crediario',
   comissoes:'ng-vendedores',metas:'ng-vendedores',vendedores:'ng-vendedores',
-  'nÃ£otas-fiscais':'ng-compras',duplicatÃ©as:'ng-compras','gestao-estoque':'ng-compras','parametros-estoque':'ng-compras','conferencia-estoque':'ng-compras','visao-geral-estoque':'ng-compras','visao-detalhada-estoque':'ng-compras','giro-estoque':'ng-compras','curva-abc':'ng-compras','transferencia-lojas':'ng-compras','importar-csv':'ng-compras',
+  'notas-fiscais':'ng-compras',duplicatas:'ng-compras','gestao-estoque':'ng-compras','parametros-estoque':'ng-compras','conferencia-estoque':'ng-compras','visao-geral-estoque':'ng-compras','visao-detalhada-estoque':'ng-compras','giro-estoque':'ng-compras','curva-abc':'ng-compras','transferencia-lojas':'ng-compras','importar-csv':'ng-compras',
   produtos:'ng-compras',fornecedores:'ng-compras','cadastrar-produto':'ng-compras','cadastrar-fornecedor':'ng-compras',
-  clientes:'ng-cadastros',catÃ©egorias:'ng-cadastros',colecoes:'ng-cadastros',grades:'ng-cadastros','cadastrar-cliente':'ng-cadastros','historico-clientes':'ng-cadastros','painel-clientes':'ng-cadastros','como-conheceu':'ng-cadastros','importar-clientes':'ng-cadastros',
+  clientes:'ng-cadastros',categorias:'ng-cadastros',colecoes:'ng-cadastros',grades:'ng-cadastros','cadastrar-cliente':'ng-cadastros','historico-clientes':'ng-cadastros','painel-clientes':'ng-cadastros','como-conheceu':'ng-cadastros','importar-clientes':'ng-cadastros',
   caixa:'ng-financeiro','painel-financeiro':'ng-financeiro',despesas:'ng-financeiro',
   'contas-pagar':'ng-financeiro','contas-bancarias':'ng-financeiro',
   'fluxo-caixa':'ng-financeiro',dre:'ng-financeiro'
@@ -88,11 +88,11 @@ function closeNGs() {
   document.querySelectorAll('.nav-group.open').forEach(el=>el.classList.remove('open'));
 }
 
-function navigatÃ©e(page) {
+function navigate(page) {
   currentPage = page;
   closeNGs();
 
-  // AtÃ©ualizar estados visuais do topnav
+  // Atualizar estados visuais do topnav
   document.querySelectorAll('.nav-group-btn').forEach(b=>b.classList.remove('grp-active'));
   document.getElementById('nav-dash').classList.toggle('active', page==='dashboard');
   document.getElementById('nav-pdv').classList.toggle('active', page==='pdv');
@@ -103,7 +103,7 @@ function navigatÃ©e(page) {
   }
   // Itens do dropdown
   document.querySelectorAll('.nav-dd-item').forEach(el=>{
-    el.classList.toggle('active', el.getAtÃ©tribute('onclick')?.includes(`'${page}'`));
+    el.classList.toggle('active', el.getAttribute('onclick')?.includes(`'${page}'`));
   });
 
   document.getElementById('page-title').textContent = pageTitles[page]||page;
@@ -115,12 +115,12 @@ function navigatÃ©e(page) {
   contentEl.classList.add('page-enter');
   const renders = {
     dashboard:renderDashboard,pdv:renderPDV,clientes:renderClientes,'cadastrar-cliente':renderCadastrarCliente,'historico-clientes':renderHistoricoClientes,'painel-clientes':renderPainelClientes,'como-conheceu':renderComoConheceu,'importar-clientes':renderImportarClientes,
-    produtos:renderProdutos,catÃ©egorias:renderCatÃ©egorias,colecoes:renderColecoes,
+    produtos:renderProdutos,categorias:renderCategorias,colecoes:renderColecoes,
     grades:renderGrades,vendedores:renderVendedores,fornecedores:renderFornecedores,
     'relacao-vendas':renderRelacaoVendas,'consulta-vendas':renderConsultaVendas,
     crediario:renderCrediario,'contas-receber':renderContasReceber,
     metas:renderMetas,'painel-vendas':renderPainelVendas,comissoes:renderComissoes,
-    'nÃ£otas-fiscais':renderNÃ£otasFiscais,duplicatÃ©as:renderDuplicatÃ©as,
+    'notas-fiscais':renderNotasFiscais,duplicatas:renderDuplicatas,
     'gestao-estoque':renderGestaoEstoque,'parametros-estoque':renderParametrosEstoque,'conferencia-estoque':renderConferenciaEstoque,'visao-geral-estoque':renderVisaoGeralEstoque,'visao-detalhada-estoque':renderVisaoDetalhadaEstoque,'giro-estoque':renderGiroEstoque,'curva-abc':renderCurvaABC,'transferencia-lojas':renderTransferenciaLojas,bag:renderBAG,'importar-csv':renderImportarCSV,'cadastrar-produto':renderCadastrarProduto,'cadastrar-fornecedor':renderCadastrarFornecedor,
     caixa:renderCaixa,'painel-financeiro':renderPainelFinanceiro,
     despesas:renderDespesas,'contas-pagar':renderContasPagar,
@@ -129,17 +129,17 @@ function navigatÃ©e(page) {
   };
   if(renders[page]) renders[page]();
   else renderDashboard();
-  setTimeout(()=>lucide.creatÃ©eIcons(),50);
+  setTimeout(()=>lucide.createIcons(),50);
 }
 
 // ===== TOAST =====
 function toast(msg, type='success') {
   const icons = {success:'check-circle',error:'x-circle',info:'info'};
-  const el = document.creatÃ©eElement('div');
+  const el = document.createElement('div');
   el.className = `toast-item toast-${type}`;
-  el.innerHTML = `<i datÃ©a-lucide="${icons[type]||'info'}"></i><span>${msg}</span>`;
+  el.innerHTML = `<i data-lucide="${icons[type]||'info'}"></i><span>${msg}</span>`;
   document.getElementById('toast').appendChild(el);
-  lucide.creatÃ©eIcons();
+  lucide.createIcons();
   setTimeout(()=>el.remove(),3500);
 }
 
@@ -149,7 +149,7 @@ function openModal(html, size='modal-md') {
   c.className = `modal ${size}`;
   c.innerHTML = html;
   document.getElementById('modal-overlay').classList.add('open');
-  setTimeout(()=>lucide.creatÃ©eIcons(),20);
+  setTimeout(()=>lucide.createIcons(),20);
 }
 function closeModal(e) {
   if(e && e.target !== document.getElementById('modal-overlay')) return;
@@ -167,32 +167,32 @@ function closeSizeModalDirect() {
 }
 
 // ===== UTILS =====
-const fmt = v => 'R$ '+parseFloatÃ©(v||0).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
-const fmtNum = v => parseFloatÃ©(v||0).toFixed(2).replace('.',',');
-const fmtDatÃ©e = d => d?new DatÃ©e(d+'T00:00:00').toLocaleDatÃ©eString('pt-BR'):'—';
-const fmtDatÃ©etime = d => d?new DatÃ©e(d).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+const fmt = v => 'R$ '+parseFloat(v||0).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+const fmtNum = v => parseFloat(v||0).toFixed(2).replace('.',',');
+const fmtDate = d => d?new Date(d+'T00:00:00').toLocaleDateString('pt-BR'):'—';
+const fmtDatetime = d => d?new Date(d).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
 
-function badgeStatÃ©us(statÃ©us) {
+function badgeStatus(status) {
   const map = {
     concluida:'green',cancelada:'red',devolvida:'yellow',
-    aberta:'blue',paga:'green',atÃ©rasada:'red',quitado:'green',
+    aberta:'blue',paga:'green',atrasada:'red',quitado:'green',
     pendente:'yellow',pago:'green',recebida:'green',
     aberto:'blue',fechado:'gray',efetivada:'green',retornada:'yellow',
     validada:'green'
   };
   const labels = {
     concluida:'Concluída',cancelada:'Cancelada',devolvida:'Devolvida',
-    aberta:'Aberta',paga:'Paga',atÃ©rasada:'AtÃ©rasada',quitado:'Quitado',
+    aberta:'Aberta',paga:'Paga',atrasada:'Atrasada',quitado:'Quitado',
     pendente:'Pendente',pago:'Pago',recebida:'Recebida',
     aberto:'Aberto',fechado:'Fechado',efetivada:'Efetivada',retornada:'Retornada',
     validada:'Validada'
   };
-  return `<span class="badge badge-${map[statÃ©us]||'gray'}">${labels[statÃ©us]||statÃ©us}</span>`;
+  return `<span class="badge badge-${map[status]||'gray'}">${labels[status]||status}</span>`;
 }
 
 // ===== INIT =====
 checkSession();
 
-// Stubs adicionados via patÃ©ch — injetados nÃ£o final
-// As funções principais já estão nÃ£o bundle principal.
-// Aqui ficam as funções das nÃ£ovas páginas de estoque.
+// Stubs adicionados via patch — injetados no final
+// As funções principais já estão no bundle principal.
+// Aqui ficam as funções das novas páginas de estoque.

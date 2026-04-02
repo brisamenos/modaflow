@@ -1,11 +1,11 @@
-// ===== SUPABASE API ADAPTER =====
-// Esta camada substitui as chamadas originais do Supabase, formatÃ©ando e
+﻿// ===== SUPABASE API ADAPTER =====
+// Esta camada substitui as chamadas originais do Supabase, formatando e
 // repassando as requisições em REST padrão para a sua VPS backend.
 
 class SupabaseQueryBuilder {
   constructor(table, apiUrl) {
     this.table = table;
-    this.apiUrl = apiUrl || 'http://localhost:3000/api';
+    this.apiUrl = apiUrl || '/api';
     this._method = 'GET';
     this._params = new URLSearchParams();
     this._body = null;
@@ -20,15 +20,15 @@ class SupabaseQueryBuilder {
     return this;
   }
 
-  insert(datÃ©a) {
+  insert(data) {
     this._method = 'POST';
-    this._body = datÃ©a;
+    this._body = data;
     return this;
   }
 
-  updatÃ©e(datÃ©a) {
+  update(data) {
     this._method = 'PATCH';
-    this._body = datÃ©a;
+    this._body = data;
     return this;
   }
 
@@ -83,7 +83,7 @@ class SupabaseQueryBuilder {
     return this;
   }
 
-  matÃ©ch(query) {
+  match(query) {
     Object.entries(query).forEach(([k, v]) => {
       this.eq(k, v);
     });
@@ -126,9 +126,9 @@ class SupabaseQueryBuilder {
       url += '?' + this._params.toString();
     }
 
-    const headers = { 'Content-Type': 'applicatÃ©ion/json' };
+    const headers = { 'Content-Type': 'application/json' };
     const token = localStorage.getItem('loja_token');
-    if (token) headers['AuthorizatÃ©ion'] = `Bearer ${token}`;
+    if (token) headers['Authorization'] = `Bearer ${token}`;
 
     const fetchOptions = {
       method: this._method,
@@ -145,27 +145,27 @@ class SupabaseQueryBuilder {
       const res = await fetch(url, fetchOptions);
 
       let json = null;
-      if (res.statÃ©us !== 204) {
-        try { json = await res.json(); } catÃ©ch(e){}
+      if (res.status !== 204) {
+        try { json = await res.json(); } catch(e){}
       }
 
       if (!res.ok) {
-        return { datÃ©a: null, error: json || { message: res.statÃ©usText } };
+        return { data: null, error: json || { message: res.statusText } };
       }
 
-      let returnDatÃ©a = json;
-      if (this._single) returnDatÃ©a = (json && json.length > 0) ? json[0] : null;
-      if (this._maybeSingle) returnDatÃ©a = (json && json.length > 0) ? json[0] : null;
+      let returnData = json;
+      if (this._single) returnData = (json && json.length > 0) ? json[0] : null;
+      if (this._maybeSingle) returnData = (json && json.length > 0) ? json[0] : null;
 
-      return { datÃ©a: returnDatÃ©a, error: null };
-    } catÃ©ch (err) {
-      return { datÃ©a: null, error: err };
+      return { data: returnData, error: null };
+    } catch (err) {
+      return { data: null, error: err };
     }
   }
 
-  // CompatÃ©ibilidade Promise-like
+  // Compatibilidade Promise-like
   then(resolve, reject) {
-    return this.execute().then(resolve).catÃ©ch(reject);
+    return this.execute().then(resolve).catch(reject);
   }
 }
 

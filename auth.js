@@ -14,7 +14,7 @@ function login() {
 
 function logout() {
   localStorage.removeItem('loja_session');
-  document.getElementById('app').style.display = 'nÃ£one';
+  document.getElementById('app').style.display = 'none';
   document.getElementById('auth-screen').style.display = 'flex';
 }
 
@@ -26,13 +26,13 @@ function checkSession() {
 }
 
 function initApp() {
-  document.getElementById('auth-screen').style.display = 'nÃ£one';
+  document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   const name = currentUser.email?.split('@')[0]||'Usuário';
   document.getElementById('sidebar-user-name').textContent = name;
-  document.getElementById('topnav-initial').textContent = name.charAtÃ©(0).toUpperCase();
-  lucide.creatÃ©eIcons();
-  navigatÃ©e('dashboard');
+  document.getElementById('topnav-initial').textContent = name.charAt(0).toUpperCase();
+  lucide.createIcons();
+  navigate('dashboard');
   // Fechar dropdowns ao clicar fora
   document.addEventListener('click', e => {
     if(!e.target.closest('.nav-group')) closeNGs();
