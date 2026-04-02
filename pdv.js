@@ -654,13 +654,30 @@ async function handleProdInput() {
   const term = document.getElementById('pdv-prod-input')?.value?.trim() || '';
   if(!term) return openProdutoPDVModal('');
   
-  // 1. Tentar buscar por EAN na tabela produto_grades
-  const {data:eanResults} = await sb.from('produto_grades').select('id,produto_id,tamanho,ean,estoque,preco_venda,cor_descricao,produtos!inner(id,nome,codigo,preco_venda,grade_id,grades(valores))').eq('ean', term);
-  if(eanResults && eanResults.length === 1) {
+  // 1. Tentar buscar por EAN na tabela produto_grades (query simples sem join aninhado)
+  const {data:eanResults} = await sb.from('produto_grades').select('id,produto_id,tamanho,ean,estoque,preco_venda').eq('ean', term);
+  if(eanResults && eanResults.length > 0) {
     const pg = eanResults[0];
-    const preco = pg.preco_venda || pg.produtos?.preco_venda || 0;
-    addModalItemToCart(pg.produtos.id, pg.produtos.nome, preco, pg.produtos.codigo);
-    return;
+    // Buscar o produto pai separadamente
+    const {data:prod} = await sb.from('produtos').select('id,codigo,nome,preco_venda').eq('id', pg.produto_id).maybeSingle();
+    if(prod) {
+      const preco = parseFloat(pg.preco_venda) || parseFloat(prod.preco_venda) || 0;
+      if(eanResults.length === 1) {
+        // EAN único: adiciona direto ao carrinho com o tamanho correto
+        const qty = parseInt(document.getElementById('pdv-qty-input')?.value || 1);
+        const existing = cart.find(i => i.id === prod.id && i.tamanho === pg.tamanho);
+        if(existing) { existing.qty += qty; } 
+        else { cart.push({ id: prod.id, nome: prod.nome, preco, tamanho: pg.tamanho, qty, codigo: prod.codigo }); }
+        const pInput = document.getElementById('pdv-prod-input');
+        if(pInput) pInput.value = '';
+        renderCart();
+        toast(`${prod.nome} (${pg.tamanho}) adicionado!`, 'success');
+      } else {
+        // Mesmo EAN em múltiplos tamanhos: abre modal para selecionar
+        addModalItemToCart(prod.id, prod.nome, preco, prod.codigo);
+      }
+      return;
+    }
   }
   
   // 2. Tentar buscar por codigo do produto
