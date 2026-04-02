@@ -99,7 +99,7 @@ function triggerPageEnter() {
   el.classList.add('page-enter');
 }
 
-// ─── Mobile Menu ────────────────────────────────────────────────────────────
+// ─── Mobile Menu / Sidebar ───────────────────────────────────────────────────
 let _mobileMenuOpen = false;
 
 function toggleMobileMenu() {
@@ -109,11 +109,10 @@ function toggleMobileMenu() {
   if (!overlay || !menu) return;
 
   overlay.classList.toggle('open', _mobileMenuOpen);
-  menu.style.display = _mobileMenuOpen ? 'block' : 'none';
+  menu.classList.toggle('sidebar-open', _mobileMenuOpen);
 
   if (_mobileMenuOpen) {
     lucide.createIcons();
-    // Trap scroll
     document.body.style.overflow = 'hidden';
   } else {
     document.body.style.overflow = '';
@@ -125,7 +124,7 @@ function closeMobileMenu() {
   const overlay = document.getElementById('mobile-menu-overlay');
   const menu    = document.getElementById('mobile-menu');
   if (overlay) overlay.classList.remove('open');
-  if (menu) menu.style.display = 'none';
+  if (menu)    menu.classList.remove('sidebar-open');
   document.body.style.overflow = '';
 }
 

@@ -1226,42 +1226,149 @@ body {
 }
 .bottom-nav-item.pdv-fab svg { width: 22px; height: 22px; }
 
-/* Mobile menu overlay */
+/* ============================================================
+   MOBILE SIDEBAR DRAWER (substitui bottom-sheet)
+   ============================================================ */
+
+/* Backdrop overlay */
 .mobile-menu-overlay {
   display: none; position: fixed; inset: 0;
-  background: rgba(6,13,28,0.6); backdrop-filter: blur(4px);
-  z-index: 850;
+  background: rgba(0,0,0,0);
+  z-index: 1998;
+  transition: background 0.28s ease;
 }
-.mobile-menu-overlay.open { display: block; }
+.mobile-menu-overlay.open {
+  display: block;
+  background: rgba(6,13,28,0.65);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+/* Sidebar drawer — slide from left */
 .mobile-menu {
-  position: fixed; bottom: 60px; left: 0; right: 0;
-  background: var(--nav-2);
-  border-top: 1px solid rgba(255,255,255,0.09);
-  border-radius: 20px 20px 0 0;
-  padding: 16px;
-  z-index: 860;
-  max-height: 70vh; overflow-y: auto;
-  animation: slideUp 0.3s var(--ease-bounce) both;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: 285px;
+  background: linear-gradient(180deg, #07111f 0%, #0a1628 100%);
+  border-right: 1px solid rgba(255,255,255,0.07);
+  z-index: 1999;
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s ease;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+  /* Custom scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
 }
-@keyframes slideUp {
-  from { transform: translateY(100%); }
-  to   { transform: translateY(0); }
+.mobile-menu.sidebar-open {
+  transform: translateX(0);
+  box-shadow: 4px 0 40px rgba(0,0,0,0.6), 8px 0 80px rgba(0,0,0,0.3);
 }
+
+/* Sidebar header */
+.mobile-menu-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 14px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  flex-shrink: 0;
+  position: sticky; top: 0;
+  background: #07111f;
+  z-index: 1;
+}
+.mm-brand {
+  display: flex; align-items: center; gap: 10px;
+}
+.mm-brand-icon {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 3px 10px rgba(37,99,235,0.45);
+  flex-shrink: 0;
+}
+.mm-brand-icon svg { width: 15px; height: 15px; color: white; }
+.mm-brand-name {
+  font-family: var(--font-display);
+  color: white; font-size: 14.5px; font-weight: 700;
+  letter-spacing: -0.5px;
+}
+.mm-brand-sub {
+  color: rgba(255,255,255,0.28);
+  font-size: 9px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1.4px;
+  display: block; line-height: 1;
+}
+.mm-close {
+  width: 32px; height: 32px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: rgba(255,255,255,0.5);
+  transition: all var(--t);
+  flex-shrink: 0;
+}
+.mm-close:hover { background: rgba(255,255,255,0.12); color: white; }
+.mm-close svg { width: 15px; height: 15px; }
+
+/* Sidebar user strip */
+.mobile-menu-user {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  flex-shrink: 0;
+}
+.mm-avatar {
+  width: 34px; height: 34px;
+  background: linear-gradient(135deg, #2563eb 0%, #6366f1 100%);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  border: 2px solid rgba(255,255,255,0.15);
+  font-size: 13px; font-weight: 700; color: white;
+  flex-shrink: 0;
+}
+.mm-user-name {
+  color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 600; flex: 1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mm-logout {
+  background: none; border: none;
+  color: rgba(255,255,255,0.3); padding: 6px;
+  border-radius: 6px; cursor: pointer;
+  display: flex; transition: all var(--t);
+}
+.mm-logout:hover { color: rgba(255,255,255,0.8); background: rgba(255,255,255,0.07); }
+.mm-logout svg { width: 16px; height: 16px; }
+
+/* Sidebar nav content area */
+.mobile-menu-nav {
+  flex: 1;
+  padding: 8px;
+}
+
 .mobile-menu-section {
-  font-size: 10px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 1.3px; color: rgba(255,255,255,0.25);
-  padding: 12px 8px 6px;
+  font-size: 9.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1.4px; color: rgba(255,255,255,0.22);
+  padding: 14px 8px 5px;
 }
 .mobile-menu-item {
-  display: flex; align-items: center; gap: 12px;
-  padding: 12px 10px; border-radius: 10px;
-  color: rgba(255,255,255,0.65);
-  font-size: 14px; font-weight: 500;
-  cursor: pointer; transition: background var(--t);
-  min-height: 48px; /* Touch-friendly */
+  display: flex; align-items: center; gap: 11px;
+  padding: 11px 10px; border-radius: 9px;
+  color: rgba(255,255,255,0.62);
+  font-size: 13.5px; font-weight: 500;
+  cursor: pointer;
+  transition: background var(--t), color var(--t);
+  min-height: 44px;
 }
-.mobile-menu-item svg { width: 18px; height: 18px; opacity: 0.7; flex-shrink: 0; }
-.mobile-menu-item:hover, .mobile-menu-item:active { background: rgba(255,255,255,0.08); }
+.mobile-menu-item svg { width: 17px; height: 17px; opacity: 0.65; flex-shrink: 0; transition: opacity var(--t); }
+.mobile-menu-item:hover,
+.mobile-menu-item:active { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.95); }
+.mobile-menu-item:hover svg { opacity: 0.9; }
+.mobile-menu-item.active { background: rgba(37,99,235,0.18); color: #93c5fd; }
+.mobile-menu-item.active svg { opacity: 1; }
 
 /* ============================================================
    MOBILE CARD VIEW (Replaces tables on mobile)
@@ -1338,17 +1445,24 @@ body {
   .nav-groups-desktop { display: none; }
   .btn-pdv-nav .label-txt { display: none; }
   .topnav-uinfo { display: none; }
+  .topnav-right { border-left: none; padding-left: 0; }
 
-  /* Compact topnav */
-  .topnav-inner { padding: 0 14px; gap: 8px; }
+  /* Compact topnav — strip down to just hamburger + brand + avatar */
+  .topnav-inner { padding: 0 12px; gap: 8px; height: 50px; }
   .topnav-brand-text span { display: none; }
+  .topnav-brand { padding-right: 0; border-right: none; margin-right: 0; }
 
-  /* Show bottom nav */
-  .bottom-nav { display: block; }
+  /* Hide bottom nav — sidebar replaces it */
+  .bottom-nav { display: none !important; }
 
-  /* Pad content for bottom nav + safe area */
-  .content { padding: 16px 14px calc(76px + env(safe-area-inset-bottom, 0px)); }
-  .pagebar { padding: 10px 14px; min-height: 52px; }
+  /* Content: full scroll, no bottom-nav offset */
+  .content {
+    padding: 16px 12px 24px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  .pagebar { padding: 10px 12px; min-height: 48px; }
   .pagebar h1 { font-size: 15px; }
 
   /* Stats: 2 col on mobile */
@@ -1458,12 +1572,12 @@ body {
   .card-header { padding: 14px 16px; }
   .card-body   { padding: 16px; }
 
-  /* Toast: above bottom nav */
-  #toast { bottom: calc(72px + env(safe-area-inset-bottom, 0px)); right: 12px; left: 12px; }
+  /* Toast: bottom of screen with safe area */
+  #toast { bottom: calc(16px + env(safe-area-inset-bottom, 0px)); right: 12px; left: 12px; }
   .toast-item { min-width: unset; max-width: 100%; width: 100%; }
 
-  /* WhatsApp FAB: above bottom nav */
-  #wa-fab { bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important; right: 16px !important; width: 48px !important; height: 48px !important; }
+  /* WhatsApp FAB: bottom right */
+  #wa-fab { bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important; right: 16px !important; width: 48px !important; height: 48px !important; }
 
   /* Drop zone: smaller on mobile */
   .drop-zone { padding: 32px 16px; }
@@ -1576,8 +1690,8 @@ body {
     width: calc(100vw - 20px) !important;
     right: 10px !important;
     left: 10px !important;
-    bottom: calc(130px + env(safe-area-inset-bottom, 0px)) !important;
-    max-height: 50vh !important;
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important;
+    max-height: 55vh !important;
   }
 
   /* Bigger size buttons for touch */

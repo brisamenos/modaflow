@@ -537,9 +537,35 @@
   </div>
 </div>
 
-<!-- MOBILE MENU OVERLAY -->
-<div class="mobile-menu-overlay" id="mobile-menu-overlay" onclick="toggleMobileMenu()"></div>
-<div class="mobile-menu" id="mobile-menu" style="display:none">
+<!-- MOBILE SIDEBAR OVERLAY -->
+<div class="mobile-menu-overlay" id="mobile-menu-overlay" onclick="closeMobileMenu()"></div>
+<div class="mobile-menu" id="mobile-menu">
+
+  <!-- Sidebar header -->
+  <div class="mobile-menu-header">
+    <div class="mm-brand">
+      <div class="mm-brand-icon"><i data-lucide="shopping-bag"></i></div>
+      <div>
+        <div class="mm-brand-name">ModaFlow</div>
+        <span class="mm-brand-sub">Gestão de Loja</span>
+      </div>
+    </div>
+    <button class="mm-close" onclick="closeMobileMenu()">
+      <i data-lucide="x"></i>
+    </button>
+  </div>
+
+  <!-- User strip -->
+  <div class="mobile-menu-user">
+    <div class="mm-avatar" id="topnav-initial-mob">G</div>
+    <span class="mm-user-name" id="sidebar-user-name-mob">Usuário</span>
+    <button class="mm-logout" onclick="logout()" title="Sair">
+      <i data-lucide="log-out"></i>
+    </button>
+  </div>
+
+  <!-- Nav items -->
+  <div class="mobile-menu-nav">
   <div class="mobile-menu-section">Principal</div>
   <div class="mobile-menu-item" onclick="navigate('dashboard');closeMobileMenu()"><i data-lucide="layout-dashboard"></i> Dashboard</div>
 
@@ -596,35 +622,10 @@
   <div class="mobile-menu-item" onclick="navigate('contas-pagar');closeMobileMenu()"><i data-lucide="calendar-clock"></i> Contas a Pagar</div>
   <div class="mobile-menu-item" onclick="navigate('fluxo-caixa');closeMobileMenu()"><i data-lucide="arrow-left-right"></i> Fluxo de Caixa</div>
   <div class="mobile-menu-item" onclick="navigate('dre');closeMobileMenu()"><i data-lucide="pie-chart"></i> Resultado — DRE</div>
-
-  <div class="mobile-menu-section">Conta</div>
-  <div class="mobile-menu-item" onclick="logout()"><i data-lucide="log-out"></i> Sair do Sistema</div>
+  </div><!-- end .mobile-menu-nav -->
 </div>
 
-<!-- BOTTOM NAV (Mobile) -->
-<nav class="bottom-nav" id="bottom-nav">
-  <div class="bottom-nav-items">
-    <button class="bottom-nav-item active" id="bn-dash" onclick="navigate('dashboard');setBN('dash')">
-      <i data-lucide="layout-dashboard"></i>
-      <span>Início</span>
-    </button>
-    <button class="bottom-nav-item" id="bn-vendas" onclick="navigate('relacao-vendas');setBN('vendas')">
-      <i data-lucide="trending-up"></i>
-      <span>Vendas</span>
-    </button>
-    <button class="bottom-nav-item pdv-fab" id="bn-pdv" onclick="navigate('pdv');setBN('pdv')">
-      <i data-lucide="shopping-cart"></i>
-    </button>
-    <button class="bottom-nav-item" id="bn-estoque" onclick="navigate('visao-geral-estoque');setBN('estoque')">
-      <i data-lucide="package"></i>
-      <span>Estoque</span>
-    </button>
-    <button class="bottom-nav-item" id="bn-menu" onclick="toggleMobileMenu()">
-      <i data-lucide="grid"></i>
-      <span>Menu</span>
-    </button>
-  </div>
-</nav>
+<!-- BOTTOM NAV removido — substituído pelo sidebar lateral -->
 
 <script src="api.js"></script>
 <script src="whatsapp.js"></script>
@@ -639,5 +640,28 @@
 <script src="financeiro.js"></script>
 <script src="estoque.js"></script>
 <script>checkSession();</script>
+<script>
+// Patch: sincronizar nome/inicial do usuário no sidebar mobile
+(function() {
+  const _origInitApp = window.initApp;
+  if (typeof _origInitApp === 'function') return; // será aplicado após scripts carregarem
+})();
+document.addEventListener('DOMContentLoaded', function() {
+  // Aguardar scripts e depois patch initApp
+  const _patch = function() {
+    const orig = window.initApp;
+    if (typeof orig !== 'function') return setTimeout(_patch, 50);
+    window.initApp = function() {
+      orig.apply(this, arguments);
+      const name = (window.currentUser?.nome || window.currentUser?.email?.split('@')[0] || 'Usuário');
+      const mobName = document.getElementById('sidebar-user-name-mob');
+      const mobInit = document.getElementById('topnav-initial-mob');
+      if (mobName) mobName.textContent = name;
+      if (mobInit) mobInit.textContent = name.charAt(0).toUpperCase();
+    };
+  };
+  _patch();
+});
+</script>
 </body>
 </html>
