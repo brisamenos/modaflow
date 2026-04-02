@@ -1,4 +1,4 @@
-// ===== WHATSAPP INTEGRAÇÃO (EVOLUTION API V2) =====
+﻿// ===== WHATSAPP INTEGRAÇÃO (EVOLUTION API V2) =====
 
 const WA_URL = 'https://projeto-evolution-api.xtknqq.easypanel.host';
 const WA_API_KEY = '429683C4C977415CAAFCCE10F7D57E11';
@@ -7,13 +7,13 @@ const WA_INSTANCE = 'StoreOS';
 let waConnected = false;
 let waCheckInterval = null;
 let waPollingInterval = null;
-let currentChatJid = null;
-let waChatIsOpen = false;
+let currentChatÃ©Jid = null;
+let waChatÃ©IsOpen = false;
 
 // Helpers
 async function fetchWa(endpoint, options = {}) {
   const headers = {
-    'Content-Type': 'application/json',
+    'Content-Type': 'applicatÃ©ion/json',
     'apikey': WA_API_KEY
   };
   try {
@@ -21,15 +21,15 @@ async function fetchWa(endpoint, options = {}) {
       ...options,
       headers
     });
-    const data = await res.json();
-    return { ok: res.ok, status: res.status, data };
-  } catch (err) {
+    const datÃ©a = await res.json();
+    return { ok: res.ok, statÃ©us: res.statÃ©us, datÃ©a };
+  } catÃ©ch (err) {
     console.error('WA API Error:', err);
     return { ok: false, error: err };
   }
 }
 
-function formatPhone(phone) {
+function formatÃ©Phone(phone) {
   let p = phone.replace(/\D/g, '');
   if (!p.startsWith('55') && p.length <= 11) p = '55' + p;
   return p;
@@ -37,77 +37,77 @@ function formatPhone(phone) {
 
 // ==== CORE FUNCTIONS ====
 
-async function waCheckStatus() {
-  const res = await fetchWa(`/instance/connectionState/${WA_INSTANCE}`);
-  if (res.ok && res.data && res.data.instance) {
-    if (res.data.instance.state === 'open') {
+async function waCheckStatÃ©us() {
+  const res = await fetchWa(`/instance/connectionStatÃ©e/${WA_INSTANCE}`);
+  if (res.ok && res.datÃ©a && res.datÃ©a.instance) {
+    if (res.datÃ©a.instance.statÃ©e === 'open') {
       waConnected = true;
-      document.getElementById('wa-pair-screen').style.display = 'none';
+      document.getElementById('wa-pair-screen').style.display = 'nÃ£one';
       document.getElementById('wa-main-screen').style.display = 'flex';
-      waLoadChats();
+      waLoadChatÃ©s();
     } else {
       waConnected = false;
       document.getElementById('wa-pair-screen').style.display = 'flex';
-      document.getElementById('wa-main-screen').style.display = 'none';
-      waCreateInstanceAndGetQR();
+      document.getElementById('wa-main-screen').style.display = 'nÃ£one';
+      waCreatÃ©eInstanceAndGetQR();
     }
   } else {
     // Instância provavelmente não existe, criar
     waConnected = false;
     document.getElementById('wa-pair-screen').style.display = 'flex';
-    document.getElementById('wa-main-screen').style.display = 'none';
-    waCreateInstanceAndGetQR();
+    document.getElementById('wa-main-screen').style.display = 'nÃ£one';
+    waCreatÃ©eInstanceAndGetQR();
   }
 }
 
-async function waCreateInstanceAndGetQR() {
+async function waCreatÃ©eInstanceAndGetQR() {
   let qrContainer = document.getElementById('wa-qr-img');
-  const res = await fetchWa('/instance/create', {
+  const res = await fetchWa('/instance/creatÃ©e', {
     method: 'POST',
     body: JSON.stringify({
       instanceName: WA_INSTANCE,
       qrcode: true,
-      integration: "WHATSAPP-BAILEYS"
+      integratÃ©ion: "WHATSAPP-BAILEYS"
     })
   });
 
   // Se já existir, a API pode jogar erro, então chamaremos o connect
   if (!res.ok) {
     const connectRes = await fetchWa(`/instance/connect/${WA_INSTANCE}`);
-    if (connectRes.ok && connectRes.data.base64) {
-      qrContainer.src = connectRes.data.base64;
+    if (connectRes.ok && connectRes.datÃ©a.base64) {
+      qrContainer.src = connectRes.datÃ©a.base64;
     }
   } else {
     // Criou sucesso
-    if (res.data.qrcode && res.data.qrcode.base64) {
-      qrContainer.src = res.data.qrcode.base64;
-    } else if (res.data.base64) {
-      qrContainer.src = res.data.base64;
+    if (res.datÃ©a.qrcode && res.datÃ©a.qrcode.base64) {
+      qrContainer.src = res.datÃ©a.qrcode.base64;
+    } else if (res.datÃ©a.base64) {
+      qrContainer.src = res.datÃ©a.base64;
     }
   }
 
-  // Ficar checando até o usuário conectar
+  // Ficar checando atÃ©é o usuário conectar
   if (waCheckInterval) clearInterval(waCheckInterval);
   waCheckInterval = setInterval(async () => {
-    const s = await fetchWa(`/instance/connectionState/${WA_INSTANCE}`);
-    if (s.ok && s.data?.instance?.state === 'open') {
+    const s = await fetchWa(`/instance/connectionStatÃ©e/${WA_INSTANCE}`);
+    if (s.ok && s.datÃ©a?.instance?.statÃ©e === 'open') {
       clearInterval(waCheckInterval);
-      toast('WhatsApp Conectado com Sucesso!');
+      toast('WhatÃ©sApp Conectado com Sucesso!');
       waConnected = true;
-      document.getElementById('wa-pair-screen').style.display = 'none';
+      document.getElementById('wa-pair-screen').style.display = 'nÃ£one';
       document.getElementById('wa-main-screen').style.display = 'flex';
-      waLoadChats();
+      waLoadChatÃ©s();
     }
   }, 4000);
 }
 
-// Desconectar / Fazer Logout do WhatsApp
+// Desconectar / Fazer Logout do WhatÃ©sApp
 async function waLogout() {
   const res = await fetchWa(`/instance/logout/${WA_INSTANCE}`, { method: 'DELETE' });
   if (res.ok) {
-    toast('WhatsApp Desconectado');
-    currentChatJid = null;
-    waCheckStatus();
+    toast('WhatÃ©sApp Desconectado');
+    currentChatÃ©Jid = null;
+    waCheckStatÃ©us();
   } else {
     toast('Erro ao desconectar', 'error');
   }
@@ -115,26 +115,26 @@ async function waLogout() {
 
 // ==== CHAT / LISTAS ====
 
-async function waLoadChats() {
-  const res = await fetchWa(`/chat/findChats/${WA_INSTANCE}`);
-  const listEl = document.getElementById('wa-chat-list');
-  if (res.ok && Array.isArray(res.data)) {
+async function waLoadChatÃ©s() {
+  const res = await fetchWa(`/chatÃ©/findChatÃ©s/${WA_INSTANCE}`);
+  const listEl = document.getElementById('wa-chatÃ©-list');
+  if (res.ok && Array.isArray(res.datÃ©a)) {
     listEl.innerHTML = '';
-    const chats = res.data.filter(c => !c.id.includes('@g.us') && !c.id.includes('@broadcast')); // Somente PV
-    if(chats.length === 0){
+    const chatÃ©s = res.datÃ©a.filter(c => !c.id.includes('@g.us') && !c.id.includes('@broadcast')); // Somente PV
+    if(chatÃ©s.length === 0){
         listEl.innerHTML = '<div class="wa-empty">Nenhuma conversa encontrada</div>';
         return;
     }
-    chats.forEach(chat => {
-      const name = chat.name || chat.pushName || chat.id.split('@')[0];
-      const div = document.createElement('div');
-      div.className = 'wa-chat-item';
-      div.onclick = () => waOpenMessageView(chat.id, name);
+    chatÃ©s.forEach(chatÃ© => {
+      const name = chatÃ©.name || chatÃ©.pushName || chatÃ©.id.split('@')[0];
+      const div = document.creatÃ©eElement('div');
+      div.className = 'wa-chatÃ©-item';
+      div.onclick = () => waOpenMessageView(chatÃ©.id, name);
       div.innerHTML = `
-        <div class="wa-avatar">${name.charAt(0).toUpperCase()}</div>
-        <div class="wa-chat-info">
+        <div class="wa-avatÃ©ar">${name.charAtÃ©(0).toUpperCase()}</div>
+        <div class="wa-chatÃ©-info">
           <h4>${name}</h4>
-          <span class="wa-preview">${chat.id.split('@')[0]}</span>
+          <span class="wa-preview">${chatÃ©.id.split('@')[0]}</span>
         </div>
       `;
       listEl.appendChild(div);
@@ -145,8 +145,8 @@ async function waLoadChats() {
 }
 
 async function waOpenMessageView(jid, name) {
-  currentChatJid = jid;
-  document.getElementById('wa-main-screen').style.display = 'none';
+  currentChatÃ©Jid = jid;
+  document.getElementById('wa-main-screen').style.display = 'nÃ£one';
   document.getElementById('wa-message-screen').style.display = 'flex';
   document.getElementById('wa-active-name').textContent = name || jid.split('@')[0];
   
@@ -154,46 +154,46 @@ async function waOpenMessageView(jid, name) {
   
   if (waPollingInterval) clearInterval(waPollingInterval);
   waPollingInterval = setInterval(() => {
-    if (waChatIsOpen && currentChatJid) {
+    if (waChatÃ©IsOpen && currentChatÃ©Jid) {
       waLoadMessages(true);
     }
   }, 4000); // Polling a cada 4 segundos
 }
 
 function waBackToList() {
-  currentChatJid = null;
+  currentChatÃ©Jid = null;
   if(waPollingInterval) clearInterval(waPollingInterval);
-  document.getElementById('wa-message-screen').style.display = 'none';
+  document.getElementById('wa-message-screen').style.display = 'nÃ£one';
   document.getElementById('wa-main-screen').style.display = 'flex';
-  waLoadChats();
+  waLoadChatÃ©s();
 }
 
 async function waLoadMessages(silent = false) {
-  if (!currentChatJid) return;
+  if (!currentChatÃ©Jid) return;
   const msgContainer = document.getElementById('wa-messages-container');
   if (!silent) {
     msgContainer.innerHTML = '<div style="text-align:center;padding:20px;font-size:12px;color:#888">Carregando...</div>';
   }
 
   // O endpoint findMessages da Evolution pode ser POST
-  const res = await fetchWa(`/chat/findMessages/${WA_INSTANCE}`, {
+  const res = await fetchWa(`/chatÃ©/findMessages/${WA_INSTANCE}`, {
     method: 'POST',
-    body: JSON.stringify({ where: { remoteJid: currentChatJid } })
+    body: JSON.stringify({ where: { remoteJid: currentChatÃ©Jid } })
   });
 
   if (res.ok) {
-    const data = res.data.messages || res.data; 
-    let msgs = Array.isArray(data) ? data : [];
+    const datÃ©a = res.datÃ©a.messages || res.datÃ©a; 
+    let msgs = Array.isArray(datÃ©a) ? datÃ©a : [];
     msgs = msgs.reverse(); // Mais antigas primeiro
     
     let html = '';
     msgs.forEach(m => {
       // Filtrar mensagens validas
-      const text = m.message?.conversation || m.message?.extendedTextMessage?.text || (typeof m.message === 'string'? m.message : '');
+      const text = m.message?.conversatÃ©ion || m.message?.extendedTextMessage?.text || (typeof m.message === 'string'? m.message : '');
       if(!text) return;
       
       const isMe = m.key.fromMe;
-      // Tratar dados conforme response real
+      // TratÃ©ar dados conforme response real
       html += `
         <div class="wa-bubble ${isMe ? 'wa-me' : 'wa-you'}">
           ${text}
@@ -210,7 +210,7 @@ async function waLoadMessages(silent = false) {
 async function waSendMessageAction() {
   const input = document.getElementById('wa-input-text');
   const text = input.value.trim();
-  if(!text || !currentChatJid) return;
+  if(!text || !currentChatÃ©Jid) return;
 
   input.value = '';
   // Add Optimistic bubble
@@ -221,7 +221,7 @@ async function waSendMessageAction() {
   const res = await fetchWa(`/message/sendText/${WA_INSTANCE}`, {
     method: 'POST',
     body: JSON.stringify({
-      number: currentChatJid.replace('@s.whatsapp.net',''),
+      number: currentChatÃ©Jid.replace('@s.whatÃ©sapp.net',''),
       text: text
     })
   });
@@ -233,25 +233,25 @@ async function waSendMessageAction() {
 
 // ==== UI GERAL ====
 
-function toggleWaFloating() {
-  const cw = document.getElementById('wa-chat-window');
+function toggleWaFloatÃ©ing() {
+  const cw = document.getElementById('wa-chatÃ©-window');
   if (cw.classList.contains('open')) {
     cw.classList.remove('open');
-    waChatIsOpen = false;
+    waChatÃ©IsOpen = false;
     if(waPollingInterval) clearInterval(waPollingInterval);
   } else {
     cw.classList.add('open');
-    waChatIsOpen = true;
-    waCheckStatus();
+    waChatÃ©IsOpen = true;
+    waCheckStatÃ©us();
   }
 }
 
-function waStartNewChat() {
+function waStartNewChatÃ©() {
   const phone = prompt("Digite o número com DDD (ex: 11999999999):");
   if(phone) {
-    const formatted = formatPhone(phone);
-    if(formatted.length < 12) return toast('Número inválido', 'error');
-    waOpenMessageView(`${formatted}@s.whatsapp.net`, formatted);
+    const formatÃ©ted = formatÃ©Phone(phone);
+    if(formatÃ©ted.length < 12) return toast('Número inválido', 'error');
+    waOpenMessageView(`${formatÃ©ted}@s.whatÃ©sapp.net`, formatÃ©ted);
   }
 }
 

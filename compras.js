@@ -1,38 +1,38 @@
 ﻿// ===== NOTAS FISCAIS =====
-async function renderNotasFiscais() {
-  document.getElementById('topbar-actions').innerHTML=`<button class="btn btn-primary" onclick="openNFModal()"><i data-lucide="plus"></i>Digitar NF</button>`;
-  const {data}=await sb.from('notas_fiscais').select('*,fornecedores(razao_social)').order('created_at',{ascending:false});
+async function renderNÃ£otasFiscais() {
+  document.getElementById('topbar-actions').innerHTML=`<button class="btn btn-primary" onclick="openNFModal()"><i datÃ©a-lucide="plus"></i>Digitar NF</button>`;
+  const {datÃ©a}=await sb.from('nÃ£otas_fiscais').select('*,fornecedores(razao_social)').order('creatÃ©ed_atÃ©',{ascending:false});
   document.getElementById('content').innerHTML=`
     <div class="card">
-      <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>N�mero</th><th>Fornecedor</th><th>Data Emiss�o</th><th>Total</th><th>Status</th><th>A��es</th></tr></thead>
-        <tbody>${(data||[]).map(n=>`<tr>
+      <div class="table-wrap"><table class="datÃ©a-table">
+        <thead><tr><th>N�mero</th><th>Fornecedor</th><th>DatÃ©a Emiss�o</th><th>Total</th><th>StatÃ©us</th><th>A��es</th></tr></thead>
+        <tbody>${(datÃ©a||[]).map(n=>`<tr>
           <td><strong>${n.numero||'�'}</strong></td>
           <td>${n.fornecedores?.razao_social||'�'}</td>
-          <td>${fmtDate(n.data_emissao)}</td>
-          <td><strong>${fmt(n.total_nota)}</strong></td>
-          <td>${badgeStatus(n.status)}</td>
+          <td>${fmtDatÃ©e(n.datÃ©a_emissao)}</td>
+          <td><strong>${fmt(n.total_nÃ£ota)}</strong></td>
+          <td>${badgeStatÃ©us(n.statÃ©us)}</td>
           <td><div class="actions">
-            <button class="btn btn-sm btn-success" onclick="validarNF('${n.id}')"><i data-lucide="check-circle"></i>Validar</button>
-            <button class="btn btn-sm btn-danger" onclick="deleteNF('${n.id}')"><i data-lucide="trash-2"></i></button>
+            <button class="btn btn-sm btn-success" onclick="validarNF('${n.id}')"><i datÃ©a-lucide="check-circle"></i>Validar</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteNF('${n.id}')"><i datÃ©a-lucide="trash-2"></i></button>
           </div></td>
         </tr>`).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--text-2)">Nenhuma NF</td></tr>'}
         </tbody>
       </table></div>
     </div>`;
-  lucide.createIcons();
+  lucide.creatÃ©eIcons();
 }
 
 async function openNFModal() {
-  const {data:forns}=await sb.from('fornecedores').select('id,razao_social').eq('ativo',true);
+  const {datÃ©a:forns}=await sb.from('fornecedores').select('id,razao_social').eq('atÃ©ivo',true);
   openModal(`
-    <div class="modal-header"><h3>Digitar Nota Fiscal</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
+    <div class="modal-header"><h3>Digitar NÃ£ota Fiscal</h3><button class="modal-close" onclick="closeModalDirect()"><i datÃ©a-lucide="x"></i></button></div>
     <div class="modal-body"><div class="form-grid">
       <div class="form-row"><div class="form-group"><label>N�mero NF</label><input id="nf-num"></div>
       <div class="form-group"><label>S�rie</label><input id="nf-serie"></div></div>
       <div class="form-group"><label>Fornecedor</label><select id="nf-forn"><option value="">Selecione</option>${(forns||[]).map(f=>`<option value="${f.id}">${f.razao_social}</option>`).join('')}</select></div>
-      <div class="form-row"><div class="form-group"><label>Data Emiss�o</label><input id="nf-emit" type="date"></div>
-      <div class="form-group"><label>Data Entrada</label><input id="nf-ent" type="date" value="${new Date().toISOString().split('T')[0]}"></div></div>
+      <div class="form-row"><div class="form-group"><label>DatÃ©a Emiss�o</label><input id="nf-emit" type="datÃ©e"></div>
+      <div class="form-group"><label>DatÃ©a Entrada</label><input id="nf-ent" type="datÃ©e" value="${new DatÃ©e().toISOString().split('T')[0]}"></div></div>
       <div class="form-row-4">
         <div class="form-group"><label>Total Produtos</label><input id="nf-tprod" type="number" step="0.01" value="0"></div>
         <div class="form-group"><label>Frete</label><input id="nf-frete" type="number" step="0.01" value="0"></div>
@@ -42,69 +42,69 @@ async function openNFModal() {
     </div></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModalDirect()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveNF()"><i data-lucide="save"></i>Salvar</button>
+      <button class="btn btn-primary" onclick="saveNF()"><i datÃ©a-lucide="save"></i>Salvar</button>
     </div>`,'modal-lg');
 }
 
 async function saveNF() {
-  const payload={numero:document.getElementById('nf-num').value,serie:document.getElementById('nf-serie').value,fornecedor_id:document.getElementById('nf-forn').value||null,data_emissao:document.getElementById('nf-emit').value||null,data_entrada:document.getElementById('nf-ent').value,total_produtos:parseFloat(document.getElementById('nf-tprod').value||0),total_frete:parseFloat(document.getElementById('nf-frete').value||0),total_desconto:parseFloat(document.getElementById('nf-desc').value||0),total_nota:parseFloat(document.getElementById('nf-tot').value||0)};
-  await sb.from('notas_fiscais').insert(payload);
-  closeModalDirect();toast('NF salva');renderNotasFiscais();
+  const payload={numero:document.getElementById('nf-num').value,serie:document.getElementById('nf-serie').value,fornecedor_id:document.getElementById('nf-forn').value||null,datÃ©a_emissao:document.getElementById('nf-emit').value||null,datÃ©a_entrada:document.getElementById('nf-ent').value,total_produtos:parseFloatÃ©(document.getElementById('nf-tprod').value||0),total_frete:parseFloatÃ©(document.getElementById('nf-frete').value||0),total_desconto:parseFloatÃ©(document.getElementById('nf-desc').value||0),total_nÃ£ota:parseFloatÃ©(document.getElementById('nf-tot').value||0)};
+  await sb.from('nÃ£otas_fiscais').insert(payload);
+  closeModalDirect();toast('NF salva');renderNÃ£otasFiscais();
 }
 
-async function validarNF(id){await sb.from('notas_fiscais').update({status:'validada'}).eq('id',id);toast('NF validada');renderNotasFiscais();}
-async function deleteNF(id){if(!confirm('Excluir NF?'))return;await sb.from('notas_fiscais').delete().eq('id',id);toast('NF removida');renderNotasFiscais();}
+async function validarNF(id){await sb.from('nÃ£otas_fiscais').updatÃ©e({statÃ©us:'validada'}).eq('id',id);toast('NF validada');renderNÃ£otasFiscais();}
+async function deleteNF(id){if(!confirm('Excluir NF?'))return;await sb.from('nÃ£otas_fiscais').delete().eq('id',id);toast('NF removida');renderNÃ£otasFiscais();}
 
 // ===== DUPLICATAS =====
-async function renderDuplicatas() {
-  document.getElementById('topbar-actions').innerHTML=`<button class="btn btn-primary" onclick="openDuplicataModal()"><i data-lucide="plus"></i>Nova Duplicata</button>`;
-  const {data}=await sb.from('duplicatas').select('*,fornecedores(razao_social)').order('vencimento');
+async function renderDuplicatÃ©as() {
+  document.getElementById('topbar-actions').innerHTML=`<button class="btn btn-primary" onclick="openDuplicatÃ©aModal()"><i datÃ©a-lucide="plus"></i>NÃ£ova DuplicatÃ©a</button>`;
+  const {datÃ©a}=await sb.from('duplicatÃ©as').select('*,fornecedores(razao_social)').order('vencimento');
   document.getElementById('content').innerHTML=`
     <div class="card">
-      <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>N�</th><th>Fornecedor</th><th>Vencimento</th><th>Valor</th><th>Status</th><th>A��es</th></tr></thead>
-        <tbody>${(data||[]).map(d=>`<tr>
+      <div class="table-wrap"><table class="datÃ©a-table">
+        <thead><tr><th>N�</th><th>Fornecedor</th><th>Vencimento</th><th>Valor</th><th>StatÃ©us</th><th>A��es</th></tr></thead>
+        <tbody>${(datÃ©a||[]).map(d=>`<tr>
           <td>${d.numero||'�'}</td>
           <td>${d.fornecedores?.razao_social||'�'}</td>
-          <td>${fmtDate(d.vencimento)}</td>
+          <td>${fmtDatÃ©e(d.vencimento)}</td>
           <td><strong>${fmt(d.valor)}</strong></td>
-          <td>${badgeStatus(d.status)}</td>
-          <td>${d.status==='aberta'?`<button class="btn btn-sm btn-success" onclick="pagarDuplicata('${d.id}')"><i data-lucide="check"></i>Pagar</button>`:'�'}</td>
-        </tr>`).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--text-2)">Nenhuma duplicata</td></tr>'}
+          <td>${badgeStatÃ©us(d.statÃ©us)}</td>
+          <td>${d.statÃ©us==='aberta'?`<button class="btn btn-sm btn-success" onclick="pagarDuplicatÃ©a('${d.id}')"><i datÃ©a-lucide="check"></i>Pagar</button>`:'�'}</td>
+        </tr>`).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--text-2)">Nenhuma duplicatÃ©a</td></tr>'}
         </tbody>
       </table></div>
     </div>`;
-  lucide.createIcons();
+  lucide.creatÃ©eIcons();
 }
 
-async function openDuplicataModal() {
-  const {data:forns}=await sb.from('fornecedores').select('id,razao_social').eq('ativo',true);
+async function openDuplicatÃ©aModal() {
+  const {datÃ©a:forns}=await sb.from('fornecedores').select('id,razao_social').eq('atÃ©ivo',true);
   openModal(`
-    <div class="modal-header"><h3>Nova Duplicata</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
+    <div class="modal-header"><h3>NÃ£ova DuplicatÃ©a</h3><button class="modal-close" onclick="closeModalDirect()"><i datÃ©a-lucide="x"></i></button></div>
     <div class="modal-body"><div class="form-grid">
       <div class="form-group"><label>Fornecedor</label><select id="dp-forn"><option value="">Selecione</option>${(forns||[]).map(f=>`<option value="${f.id}">${f.razao_social}</option>`).join('')}</select></div>
       <div class="form-row">
         <div class="form-group"><label>N�mero</label><input id="dp-num"></div>
         <div class="form-group"><label>Valor (R$)</label><input id="dp-val" type="number" step="0.01"></div>
-        <div class="form-group"><label>Vencimento</label><input id="dp-venc" type="date"></div>
+        <div class="form-group"><label>Vencimento</label><input id="dp-venc" type="datÃ©e"></div>
       </div>
     </div></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModalDirect()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveDuplicata()"><i data-lucide="save"></i>Salvar</button>
+      <button class="btn btn-primary" onclick="saveDuplicatÃ©a()"><i datÃ©a-lucide="save"></i>Salvar</button>
     </div>`,'modal-md');
 }
 
-async function saveDuplicata() {
-  const payload={fornecedor_id:document.getElementById('dp-forn').value||null,numero:document.getElementById('dp-num').value,valor:parseFloat(document.getElementById('dp-val').value||0),vencimento:document.getElementById('dp-venc').value};
+async function saveDuplicatÃ©a() {
+  const payload={fornecedor_id:document.getElementById('dp-forn').value||null,numero:document.getElementById('dp-num').value,valor:parseFloatÃ©(document.getElementById('dp-val').value||0),vencimento:document.getElementById('dp-venc').value};
   if(!payload.vencimento||!payload.valor) return toast('Preencha vencimento e valor','error');
-  await sb.from('duplicatas').insert(payload);
-  closeModalDirect();toast('Duplicata cadastrada');renderDuplicatas();
+  await sb.from('duplicatÃ©as').insert(payload);
+  closeModalDirect();toast('DuplicatÃ©a cadastrada');renderDuplicatÃ©as();
 }
 
-async function pagarDuplicata(id) {
-  await sb.from('duplicatas').update({status:'paga',data_pagamento:new Date().toISOString().split('T')[0]}).eq('id',id);
-  toast('Duplicata paga');renderDuplicatas();
+async function pagarDuplicatÃ©a(id) {
+  await sb.from('duplicatÃ©as').updatÃ©e({statÃ©us:'paga',datÃ©a_pagamento:new DatÃ©e().toISOString().split('T')[0]}).eq('id',id);
+  toast('DuplicatÃ©a paga');renderDuplicatÃ©as();
 }
 
 // ===== GEST�O ESTOQUE =====
@@ -128,11 +128,11 @@ async function renderParametrosEstoque() {
       <!-- Par�metros group -->
       <div style="padding:8px 0">
         <div style="padding:6px 14px;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.6px">Par�metros</div>
-        ${[['colecao','Cadastrar cole��o','layers'],['categoria','Cadastrar categoria','folder'],['genero','Cadastrar g�nero','users']].map(([t,l,ic])=>`
+        ${[['colecao','Cadastrar cole��o','layers'],['catÃ©egoria','Cadastrar catÃ©egoria','folder'],['genero','Cadastrar g�nero','users']].map(([t,l,ic])=>`
           <div id="param-menu-${t}" onclick="switchParamTab('${t}')"
             style="display:flex;align-items:center;gap:8px;padding:7px 14px;cursor:pointer;font-size:13px;color:var(--text-2);transition:all .15s"
             onmouseover="if(_paramTab!=='${t}')this.style.background='#f1f5f9'" onmouseout="if(_paramTab!=='${t}')this.style.background=''">
-            <i data-lucide="${ic}" style="width:13px;height:13px;flex-shrink:0"></i>${l}
+            <i datÃ©a-lucide="${ic}" style="width:13px;height:13px;flex-shrink:0"></i>${l}
           </div>`).join('')}
       </div>
 
@@ -142,7 +142,7 @@ async function renderParametrosEstoque() {
           <div id="param-menu-${t}" onclick="switchParamTab('${t}')"
             style="display:flex;align-items:center;gap:8px;padding:7px 14px;cursor:pointer;font-size:13px;color:var(--text-2);transition:all .15s"
             onmouseover="if(_paramTab!=='${t}')this.style.background='#f1f5f9'" onmouseout="if(_paramTab!=='${t}')this.style.background=''">
-            <i data-lucide="${ic}" style="width:13px;height:13px;flex-shrink:0"></i>${l}
+            <i datÃ©a-lucide="${ic}" style="width:13px;height:13px;flex-shrink:0"></i>${l}
           </div>`).join('')}
       </div>
     </div>
@@ -153,12 +153,12 @@ async function renderParametrosEstoque() {
     </div>
 
   </div>`;
-  setTimeout(()=>{lucide.createIcons();switchParamTab('colecao');},10);
+  setTimeout(()=>{lucide.creatÃ©eIcons();switchParamTab('colecao');},10);
 }
 
 function switchParamTab(tab) {
   _paramTab = tab;
-  ['colecao','categoria','genero','grade','cor'].forEach(t=>{
+  ['colecao','catÃ©egoria','genero','grade','cor'].forEach(t=>{
     const el = document.getElementById(`param-menu-${t}`);
     if(!el) return;
     const active = t===tab;
@@ -167,7 +167,7 @@ function switchParamTab(tab) {
   });
   const fns = {
     colecao: carregarParamColecao,
-    categoria: carregarParamCategoria,
+    catÃ©egoria: carregarParamCatÃ©egoria,
     genero: carregarParamGenero,
     grade: carregarParamGrade,
     cor: carregarParamCor
@@ -177,12 +177,12 @@ function switchParamTab(tab) {
 
 // Render helper for action buttons
 function paramAcoes(editFn, deleteFn) {
-  return `<td style="padding:7px 12px;text-align:center;white-space:nowrap">
+  return `<td style="padding:7px 12px;text-align:center;white-space:nÃ£owrap">
     <button onclick="${editFn}" style="width:24px;height:24px;border:1px solid var(--border-2);border-radius:3px;background:white;cursor:pointer;margin-right:2px;display:inline-flex;align-items:center;justify-content:center">
-      <i data-lucide="square-pen" style="width:12px;height:12px;color:var(--text-2)"></i>
+      <i datÃ©a-lucide="square-pen" style="width:12px;height:12px;color:var(--text-2)"></i>
     </button>
     <button onclick="${deleteFn}" style="width:24px;height:24px;border:1px solid #fecaca;border-radius:3px;background:#fef2f2;cursor:pointer;display:inline-flex;align-items:center;justify-content:center">
-      <i data-lucide="trash-2" style="width:12px;height:12px;color:var(--red)"></i>
+      <i datÃ©a-lucide="trash-2" style="width:12px;height:12px;color:var(--red)"></i>
     </button>
   </td>`;
 }
@@ -191,15 +191,15 @@ function paramAcoes(editFn, deleteFn) {
 let _editColId = null;
 async function carregarParamColecao() {
   const body = document.getElementById('param-body');
-  const {data} = await sb.from('colecoes').select('*').eq('ativo',true).order('created_at',{ascending:false});
+  const {datÃ©a} = await sb.from('colecoes').select('*').eq('atÃ©ivo',true).order('creatÃ©ed_atÃ©',{ascending:false});
   body.innerHTML = `
   <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
     <div style="text-align:center;padding:12px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700">Cadastrar cole��o</div>
     <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
-      <div style="text-align:center;margin-bottom:8px;font-size:13px;font-weight:600">Nome da cole��o</div>
-      <input id="pc-col-nome" placeholder="" style="display:block;width:100%;max-width:500px;margin:0 auto 10px;padding:8px 12px;border:1.5px solid ${_editColId?'var(--accent)':'var(--border-2)'};border-radius:var(--radius);font-size:13px;font-family:inherit">
+      <div style="text-align:center;margin-bottom:8px;font-size:13px;font-weight:600">NÃ£ome da cole��o</div>
+      <input id="pc-col-nÃ£ome" placeholder="" style="display:block;width:100%;max-width:500px;margin:0 auto 10px;padding:8px 12px;border:1.5px solid ${_editColId?'var(--accent)':'var(--border-2)'};border-radius:var(--radius);font-size:13px;font-family:inherit">
       <div style="display:flex;justify-content:flex-end;gap:8px">
-        <button onclick="salvarColecaoParam()" style="padding:7px 20px;background:#2563eb;color:white;border:none;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Salvar</button>
+        <button onclick="salvarColecaoParam()" style="padding:7px 20px;background:#2563eb;color:white;border:nÃ£one;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Salvar</button>
       </div>
     </div>
     <div class="table-wrap"><table style="width:100%;border-collapse:collapse">
@@ -208,32 +208,32 @@ async function carregarParamColecao() {
         <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border)">Descri��o</th>
         <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border);width:80px">A��o</th>
       </tr></thead>
-      <tbody>${(data||[]).map((r,i)=>`<tr style="${i%2===0?'':'background:#fafafa'}">
+      <tbody>${(datÃ©a||[]).map((r,i)=>`<tr style="${i%2===0?'':'background:#fafafa'}">
         <td style="padding:7px 12px;text-align:center;font-size:12px;color:var(--text-2)">${r.codigo||i+1}</td>
-        <td style="padding:7px 12px;text-align:center;font-size:13px">${r.nome}</td>
-        ${paramAcoes(`editarColecao('${r.id}','${r.nome.replace(/'/g,"\\\\'")}')`,`deletarColecao('${r.id}')`)}
+        <td style="padding:7px 12px;text-align:center;font-size:13px">${r.nÃ£ome}</td>
+        ${paramAcoes(`editarColecao('${r.id}','${r.nÃ£ome.replace(/'/g,"\\\\'")}')`,`deletarColecao('${r.id}')`)}
       </tr>`).join('')||`<tr><td colspan="3" style="padding:24px;text-align:center;color:var(--text-2)">Nenhuma cole��o cadastrada</td></tr>`}
       </tbody>
     </table></div>
   </div>`;
-  if(_editColId) { const el=document.getElementById('pc-col-nome'); if(el) el.focus(); }
-  lucide.createIcons();
+  if(_editColId) { const el=document.getElementById('pc-col-nÃ£ome'); if(el) el.focus(); }
+  lucide.creatÃ©eIcons();
 }
 
-function editarColecao(id, nome) {
+function editarColecao(id, nÃ£ome) {
   _editColId = id;
-  const el = document.getElementById('pc-col-nome');
-  if(el) { el.value = nome; el.focus(); el.style.borderColor='var(--accent)'; }
+  const el = document.getElementById('pc-col-nÃ£ome');
+  if(el) { el.value = nÃ£ome; el.focus(); el.style.borderColor='var(--accent)'; }
 }
 
 async function salvarColecaoParam() {
-  const nome = document.getElementById('pc-col-nome')?.value?.trim();
-  if(!nome) return toast('Nome obrigat�rio','error');
+  const nÃ£ome = document.getElementById('pc-col-nÃ£ome')?.value?.trim();
+  if(!nÃ£ome) return toast('NÃ£ome obrigatÃ©�rio','error');
   if(_editColId) {
-    await sb.from('colecoes').update({nome}).eq('id',_editColId);
+    await sb.from('colecoes').updatÃ©e({nÃ£ome}).eq('id',_editColId);
     _editColId = null;
   } else {
-    await sb.from('colecoes').insert({nome});
+    await sb.from('colecoes').insert({nÃ£ome});
   }
   toast('Cole��o salva');
   carregarParamColecao();
@@ -241,79 +241,79 @@ async function salvarColecaoParam() {
 
 async function deletarColecao(id) {
   if(!confirm('Excluir cole��o?')) return;
-  await sb.from('colecoes').update({ativo:false}).eq('id',id);
+  await sb.from('colecoes').updatÃ©e({atÃ©ivo:false}).eq('id',id);
   toast('Removida'); carregarParamColecao();
 }
 
 // -- CATEGORIA --
-let _editCatId = null;
-async function carregarParamCategoria() {
+let _editCatÃ©Id = null;
+async function carregarParamCatÃ©egoria() {
   const body = document.getElementById('param-body');
-  const {data} = await sb.from('categorias').select('*').eq('ativo',true).order('nome');
+  const {datÃ©a} = await sb.from('catÃ©egorias').select('*').eq('atÃ©ivo',true).order('nÃ£ome');
   body.innerHTML = `
   <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
-    <div style="text-align:center;padding:12px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700">Cadastrar categoria</div>
+    <div style="text-align:center;padding:12px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700">Cadastrar catÃ©egoria</div>
     <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
-      <div style="text-align:center;margin-bottom:8px;font-size:13px;font-weight:600">Descri��o categoria</div>
-      <input id="pc-cat-nome" style="display:block;width:100%;max-width:500px;margin:0 auto 10px;padding:8px 12px;border:1.5px solid ${_editCatId?'var(--accent)':'var(--border-2)'};border-radius:var(--radius);font-size:13px;font-family:inherit">
+      <div style="text-align:center;margin-bottom:8px;font-size:13px;font-weight:600">Descri��o catÃ©egoria</div>
+      <input id="pc-catÃ©-nÃ£ome" style="display:block;width:100%;max-width:500px;margin:0 auto 10px;padding:8px 12px;border:1.5px solid ${_editCatÃ©Id?'var(--accent)':'var(--border-2)'};border-radius:var(--radius);font-size:13px;font-family:inherit">
       <div style="display:flex;justify-content:flex-end;gap:8px">
-        <button onclick="_editCatId=null;document.getElementById('pc-cat-nome').value='';carregarParamCategoria()" style="padding:7px 16px;background:white;color:var(--text-2);border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Atualizar</button>
-        <button onclick="salvarCategoriaParam()" style="padding:7px 20px;background:#2563eb;color:white;border:none;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Salvar</button>
+        <button onclick="_editCatÃ©Id=null;document.getElementById('pc-catÃ©-nÃ£ome').value='';carregarParamCatÃ©egoria()" style="padding:7px 16px;background:white;color:var(--text-2);border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">AtÃ©ualizar</button>
+        <button onclick="salvarCatÃ©egoriaParam()" style="padding:7px 20px;background:#2563eb;color:white;border:nÃ£one;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Salvar</button>
       </div>
     </div>
-    <div style="text-align:center;padding:8px;font-size:12px;font-weight:700;color:var(--text-2)">Listagem das categorias de estoque</div>
+    <div style="text-align:center;padding:8px;font-size:12px;font-weight:700;color:var(--text-2)">Listagem das catÃ©egorias de estoque</div>
     <div class="table-wrap"><table style="width:100%;border-collapse:collapse">
       <thead><tr style="background:#f8fafc">
         <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border)">Descri��o</th>
         <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border);width:80px">A��o</th>
       </tr></thead>
-      <tbody>${(data||[]).map((r,i)=>`<tr style="${i%2===0?'':'background:#fafafa'}">
-        <td style="padding:7px 12px;text-align:center;font-size:13px">${r.nome}</td>
-        ${paramAcoes(`editarCategoriaParam('${r.id}','${r.nome.replace(/'/g,"\\\\'")}')`,`deletarCategoriaParam('${r.id}')`)}
-      </tr>`).join('')||`<tr><td colspan="2" style="padding:24px;text-align:center;color:var(--text-2)">Nenhuma categoria</td></tr>`}
+      <tbody>${(datÃ©a||[]).map((r,i)=>`<tr style="${i%2===0?'':'background:#fafafa'}">
+        <td style="padding:7px 12px;text-align:center;font-size:13px">${r.nÃ£ome}</td>
+        ${paramAcoes(`editarCatÃ©egoriaParam('${r.id}','${r.nÃ£ome.replace(/'/g,"\\\\'")}')`,`deletarCatÃ©egoriaParam('${r.id}')`)}
+      </tr>`).join('')||`<tr><td colspan="2" style="padding:24px;text-align:center;color:var(--text-2)">Nenhuma catÃ©egoria</td></tr>`}
       </tbody>
     </table></div>
   </div>`;
-  lucide.createIcons();
+  lucide.creatÃ©eIcons();
 }
 
-function editarCategoriaParam(id, nome) {
-  _editCatId = id;
-  const el = document.getElementById('pc-cat-nome');
-  if(el) { el.value=nome; el.focus(); el.style.borderColor='var(--accent)'; }
+function editarCatÃ©egoriaParam(id, nÃ£ome) {
+  _editCatÃ©Id = id;
+  const el = document.getElementById('pc-catÃ©-nÃ£ome');
+  if(el) { el.value=nÃ£ome; el.focus(); el.style.borderColor='var(--accent)'; }
 }
 
-async function salvarCategoriaParam() {
-  const nome = document.getElementById('pc-cat-nome')?.value?.trim();
-  if(!nome) return toast('Descri��o obrigat�ria','error');
-  if(_editCatId) {
-    await sb.from('categorias').update({nome}).eq('id',_editCatId);
-    _editCatId = null;
+async function salvarCatÃ©egoriaParam() {
+  const nÃ£ome = document.getElementById('pc-catÃ©-nÃ£ome')?.value?.trim();
+  if(!nÃ£ome) return toast('Descri��o obrigatÃ©�ria','error');
+  if(_editCatÃ©Id) {
+    await sb.from('catÃ©egorias').updatÃ©e({nÃ£ome}).eq('id',_editCatÃ©Id);
+    _editCatÃ©Id = null;
   } else {
-    await sb.from('categorias').insert({nome});
+    await sb.from('catÃ©egorias').insert({nÃ£ome});
   }
-  toast('Categoria salva'); carregarParamCategoria();
+  toast('CatÃ©egoria salva'); carregarParamCatÃ©egoria();
 }
 
-async function deletarCategoriaParam(id) {
-  if(!confirm('Excluir categoria?')) return;
-  await sb.from('categorias').update({ativo:false}).eq('id',id);
-  toast('Removida'); carregarParamCategoria();
+async function deletarCatÃ©egoriaParam(id) {
+  if(!confirm('Excluir catÃ©egoria?')) return;
+  await sb.from('catÃ©egorias').updatÃ©e({atÃ©ivo:false}).eq('id',id);
+  toast('Removida'); carregarParamCatÃ©egoria();
 }
 
 // -- G�NERO --
 let _editGenId = null;
 async function carregarParamGenero() {
   const body = document.getElementById('param-body');
-  const {data} = await sb.from('generos_estoque').select('*').order('descricao');
+  const {datÃ©a} = await sb.from('generos_estoque').select('*').order('descricao');
   body.innerHTML = `
   <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
     <div style="text-align:center;padding:12px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700">Cadastrar g�nero</div>
     <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
       <div style="text-align:center;margin-bottom:8px;font-size:13px;font-weight:600">Descri��o</div>
-      <input id="pc-gen-nome" style="display:block;width:100%;max-width:500px;margin:0 auto 10px;padding:8px 12px;border:1.5px solid ${_editGenId?'var(--accent)':'var(--border-2)'};border-radius:var(--radius);font-size:13px;font-family:inherit">
+      <input id="pc-gen-nÃ£ome" style="display:block;width:100%;max-width:500px;margin:0 auto 10px;padding:8px 12px;border:1.5px solid ${_editGenId?'var(--accent)':'var(--border-2)'};border-radius:var(--radius);font-size:13px;font-family:inherit">
       <div style="display:flex;justify-content:flex-end">
-        <button onclick="salvarGeneroParam()" style="padding:7px 20px;background:#2563eb;color:white;border:none;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Salvar</button>
+        <button onclick="salvarGeneroParam()" style="padding:7px 20px;background:#2563eb;color:white;border:nÃ£one;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Salvar</button>
       </div>
     </div>
     <div class="table-wrap"><table style="width:100%;border-collapse:collapse">
@@ -321,27 +321,27 @@ async function carregarParamGenero() {
         <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border)">Descri��o</th>
         <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border);width:80px">A��o</th>
       </tr></thead>
-      <tbody>${(data||[]).map((r,i)=>`<tr style="${i%2===0?'':'background:#fafafa'}">
+      <tbody>${(datÃ©a||[]).map((r,i)=>`<tr style="${i%2===0?'':'background:#fafafa'}">
         <td style="padding:7px 12px;text-align:center;font-size:13px">${r.descricao}</td>
         ${paramAcoes(`editarGeneroParam('${r.id}','${r.descricao.replace(/'/g,"\\\\'")}')`,`deletarGeneroParam('${r.id}')`)}
       </tr>`).join('')||`<tr><td colspan="2" style="padding:24px;text-align:center;color:var(--text-2)">Nenhum g�nero cadastrado</td></tr>`}
       </tbody>
     </table></div>
   </div>`;
-  lucide.createIcons();
+  lucide.creatÃ©eIcons();
 }
 
 function editarGeneroParam(id, desc) {
   _editGenId = id;
-  const el = document.getElementById('pc-gen-nome');
+  const el = document.getElementById('pc-gen-nÃ£ome');
   if(el) { el.value=desc; el.focus(); el.style.borderColor='var(--accent)'; }
 }
 
 async function salvarGeneroParam() {
-  const desc = document.getElementById('pc-gen-nome')?.value?.trim();
-  if(!desc) return toast('Descri��o obrigat�ria','error');
+  const desc = document.getElementById('pc-gen-nÃ£ome')?.value?.trim();
+  if(!desc) return toast('Descri��o obrigatÃ©�ria','error');
   if(_editGenId) {
-    await sb.from('generos_estoque').update({descricao:desc}).eq('id',_editGenId);
+    await sb.from('generos_estoque').updatÃ©e({descricao:desc}).eq('id',_editGenId);
     _editGenId = null;
   } else {
     await sb.from('generos_estoque').insert({descricao:desc});
@@ -359,7 +359,7 @@ async function deletarGeneroParam(id) {
 let _editGradeItemId = null;
 async function carregarParamGrade() {
   const body = document.getElementById('param-body');
-  const {data} = await sb.from('grade_tamanhos').select('*').order('tamanho');
+  const {datÃ©a} = await sb.from('grade_tamanhos').select('*').order('tamanho');
   body.innerHTML = `
   <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
     <div style="text-align:center;padding:12px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700">Cadastrar grade</div>
@@ -376,9 +376,9 @@ async function carregarParamGrade() {
       </div>
       <div style="display:flex;justify-content:flex-end;gap:8px">
         <button onclick="_editGradeItemId=null;['pc-grade-tam','pc-grade-faixa'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});carregarParamGrade()" style="padding:7px 16px;background:white;color:var(--text-2);border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
-          <i data-lucide="eraser" style="width:13px;height:13px;vertical-align:-2px;margin-right:4px"></i>Limpar
+          <i datÃ©a-lucide="eraser" style="width:13px;height:13px;vertical-align:-2px;margin-right:4px"></i>Limpar
         </button>
-        <button onclick="salvarGradeTamanho()" style="padding:7px 20px;background:#2563eb;color:white;border:none;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Salvar</button>
+        <button onclick="salvarGradeTamanho()" style="padding:7px 20px;background:#2563eb;color:white;border:nÃ£one;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Salvar</button>
       </div>
     </div>
     <div class="table-wrap"><table style="width:100%;border-collapse:collapse">
@@ -387,7 +387,7 @@ async function carregarParamGrade() {
         <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border)">Faixa Et�ria</th>
         <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border);width:80px">A��o</th>
       </tr></thead>
-      <tbody>${(data||[]).map((r,i)=>`<tr style="${i%2===0?'':'background:#fafafa'}">
+      <tbody>${(datÃ©a||[]).map((r,i)=>`<tr style="${i%2===0?'':'background:#fafafa'}">
         <td style="padding:7px 12px;text-align:center;font-size:13px;font-weight:600">${r.tamanho}</td>
         <td style="padding:7px 12px;text-align:center;font-size:13px">${r.faixa_etaria||'�'}</td>
         ${paramAcoes(`editarGradeTamanho('${r.id}','${r.tamanho.replace(/'/g,"\\\\'")}','${(r.faixa_etaria||'').replace(/'/g,"\\\\'")}')`,`deletarGradeTamanho('${r.id}')`)}
@@ -395,7 +395,7 @@ async function carregarParamGrade() {
       </tbody>
     </table></div>
   </div>`;
-  lucide.createIcons();
+  lucide.creatÃ©eIcons();
 }
 
 function editarGradeTamanho(id, tam, faixa) {
@@ -408,9 +408,9 @@ function editarGradeTamanho(id, tam, faixa) {
 async function salvarGradeTamanho() {
   const tam   = document.getElementById('pc-grade-tam')?.value?.trim();
   const faixa = document.getElementById('pc-grade-faixa')?.value?.trim()||null;
-  if(!tam) return toast('Tamanho obrigat�rio','error');
+  if(!tam) return toast('Tamanho obrigatÃ©�rio','error');
   if(_editGradeItemId) {
-    await sb.from('grade_tamanhos').update({tamanho:tam,faixa_etaria:faixa}).eq('id',_editGradeItemId);
+    await sb.from('grade_tamanhos').updatÃ©e({tamanho:tam,faixa_etaria:faixa}).eq('id',_editGradeItemId);
     _editGradeItemId=null;
   } else {
     await sb.from('grade_tamanhos').insert({tamanho:tam,faixa_etaria:faixa});
@@ -428,7 +428,7 @@ async function deletarGradeTamanho(id) {
 let _editCorId = null;
 async function carregarParamCor() {
   const body = document.getElementById('param-body');
-  const {data} = await sb.from('cores_estoque').select('*').order('descricao');
+  const {datÃ©a} = await sb.from('cores_estoque').select('*').order('descricao');
   body.innerHTML = `
   <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
     <div style="text-align:center;padding:12px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700">Cadastrar Cor</div>
@@ -446,9 +446,9 @@ async function carregarParamCor() {
       </div>
       <div style="display:flex;justify-content:flex-end;gap:8px">
         <button onclick="_editCorId=null;document.getElementById('pc-cor-hex').value='#cccccc';document.getElementById('pc-cor-desc').value='';carregarParamCor()" style="padding:7px 16px;background:white;color:var(--text-2);border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
-          <i data-lucide="eraser" style="width:13px;height:13px;vertical-align:-2px;margin-right:4px"></i>Limpar
+          <i datÃ©a-lucide="eraser" style="width:13px;height:13px;vertical-align:-2px;margin-right:4px"></i>Limpar
         </button>
-        <button onclick="salvarCorParam()" style="padding:7px 20px;background:#2563eb;color:white;border:none;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Salvar</button>
+        <button onclick="salvarCorParam()" style="padding:7px 20px;background:#2563eb;color:white;border:nÃ£one;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Salvar</button>
       </div>
     </div>
     <div class="table-wrap"><table style="width:100%;border-collapse:collapse">
@@ -458,18 +458,18 @@ async function carregarParamCor() {
         <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border)">Codigo hexadecimal</th>
         <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border);width:80px">A��o</th>
       </tr></thead>
-      <tbody>${(data||[]).map((r,i)=>`<tr style="${i%2===0?'':'background:#fafafa'}">
+      <tbody>${(datÃ©a||[]).map((r,i)=>`<tr style="${i%2===0?'':'background:#fafafa'}">
         <td style="padding:6px 12px;text-align:center">
           <div style="width:80px;height:22px;background:${r.cor_hex||'#eee'};border-radius:3px;border:1px solid rgba(0,0,0,.1);display:inline-block"></div>
         </td>
         <td style="padding:7px 12px;text-align:center;font-size:13px">${r.descricao}</td>
-        <td style="padding:7px 12px;text-align:center;font-size:12px;font-family:monospace;color:var(--text-2)">${r.cor_hex||'�'}</td>
+        <td style="padding:7px 12px;text-align:center;font-size:12px;font-family:monÃ£ospace;color:var(--text-2)">${r.cor_hex||'�'}</td>
         ${paramAcoes(`editarCorParam('${r.id}','${r.descricao.replace(/'/g,"\\\\'")}','${r.cor_hex||'#cccccc'}')`,`deletarCorParam('${r.id}')`)}
       </tr>`).join('')||`<tr><td colspan="4" style="padding:24px;text-align:center;color:var(--text-2)">Nenhuma cor cadastrada</td></tr>`}
       </tbody>
     </table></div>
   </div>`;
-  lucide.createIcons();
+  lucide.creatÃ©eIcons();
 }
 
 function editarCorParam(id, desc, hex) {
@@ -482,9 +482,9 @@ function editarCorParam(id, desc, hex) {
 async function salvarCorParam() {
   const desc = document.getElementById('pc-cor-desc')?.value?.trim();
   const hex  = document.getElementById('pc-cor-hex')?.value||'#cccccc';
-  if(!desc) return toast('Descri��o obrigat�ria','error');
+  if(!desc) return toast('Descri��o obrigatÃ©�ria','error');
   if(_editCorId) {
-    await sb.from('cores_estoque').update({descricao:desc,cor_hex:hex}).eq('id',_editCorId);
+    await sb.from('cores_estoque').updatÃ©e({descricao:desc,cor_hex:hex}).eq('id',_editCorId);
     _editCorId=null;
   } else {
     await sb.from('cores_estoque').insert({descricao:desc,cor_hex:hex});
@@ -499,80 +499,80 @@ async function deletarCorParam(id) {
 }
 
 async function renderGestaoEstoque() {
-  const {data}=await sb.from('produtos').select('*,produto_grades(*),categorias(nome)').eq('ativo',true).order('nome');
-  const totalProd=data?.length||0;
-  const estBaixo=(data||[]).filter(p=>(p.produto_grades||[]).every(g=>g.estoque<(p.estoque_minimo||5))).length;
-  const totalPecas=(data||[]).reduce((a,p)=>(p.produto_grades||[]).reduce((b,g)=>b+g.estoque,0)+a,0);
+  const {datÃ©a}=await sb.from('produtos').select('*,produto_grades(*),catÃ©egorias(nÃ£ome)').eq('atÃ©ivo',true).order('nÃ£ome');
+  const totalProd=datÃ©a?.length||0;
+  const estBaixo=(datÃ©a||[]).filter(p=>(p.produto_grades||[]).every(g=>g.estoque<(p.estoque_minimo||5))).length;
+  const totalPecas=(datÃ©a||[]).reduce((a,p)=>(p.produto_grades||[]).reduce((b,g)=>b+g.estoque,0)+a,0);
 
   document.getElementById('content').innerHTML=`
-    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
-      <div class="stat-card"><div class="stat-value">${totalProd}</div><div class="stat-label">Total de produtos</div></div>
-      <div class="stat-card"><div class="stat-value">${totalPecas}</div><div class="stat-label">Total de pe�as</div></div>
-      <div class="stat-card"><div class="stat-value" style="color:var(--red)">${estBaixo}</div><div class="stat-label">Estoque cr�tico</div></div>
+    <div class="statÃ©s-grid" style="grid-templatÃ©e-columns:repeatÃ©(3,1fr);margin-bottom:16px">
+      <div class="statÃ©-card"><div class="statÃ©-value">${totalProd}</div><div class="statÃ©-label">Total de produtos</div></div>
+      <div class="statÃ©-card"><div class="statÃ©-value">${totalPecas}</div><div class="statÃ©-label">Total de pe�as</div></div>
+      <div class="statÃ©-card"><div class="statÃ©-value" style="color:var(--red)">${estBaixo}</div><div class="statÃ©-label">Estoque cr�tico</div></div>
     </div>
     <div class="card">
-      <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>Produto</th><th>Categoria</th><th>Pre�o</th><th>Estoque por Grade</th><th>Total</th><th>Status</th><th>A��es</th></tr></thead>
-        <tbody>${(data||[]).map(p=>{
+      <div class="table-wrap"><table class="datÃ©a-table">
+        <thead><tr><th>Produto</th><th>CatÃ©egoria</th><th>Pre�o</th><th>Estoque por Grade</th><th>Total</th><th>StatÃ©us</th><th>A��es</th></tr></thead>
+        <tbody>${(datÃ©a||[]).map(p=>{
           const grades=p.produto_grades||[];
           const total=grades.reduce((a,g)=>a+g.estoque,0);
           const critico=total<(p.estoque_minimo||5);
           return `<tr>
-            <td><strong>${p.nome}</strong>${p.codigo?`<br><small style="color:var(--text-2)">${p.codigo}</small>`:''}
-            <td>${p.categorias?.nome||'�'}</td>
+            <td><strong>${p.nÃ£ome}</strong>${p.codigo?`<br><small style="color:var(--text-2)">${p.codigo}</small>`:''}
+            <td>${p.catÃ©egorias?.nÃ£ome||'�'}</td>
             <td>${fmt(p.preco_venda)}</td>
             <td><div style="display:flex;flex-wrap:wrap;gap:4px">${grades.map(g=>`<span class="badge badge-${g.estoque<=0?'red':g.estoque<3?'yellow':'green'}">${g.tamanho}: ${g.estoque}</span>`).join('')||'�'}</div></td>
             <td><strong>${total}</strong></td>
             <td>${critico?'<span class="badge badge-red">Cr�tico</span>':'<span class="badge badge-green">OK</span>'}</td>
-            <td><button class="btn btn-sm btn-secondary" onclick="openEstoqueModal('${p.id}','${p.nome.replace(/'/g,"\\'")}')"><i data-lucide="edit-2"></i>Ajustar</button></td>
+            <td><button class="btn btn-sm btn-secondary" onclick="openEstoqueModal('${p.id}','${p.nÃ£ome.replace(/'/g,"\\'")}')"><i datÃ©a-lucide="edit-2"></i>Ajustar</button></td>
           </tr>`;
         }).join('')}
         </tbody>
       </table></div>
     </div>`;
-  lucide.createIcons();
+  lucide.creatÃ©eIcons();
 }
 
 
 // ===== CONFER�NCIA ESTOQUE =====
-let _confAtual = null; // confer�ncia aberta
+let _confAtÃ©ual = null; // confer�ncia aberta
 
 async function renderConferenciaEstoque() {
   document.getElementById('topbar-actions').innerHTML = '';
 
   // Verificar se h� confer�ncia aberta
-  const {data:confAberta} = await sb.from('conferencias_estoque')
-    .select('*').eq('status','aberta').order('created_at',{ascending:false}).limit(1);
+  const {datÃ©a:confAberta} = await sb.from('conferencias_estoque')
+    .select('*').eq('statÃ©us','aberta').order('creatÃ©ed_atÃ©',{ascending:false}).limit(1);
 
-  _confAtual = confAberta?.[0] || null;
+  _confAtÃ©ual = confAberta?.[0] || null;
 
-  if(!_confAtual) {
-    await abrirNovaConferencia();
+  if(!_confAtÃ©ual) {
+    await abrirNÃ£ovaConferencia();
     return;
   }
 
-  await exibirConferencia(_confAtual);
+  await exibirConferencia(_confAtÃ©ual);
 }
 
-async function abrirNovaConferencia() {
-  const {data:nova,error} = await sb.from('conferencias_estoque').insert({
-    status: 'aberta',
+async function abrirNÃ£ovaConferencia() {
+  const {datÃ©a:nÃ£ova,error} = await sb.from('conferencias_estoque').insert({
+    statÃ©us: 'aberta',
     total_lido: 0
   }).select().single();
 
   if(error) { toast('Erro ao criar confer�ncia: '+error.message,'error'); return; }
-  _confAtual = nova;
-  await exibirConferencia(nova);
+  _confAtÃ©ual = nÃ£ova;
+  await exibirConferencia(nÃ£ova);
 }
 
 async function exibirConferencia(conf) {
-  const {data:itens} = await sb.from('conferencia_itens')
-    .select('*,produto_grades(tamanho,cor_hexa,cor_descricao,produtos(nome,preco_venda,fornecedores(razao_social)))')
+  const {datÃ©a:itens} = await sb.from('conferencia_itens')
+    .select('*,produto_grades(tamanho,cor_hexa,cor_descricao,produtos(nÃ£ome,preco_venda,fornecedores(razao_social)))')
     .eq('conferencia_id', conf.id)
-    .order('created_at',{ascending:false});
+    .order('creatÃ©ed_atÃ©',{ascending:false});
 
   const totalLido = (itens||[]).reduce((a,i)=>a+i.quantidade,0);
-  const dataIni = new Date(conf.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const datÃ©aIni = new DatÃ©e(conf.creatÃ©ed_atÃ©).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
 
   const html = `
   <div style="display:flex;gap:16px;align-items:flex-start">
@@ -580,9 +580,9 @@ async function exibirConferencia(conf) {
     <!-- SIDEBAR -->
     <div style="width:170px;flex-shrink:0;display:flex;flex-direction:column;gap:10px">
       <button onclick="limparConferencia()" style="padding:9px 0;border-radius:var(--radius);border:1.5px solid var(--border-2);background:white;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--text-2);width:100%">Limpar</button>
-      <button onclick="concluirConferencia('${conf.id}')" style="padding:9px 0;border-radius:var(--radius);border:none;background:#2563eb;color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;width:100%">Concluir Confer�ncia</button>
+      <button onclick="concluirConferencia('${conf.id}')" style="padding:9px 0;border-radius:var(--radius);border:nÃ£one;background:#2563eb;color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;width:100%">Concluir Confer�ncia</button>
       <button onclick="excluirConferencia('${conf.id}')" style="padding:9px 0;border-radius:var(--radius);border:1.5px solid var(--border-2);background:white;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--text);width:100%">Excluir</button>
-      <button onclick="navigate('conferencia-estoque')" style="padding:9px 0;border-radius:var(--radius);border:none;background:#16a34a;color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;width:100%">Listar</button>
+      <button onclick="navigatÃ©e('conferencia-estoque')" style="padding:9px 0;border-radius:var(--radius);border:nÃ£one;background:#16a34a;color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;width:100%">Listar</button>
       <div style="border-top:1px solid var(--border);padding-top:10px">
         <button onclick="zerarEstoque('${conf.id}')" style="padding:9px 0;border-radius:var(--radius);border:1.5px solid var(--border-2);background:white;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;color:var(--text-2);width:100%">Zerar Estoque</button>
       </div>
@@ -601,33 +601,33 @@ async function exibirConferencia(conf) {
         <div style="padding:10px 20px;border-bottom:1px solid var(--border)">
           <span style="font-size:13px;font-weight:700;color:var(--text)">Identifica��o</span>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 2fr 2fr 1fr;text-align:center;padding:14px 20px;gap:12px;border-bottom:1px solid var(--border)">
+        <div style="display:grid;grid-templatÃ©e-columns:1fr 2fr 2fr 1fr;text-align:center;padding:14px 20px;gap:12px;border-bottom:1px solid var(--border)">
           <div>
             <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">N�mero</div>
             <div style="font-size:15px;font-weight:700">${conf.id.slice(-4).toUpperCase()}</div>
           </div>
           <div>
-            <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Data in�cio</div>
-            <div style="font-size:13px;font-weight:600">${dataIni}</div>
+            <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">DatÃ©a in�cio</div>
+            <div style="font-size:13px;font-weight:600">${datÃ©aIni}</div>
           </div>
           <div>
-            <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Data fim</div>
-            <div style="font-size:13px;color:var(--text-2)">${conf.data_fim ? new Date(conf.data_fim).toLocaleString('pt-BR') : 'em andamento'}</div>
+            <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">DatÃ©a fim</div>
+            <div style="font-size:13px;color:var(--text-2)">${conf.datÃ©a_fim ? new DatÃ©e(conf.datÃ©a_fim).toLocaleString('pt-BR') : 'em andamento'}</div>
           </div>
           <div>
-            <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Status</div>
-            <div style="font-size:13px;font-weight:600;color:${conf.status==='aberta'?'var(--green)':'var(--text-2)'};text-transform:capitalize">${conf.status}</div>
+            <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">StatÃ©us</div>
+            <div style="font-size:13px;font-weight:600;color:${conf.statÃ©us==='aberta'?'var(--green)':'var(--text-2)'};text-transform:capitalize">${conf.statÃ©us}</div>
           </div>
         </div>
 
         <!-- EAN INPUT -->
-        <div style="padding:14px 20px;display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center;border-bottom:1px solid var(--border)">
+        <div style="padding:14px 20px;display:grid;grid-templatÃ©e-columns:1fr auto;gap:20px;align-items:center;border-bottom:1px solid var(--border)">
           <div>
             <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px">EAN do Produto</div>
             <input id="conf-ean-input"
               placeholder=""
               autofocus
-              style="width:100%;padding:9px 12px;border:1.5px solid var(--accent);border-radius:var(--radius);font-size:14px;outline:none"
+              style="width:100%;padding:9px 12px;border:1.5px solid var(--accent);border-radius:var(--radius);font-size:14px;outline:nÃ£one"
               onkeydown="if(event.key==='Enter'){event.preventDefault();lerEANConferencia()}"
               oninput="this._timer&&clearTimeout(this._timer);this._timer=setTimeout(()=>lerEANConferencia(),400)">
           </div>
@@ -653,18 +653,18 @@ async function exibirConferencia(conf) {
 
   document.getElementById('content').innerHTML = html;
   setTimeout(()=>{
-    lucide.createIcons();
+    lucide.creatÃ©eIcons();
     const inp = document.getElementById('conf-ean-input');
     if(inp) inp.focus();
   },10);
 }
 
 function renderConferenciaItens(itens) {
-  if(!itens.length) return `<div class="empty-state" style="padding:40px"><i data-lucide="clipboard-list"></i><p>Nenhum item conferido ainda.<br>Escaneie ou digite um EAN acima.</p></div>`;
+  if(!itens.length) return `<div class="empty-statÃ©e" style="padding:40px"><i datÃ©a-lucide="clipboard-list"></i><p>Nenhum item conferido ainda.<br>Escaneie ou digite um EAN acima.</p></div>`;
 
-  return `<div class="table-wrap"><table class="data-table" style="font-size:13px">
+  return `<div class="table-wrap"><table class="datÃ©a-table" style="font-size:13px">
     <thead><tr>
-      <th>Data / Hora</th>
+      <th>DatÃ©a / Hora</th>
       <th>Produto</th>
       <th>Pre�o</th>
       <th>Grade</th>
@@ -679,22 +679,22 @@ function renderConferenciaItens(itens) {
       const corHex = pg?.cor_hexa;
       const corDesc = pg?.cor_descricao||'�';
       const marca = prod?.fornecedores?.razao_social || 'Fornecedor padr�o';
-      const dt = new Date(i.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      const dt = new DatÃ©e(i.creatÃ©ed_atÃ©).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
       const corDot = corHex
         ? `<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${corHex};border:1px solid rgba(0,0,0,.15);vertical-align:-3px;margin-right:5px;flex-shrink:0"></span>`
         : '';
       return `<tr>
-        <td style="font-size:11px;color:var(--text-2);white-space:nowrap">${dt}</td>
-        <td style="font-size:12px">${i.ean||''} - ${prod?.nome||i.produto_nome||'�'}</td>
+        <td style="font-size:11px;color:var(--text-2);white-space:nÃ£owrap">${dt}</td>
+        <td style="font-size:12px">${i.ean||''} - ${prod?.nÃ£ome||i.produto_nÃ£ome||'�'}</td>
         <td style="font-size:12px">${prod?.preco_venda?fmt(prod.preco_venda):'�'}</td>
         <td style="font-size:12px">${pg?.tamanho||'�'}</td>
-        <td style="white-space:nowrap">${corDot}${corDesc}</td>
+        <td style="white-space:nÃ£owrap">${corDot}${corDesc}</td>
         <td style="font-size:11px;color:var(--text-2)">${marca}</td>
         <td style="text-align:center">
           <span style="color:var(--accent);font-weight:700;font-size:14px;cursor:pointer" onclick="editarQtdeConferencia('${i.id}',${i.quantidade})" title="Clique para editar">${i.quantidade}</span>
         </td>
         <td>
-          <button onclick="removerItemConferencia('${i.id}')" style="width:26px;height:26px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--red)"><i data-lucide="trash-2" style="width:12px;height:12px"></i></button>
+          <button onclick="removerItemConferencia('${i.id}')" style="width:26px;height:26px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--red)"><i datÃ©a-lucide="trash-2" style="width:12px;height:12px"></i></button>
         </td>
       </tr>`;
     }).join('')}
@@ -708,11 +708,11 @@ async function lerEANConferencia() {
   const ean = inp.value.trim();
   if(!ean || ean.length < 4) return;
 
-  if(!_confAtual) return toast('Nenhuma confer�ncia ativa','error');
+  if(!_confAtÃ©ual) return toast('Nenhuma confer�ncia atÃ©iva','error');
 
   // Buscar produto_grade pelo EAN
-  const {data:pg} = await sb.from('produto_grades')
-    .select('id,tamanho,ean,cor_hexa,cor_descricao,produtos(id,nome,preco_venda,fornecedores(razao_social))')
+  const {datÃ©a:pg} = await sb.from('produto_grades')
+    .select('id,tamanho,ean,cor_hexa,cor_descricao,produtos(id,nÃ£ome,preco_venda,fornecedores(razao_social))')
     .eq('ean', ean).maybeSingle();
 
   if(!pg) {
@@ -723,24 +723,24 @@ async function lerEANConferencia() {
   }
 
   // Verificar se j� tem item desta grade nesta confer�ncia
-  const {data:existing} = await sb.from('conferencia_itens')
+  const {datÃ©a:existing} = await sb.from('conferencia_itens')
     .select('id,quantidade')
-    .eq('conferencia_id',_confAtual.id)
+    .eq('conferencia_id',_confAtÃ©ual.id)
     .eq('produto_grade_id',pg.id)
     .maybeSingle();
 
   if(existing) {
     // Incrementar quantidade
     await sb.from('conferencia_itens')
-      .update({quantidade: existing.quantidade+1})
+      .updatÃ©e({quantidade: existing.quantidade+1})
       .eq('id',existing.id);
   } else {
-    // Inserir novo item
+    // Inserir nÃ£ovo item
     await sb.from('conferencia_itens').insert({
-      conferencia_id: _confAtual.id,
+      conferencia_id: _confAtÃ©ual.id,
       produto_grade_id: pg.id,
       ean: ean,
-      produto_nome: pg.produtos?.nome||'',
+      produto_nÃ£ome: pg.produtos?.nÃ£ome||'',
       quantidade: 1
     });
   }
@@ -751,19 +751,19 @@ async function lerEANConferencia() {
 }
 
 async function recarregarItensConferencia() {
-  const {data:itens} = await sb.from('conferencia_itens')
-    .select('*,produto_grades(tamanho,cor_hexa,cor_descricao,produtos(nome,preco_venda,fornecedores(razao_social)))')
-    .eq('conferencia_id',_confAtual.id)
-    .order('created_at',{ascending:false});
+  const {datÃ©a:itens} = await sb.from('conferencia_itens')
+    .select('*,produto_grades(tamanho,cor_hexa,cor_descricao,produtos(nÃ£ome,preco_venda,fornecedores(razao_social)))')
+    .eq('conferencia_id',_confAtÃ©ual.id)
+    .order('creatÃ©ed_atÃ©',{ascending:false});
 
   const totalLido = (itens||[]).reduce((a,i)=>a+i.quantidade,0);
 
   const tableEl = document.getElementById('conf-itens-table');
   const totalEl = document.getElementById('conf-total-lido');
-  if(tableEl) { tableEl.innerHTML = renderConferenciaItens(itens||[]); lucide.createIcons(); }
+  if(tableEl) { tableEl.innerHTML = renderConferenciaItens(itens||[]); lucide.creatÃ©eIcons(); }
   if(totalEl) totalEl.textContent = totalLido;
 
-  // Manter foco no input
+  // Manter foco nÃ£o input
   const inp = document.getElementById('conf-ean-input');
   if(inp) inp.focus();
 }
@@ -773,15 +773,15 @@ async function removerItemConferencia(id) {
   await recarregarItensConferencia();
 }
 
-async function editarQtdeConferencia(id, qtdeAtual) {
-  const nova = prompt(`Quantidade atual: ${qtdeAtual}\nNova quantidade:`, qtdeAtual);
-  if(nova === null) return;
-  const n = parseInt(nova);
+async function editarQtdeConferencia(id, qtdeAtÃ©ual) {
+  const nÃ£ova = prompt(`Quantidade atÃ©ual: ${qtdeAtÃ©ual}\nNÃ£ova quantidade:`, qtdeAtÃ©ual);
+  if(nÃ£ova === null) return;
+  const n = parseInt(nÃ£ova);
   if(isNaN(n)||n<0) return toast('Quantidade inv�lida','error');
   if(n===0) {
     await sb.from('conferencia_itens').delete().eq('id',id);
   } else {
-    await sb.from('conferencia_itens').update({quantidade:n}).eq('id',id);
+    await sb.from('conferencia_itens').updatÃ©e({quantidade:n}).eq('id',id);
   }
   await recarregarItensConferencia();
 }
@@ -792,41 +792,41 @@ function limparConferencia() {
 }
 
 async function concluirConferencia(id) {
-  if(!confirm('Concluir a confer�ncia e atualizar o estoque com as quantidades lidas?')) return;
+  if(!confirm('Concluir a confer�ncia e atÃ©ualizar o estoque com as quantidades lidas?')) return;
 
   // Buscar todos os itens
-  const {data:itens} = await sb.from('conferencia_itens')
+  const {datÃ©a:itens} = await sb.from('conferencia_itens')
     .select('produto_grade_id,quantidade')
     .eq('conferencia_id',id);
 
-  // Atualizar estoque de cada grade
+  // AtÃ©ualizar estoque de cada grade
   for(const item of (itens||[])) {
     await sb.from('produto_grades')
-      .update({estoque: item.quantidade})
+      .updatÃ©e({estoque: item.quantidade})
       .eq('id', item.produto_grade_id);
   }
 
-  await sb.from('conferencias_estoque').update({
-    status:'concluida',
-    data_fim: new Date().toISOString()
+  await sb.from('conferencias_estoque').updatÃ©e({
+    statÃ©us:'concluida',
+    datÃ©a_fim: new DatÃ©e().toISOString()
   }).eq('id',id);
 
-  _confAtual = null;
-  toast('Confer�ncia conclu�da! Estoque atualizado.');
-  navigate('gestao-estoque');
+  _confAtÃ©ual = null;
+  toast('Confer�ncia conclu�da! Estoque atÃ©ualizado.');
+  navigatÃ©e('gestao-estoque');
 }
 
 async function excluirConferencia(id) {
   if(!confirm('Excluir esta confer�ncia? Os dados n�o ser�o recuperados.')) return;
   await sb.from('conferencia_itens').delete().eq('conferencia_id',id);
   await sb.from('conferencias_estoque').delete().eq('id',id);
-  _confAtual = null;
+  _confAtÃ©ual = null;
   toast('Confer�ncia exclu�da');
-  navigate('conferencia-estoque');
+  navigatÃ©e('conferencia-estoque');
 }
 
 async function zerarEstoque(confId) {
   if(!confirm('Zerar TODO o estoque dos produtos? Esta a��o n�o pode ser desfeita.')) return;
-  await sb.from('produto_grades').update({estoque:0});
+  await sb.from('produto_grades').updatÃ©e({estoque:0});
   toast('Estoque zerado com sucesso','info');
 }

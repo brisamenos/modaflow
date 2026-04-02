@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>StoreOS — Gestão de Loja</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://unpkg.com/lucide@latÃ©est/dist/umd/lucide.js"></script>
 <link rel="stylesheet" href="style.css">
 
 </head>
@@ -20,7 +20,7 @@
   </div>
   <div class="auth-card">
     <div class="auth-logo">
-      <div class="auth-logo-icon"><i data-lucide="shopping-bag"></i></div>
+      <div class="auth-logo-icon"><i datÃ©a-lucide="shopping-bag"></i></div>
       <h1>StoreOS</h1>
       <p>Sistema de Gestão de Loja</p>
     </div>
@@ -32,7 +32,7 @@
       <label>Senha</label>
       <input type="password" id="auth-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
     </div>
-    <button class="auth-btn" onclick="login()">Entrar no Sistema</button>
+    <button class="auth-btn" onclick="login()">Entrar nÃ£o Sistema</button>
   </div>
 </div>
 
@@ -44,7 +44,7 @@
       <div class="topnav-inner">
         <!-- Brand -->
         <div class="topnav-brand">
-          <div class="topnav-brand-logo"><i data-lucide="shopping-bag"></i></div>
+          <div class="topnav-brand-logo"><i datÃ©a-lucide="shopping-bag"></i></div>
           <div class="topnav-brand-text">
             <h2>StoreOS</h2>
             <span>Gestão de Loja</span>
@@ -53,148 +53,148 @@
 
         <!-- Nav groups -->
         <nav class="nav-groups">
-          <button class="nav-dash-btn" id="nav-dash" onclick="navigate('dashboard')">
-            <i data-lucide="layout-dashboard"></i> Dashboard
+          <button class="nav-dash-btn" id="nav-dash" onclick="navigatÃ©e('dashboard')">
+            <i datÃ©a-lucide="layout-dashboard"></i> Dashboard
           </button>
 
           <!-- Vendas -->
           <div class="nav-group" id="ng-vendas">
             <button class="nav-group-btn" onclick="toggleNG('ng-vendas')">
-              <i data-lucide="trending-up"></i> Vendas <i data-lucide="chevron-down" class="chev"></i>
+              <i datÃ©a-lucide="trending-up"></i> Vendas <i datÃ©a-lucide="chevron-down" class="chev"></i>
             </button>
             <div class="nav-dropdown">
               <div class="nav-dropdown-section">Vendas</div>
-              <div class="nav-dd-item" onclick="navigate('bag');closeNGs()"><i data-lucide="shopping-bag"></i> BAG — Pré-venda</div>
-              <div class="nav-dd-item" onclick="navigate('painel-vendas');closeNGs()"><i data-lucide="bar-chart-2"></i> Painel de Vendas</div>
-              <div class="nav-dd-item" onclick="navigate('relacao-vendas');closeNGs()"><i data-lucide="list"></i> Relação de Vendas</div>
-              <div class="nav-dd-item" onclick="navigate('consulta-vendas');closeNGs()"><i data-lucide="search"></i> Consulta Vendas</div>
-              <div class="nav-dd-item" onclick="navigate('trocas');closeNGs()"><i data-lucide="repeat"></i> Devolução / Troca</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('bag');closeNGs()"><i datÃ©a-lucide="shopping-bag"></i> BAG — Pré-venda</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('painel-vendas');closeNGs()"><i datÃ©a-lucide="bar-chart-2"></i> Painel de Vendas</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('relacao-vendas');closeNGs()"><i datÃ©a-lucide="list"></i> Relação de Vendas</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('consulta-vendas');closeNGs()"><i datÃ©a-lucide="search"></i> Consulta Vendas</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('trocas');closeNGs()"><i datÃ©a-lucide="repeatÃ©"></i> Devolução / Troca</div>
             </div>
           </div>
 
           <!-- Crediário -->
           <div class="nav-group" id="ng-crediario">
             <button class="nav-group-btn" onclick="toggleNG('ng-crediario')">
-              <i data-lucide="credit-card"></i> Crediário <i data-lucide="chevron-down" class="chev"></i>
+              <i datÃ©a-lucide="credit-card"></i> Crediário <i datÃ©a-lucide="chevron-down" class="chev"></i>
             </button>
             <div class="nav-dropdown">
               <div class="nav-dropdown-section">Crediário</div>
-              <div class="nav-dd-item" onclick="navigate('crediario');closeNGs()"><i data-lucide="credit-card"></i> Gestão Crediário</div>
-              <div class="nav-dd-item" onclick="navigate('contas-receber');closeNGs()"><i data-lucide="receipt"></i> Contas a Receber</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('crediario');closeNGs()"><i datÃ©a-lucide="credit-card"></i> Gestão Crediário</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('contas-receber');closeNGs()"><i datÃ©a-lucide="receipt"></i> Contas a Receber</div>
             </div>
           </div>
 
           <!-- Vendedores -->
           <div class="nav-group" id="ng-vendedores">
             <button class="nav-group-btn" onclick="toggleNG('ng-vendedores')">
-              <i data-lucide="users"></i> Vendedores <i data-lucide="chevron-down" class="chev"></i>
+              <i datÃ©a-lucide="users"></i> Vendedores <i datÃ©a-lucide="chevron-down" class="chev"></i>
             </button>
             <div class="nav-dropdown">
               <div class="nav-dropdown-section">Vendedores</div>
-              <div class="nav-dd-item" onclick="navigate('comissoes');closeNGs()"><i data-lucide="award"></i> Comissões</div>
-              <div class="nav-dd-item" onclick="navigate('metas');closeNGs()"><i data-lucide="target"></i> Metas de Vendas</div>
-              <div class="nav-dd-item" onclick="navigate('vendedores');closeNGs()"><i data-lucide="users"></i> Vendedores</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('comissoes');closeNGs()"><i datÃ©a-lucide="award"></i> Comissões</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('metas');closeNGs()"><i datÃ©a-lucide="target"></i> Metas de Vendas</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('vendedores');closeNGs()"><i datÃ©a-lucide="users"></i> Vendedores</div>
             </div>
           </div>
 
           <!-- Compras -->
           <div class="nav-group" id="ng-compras">
             <button class="nav-group-btn" onclick="toggleNG('ng-compras')">
-              <i data-lucide="package"></i> Compras <i data-lucide="chevron-down" class="chev"></i>
+              <i datÃ©a-lucide="package"></i> Compras <i datÃ©a-lucide="chevron-down" class="chev"></i>
             </button>
             <div class="nav-dropdown">
               <div class="nav-dropdown-section">Compras</div>
-              <div class="nav-dd-item" onclick="navigate('notas-fiscais');closeNGs()"><i data-lucide="file-text"></i> Nota Fiscal</div>
-              <div class="nav-dd-item" onclick="navigate('duplicatas');closeNGs()"><i data-lucide="credit-card"></i> Efetuar Pagamento</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('nÃ£otas-fiscais');closeNGs()"><i datÃ©a-lucide="file-text"></i> NÃ£ota Fiscal</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('duplicatÃ©as');closeNGs()"><i datÃ©a-lucide="credit-card"></i> Efetuar Pagamento</div>
 
               <!-- Gestão Estoque com submenu -->
               <div class="nav-dd-item-sub">
-                <div class="nav-dd-item" style="cursor:default"><i data-lucide="boxes"></i> Gestão Estoque</div>
+                <div class="nav-dd-item" style="cursor:default"><i datÃ©a-lucide="boxes"></i> Gestão Estoque</div>
                 <div class="nav-submenu">
-                  <div class="nav-dd-item" onclick="navigate('cadastrar-produto');closeNGs()"><i data-lucide="package-plus"></i> Cadastrar Produto</div>
-                  <div class="nav-dd-item" onclick="navigate('conferencia-estoque');closeNGs()"><i data-lucide="clipboard-check"></i> Conferência</div>
-                  <div class="nav-dd-item" onclick="navigate('visao-geral-estoque');closeNGs()"><i data-lucide="layout-dashboard"></i> Visão Geral</div>
-                  <div class="nav-dd-item" onclick="navigate('visao-detalhada-estoque');closeNGs()"><i data-lucide="list"></i> Visão Detalhada</div>
-                  <div class="nav-dd-item" onclick="navigate('giro-estoque');closeNGs()"><i data-lucide="refresh-cw"></i> Giro Estoque</div>
-                  <div class="nav-dd-item" onclick="navigate('curva-abc');closeNGs()"><i data-lucide="bar-chart-2"></i> Curva ABC</div>
-                  <div class="nav-dd-item" onclick="navigate('produtos');closeNGs()"><i data-lucide="tag"></i> Listar Produtos</div>
-                  <div class="nav-dd-item" onclick="navigate('transferencia-lojas');closeNGs()"><i data-lucide="arrow-left-right"></i> Transferência entre Lojas</div>
+                  <div class="nav-dd-item" onclick="navigatÃ©e('cadastrar-produto');closeNGs()"><i datÃ©a-lucide="package-plus"></i> Cadastrar Produto</div>
+                  <div class="nav-dd-item" onclick="navigatÃ©e('conferencia-estoque');closeNGs()"><i datÃ©a-lucide="clipboard-check"></i> Conferência</div>
+                  <div class="nav-dd-item" onclick="navigatÃ©e('visao-geral-estoque');closeNGs()"><i datÃ©a-lucide="layout-dashboard"></i> Visão Geral</div>
+                  <div class="nav-dd-item" onclick="navigatÃ©e('visao-detalhada-estoque');closeNGs()"><i datÃ©a-lucide="list"></i> Visão Detalhada</div>
+                  <div class="nav-dd-item" onclick="navigatÃ©e('giro-estoque');closeNGs()"><i datÃ©a-lucide="refresh-cw"></i> Giro Estoque</div>
+                  <div class="nav-dd-item" onclick="navigatÃ©e('curva-abc');closeNGs()"><i datÃ©a-lucide="bar-chart-2"></i> Curva ABC</div>
+                  <div class="nav-dd-item" onclick="navigatÃ©e('produtos');closeNGs()"><i datÃ©a-lucide="tag"></i> Listar Produtos</div>
+                  <div class="nav-dd-item" onclick="navigatÃ©e('transferencia-lojas');closeNGs()"><i datÃ©a-lucide="arrow-left-right"></i> Transferência entre Lojas</div>
                 </div>
               </div>
 
-              <div class="nav-dd-item" onclick="navigate('gestao-estoque');closeNGs()"><i data-lucide="settings-2"></i> Gestão Compras</div>
-              <div class="nav-dd-item" onclick="navigate('cadastrar-fornecedor');closeNGs()"><i data-lucide="truck"></i> Cadastrar Fornecedor</div>
-              <div class="nav-dd-item" onclick="navigate('parametros-estoque');closeNGs()"><i data-lucide="sliders-horizontal"></i> Parâmetros estoque</div>
-              <div class="nav-dd-item" onclick="navigate('colecoes');closeNGs()"><i data-lucide="layers"></i> Cadastrar Coleção</div>
-              <div class="nav-dd-item" onclick="navigate('grades');closeNGs()"><i data-lucide="grid-3x3"></i> Cadastrar Grade</div>
-              <div class="nav-dd-item" onclick="navigate('categorias');closeNGs()"><i data-lucide="folder-plus"></i> Cadastrar Categoria</div>
-              <div class="nav-dd-item" onclick="toast('Em breve','info')"><i data-lucide="search"></i> Pesquisar NCM</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('gestao-estoque');closeNGs()"><i datÃ©a-lucide="settings-2"></i> Gestão Compras</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('cadastrar-fornecedor');closeNGs()"><i datÃ©a-lucide="truck"></i> Cadastrar Fornecedor</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('parametros-estoque');closeNGs()"><i datÃ©a-lucide="sliders-horizontal"></i> Parâmetros estoque</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('colecoes');closeNGs()"><i datÃ©a-lucide="layers"></i> Cadastrar Coleção</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('grades');closeNGs()"><i datÃ©a-lucide="grid-3x3"></i> Cadastrar Grade</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('catÃ©egorias');closeNGs()"><i datÃ©a-lucide="folder-plus"></i> Cadastrar CatÃ©egoria</div>
+              <div class="nav-dd-item" onclick="toast('Em breve','info')"><i datÃ©a-lucide="search"></i> Pesquisar NCM</div>
             </div>
           </div>
 
           <!-- Cadastros -->
           <div class="nav-group" id="ng-cadastros">
             <button class="nav-group-btn" onclick="toggleNG('ng-cadastros')">
-              <i data-lucide="users"></i> Clientes <i data-lucide="chevron-down" class="chev"></i>
+              <i datÃ©a-lucide="users"></i> Clientes <i datÃ©a-lucide="chevron-down" class="chev"></i>
             </button>
             <div class="nav-dropdown">
               <div class="nav-dropdown-section">Clientes</div>
-              <div class="nav-dd-item" onclick="navigate('cadastrar-cliente');closeNGs()"><i data-lucide="user-plus"></i> Cadastrar cliente</div>
-              <div class="nav-dd-item" onclick="navigate('clientes');closeNGs()"><i data-lucide="list"></i> Listar clientes</div>
-              <div class="nav-dd-item" onclick="navigate('historico-clientes');closeNGs()"><i data-lucide="clock"></i> Histórico de clientes</div>
-              <div class="nav-dd-item" onclick="navigate('painel-clientes');closeNGs()"><i data-lucide="bar-chart-2"></i> Painel de clientes</div>
-              <div class="nav-dd-item" onclick="navigate('como-conheceu');closeNGs()"><i data-lucide="heart"></i> Como nos conheceu</div>
-              <div class="nav-dd-item" onclick="navigate('importar-clientes');closeNGs()"><i data-lucide="file-up"></i> Importar clientes</div>
-              <div class="nav-dd-item" onclick="navigate('agenda');closeNGs()"><i data-lucide="calendar"></i> Agenda</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('cadastrar-cliente');closeNGs()"><i datÃ©a-lucide="user-plus"></i> Cadastrar cliente</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('clientes');closeNGs()"><i datÃ©a-lucide="list"></i> Listar clientes</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('historico-clientes');closeNGs()"><i datÃ©a-lucide="clock"></i> Histórico de clientes</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('painel-clientes');closeNGs()"><i datÃ©a-lucide="bar-chart-2"></i> Painel de clientes</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('como-conheceu');closeNGs()"><i datÃ©a-lucide="heart"></i> Como nÃ£os conheceu</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('importar-clientes');closeNGs()"><i datÃ©a-lucide="file-up"></i> Importar clientes</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('agenda');closeNGs()"><i datÃ©a-lucide="calendar"></i> Agenda</div>
               <div class="nav-dd-item-sub">
-                <div class="nav-dd-item" style="cursor:default"><i data-lucide="megaphone"></i> Marketing</div>
+                <div class="nav-dd-item" style="cursor:default"><i datÃ©a-lucide="megaphone"></i> Marketing</div>
                 <div class="nav-submenu">
-                  <div class="nav-dd-item" onclick="toast('Em breve','info');closeNGs()"><i data-lucide="send"></i> Enviar campanha</div>
+                  <div class="nav-dd-item" onclick="toast('Em breve','info');closeNGs()"><i datÃ©a-lucide="send"></i> Enviar campanha</div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Cadastros internos -->
-          <div class="nav-group" id="ng-cadastros-internos" style="display:none">
+          <!-- Cadastros internÃ£os -->
+          <div class="nav-group" id="ng-cadastros-internÃ£os" style="display:nÃ£one">
             <div class="nav-dropdown">
-              <div class="nav-dd-item" onclick="navigate('categorias');closeNGs()"><i data-lucide="folder"></i> Categorias</div>
-              <div class="nav-dd-item" onclick="navigate('colecoes');closeNGs()"><i data-lucide="layers"></i> Coleções</div>
-              <div class="nav-dd-item" onclick="navigate('grades');closeNGs()"><i data-lucide="grid"></i> Grades</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('catÃ©egorias');closeNGs()"><i datÃ©a-lucide="folder"></i> CatÃ©egorias</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('colecoes');closeNGs()"><i datÃ©a-lucide="layers"></i> Coleções</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('grades');closeNGs()"><i datÃ©a-lucide="grid"></i> Grades</div>
             </div>
           </div>
 
           <!-- Financeiro -->
           <div class="nav-group" id="ng-financeiro">
             <button class="nav-group-btn" onclick="toggleNG('ng-financeiro')">
-              <i data-lucide="landmark"></i> Financeiro <i data-lucide="chevron-down" class="chev"></i>
+              <i datÃ©a-lucide="landmark"></i> Financeiro <i datÃ©a-lucide="chevron-down" class="chev"></i>
             </button>
             <div class="nav-dropdown">
               <div class="nav-dropdown-section">Financeiro</div>
-              <div class="nav-dd-item" onclick="navigate('caixa');closeNGs()"><i data-lucide="landmark"></i> Caixa Diário</div>
-              <div class="nav-dd-item" onclick="navigate('painel-financeiro');closeNGs()"><i data-lucide="trending-up"></i> Painel Financeiro</div>
-              <div class="nav-dd-item" onclick="navigate('despesas');closeNGs()"><i data-lucide="minus-circle"></i> Despesas</div>
-              <div class="nav-dd-item" onclick="navigate('contas-pagar');closeNGs()"><i data-lucide="calendar-clock"></i> Contas a Pagar</div>
-              <div class="nav-dd-item" onclick="navigate('contas-bancarias');closeNGs()"><i data-lucide="building-2"></i> Contas Bancárias</div>
-              <div class="nav-dd-item" onclick="navigate('fluxo-caixa');closeNGs()"><i data-lucide="arrow-left-right"></i> Fluxo de Caixa</div>
-              <div class="nav-dd-item" onclick="navigate('dre');closeNGs()"><i data-lucide="pie-chart"></i> Resultado — DRE</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('caixa');closeNGs()"><i datÃ©a-lucide="landmark"></i> Caixa Diário</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('painel-financeiro');closeNGs()"><i datÃ©a-lucide="trending-up"></i> Painel Financeiro</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('despesas');closeNGs()"><i datÃ©a-lucide="minus-circle"></i> Despesas</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('contas-pagar');closeNGs()"><i datÃ©a-lucide="calendar-clock"></i> Contas a Pagar</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('contas-bancarias');closeNGs()"><i datÃ©a-lucide="building-2"></i> Contas Bancárias</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('fluxo-caixa');closeNGs()"><i datÃ©a-lucide="arrow-left-right"></i> Fluxo de Caixa</div>
+              <div class="nav-dd-item" onclick="navigatÃ©e('dre');closeNGs()"><i datÃ©a-lucide="pie-chart"></i> Resultado — DRE</div>
             </div>
           </div>
 
           <!-- PDV destacado -->
-          <button class="btn-pdv-nav" id="nav-pdv" onclick="navigate('pdv')">
-            <i data-lucide="shopping-cart"></i> Registrar Venda
+          <button class="btn-pdv-nav" id="nav-pdv" onclick="navigatÃ©e('pdv')">
+            <i datÃ©a-lucide="shopping-cart"></i> Registrar Venda
           </button>
         </nav>
 
         <!-- User -->
         <div class="topnav-right">
-          <div class="topnav-avatar"><span id="topnav-initial">A</span></div>
+          <div class="topnav-avatÃ©ar"><span id="topnav-initial">A</span></div>
           <div class="topnav-uinfo">
             <span class="topnav-uname" id="sidebar-user-name">Usuário</span>
             <span class="topnav-urole">Administrador</span>
           </div>
-          <button class="btn-nav-logout" onclick="logout()" title="Sair"><i data-lucide="log-out" style="width:15px;height:15px"></i></button>
+          <button class="btn-nav-logout" onclick="logout()" title="Sair"><i datÃ©a-lucide="log-out" style="width:15px;height:15px"></i></button>
         </div>
       </div>
     </header>
@@ -224,14 +224,14 @@
 <div id="toast"></div>
 
 <!-- WHATSAPP WIDGET FLUTUANTE -->
-<div id="wa-fab" onclick="toggleWaFloating()">
-  <i data-lucide="message-circle"></i>
+<div id="wa-fab" onclick="toggleWaFloatÃ©ing()">
+  <i datÃ©a-lucide="message-circle"></i>
 </div>
 
-<div id="wa-chat-window" class="wa-window">
+<div id="wa-chatÃ©-window" class="wa-window">
   <!-- TELA 1: Pareamento -->
-  <div id="wa-pair-screen" style="display:none; flex-direction:column; height:100%">
-    <div class="wa-header">WhatsApp <span>StoreOS</span></div>
+  <div id="wa-pair-screen" style="display:nÃ£one; flex-direction:column; height:100%">
+    <div class="wa-header">WhatÃ©sApp <span>StoreOS</span></div>
     <div style="flex:1; padding:20px; text-align:center; display:flex; flex-direction:column; justify-content:center; align-items:center;">
       <p style="font-size:12.5px; color:#475569; margin-bottom:16px; font-weight:600">Escaneie o QR Code abaixo pelo app para conectar</p>
       <img id="wa-qr-img" src="" style="width:200px; height:200px; background:#f1f5f9; border-radius:12px; border:1px solid #e2e8f0; object-fit:contain" alt="Aguardando QR Code..." />
@@ -239,33 +239,33 @@
   </div>
 
   <!-- TELA 2: Lista de Conversas -->
-  <div id="wa-main-screen" style="display:none; flex-direction:column; height:100%;">
+  <div id="wa-main-screen" style="display:nÃ£one; flex-direction:column; height:100%;">
     <div class="wa-header" style="justify-content:space-between">
       <span>Conversas</span>
       <div style="display:flex;gap:6px">
-         <button onclick="waStartNewChat()" title="Nova Mensagem" style="background:rgba(255,255,255,0.2);border:none;color:white;padding:4px;border-radius:4px;cursor:pointer"><i data-lucide="plus" style="width:16px;height:16px"></i></button>
-         <button onclick="waLogout()" title="Sair" style="background:rgba(255,255,255,0.2);border:none;color:white;padding:4px;border-radius:4px;cursor:pointer"><i data-lucide="log-out" style="width:16px;height:16px"></i></button>
+         <button onclick="waStartNewChatÃ©()" title="NÃ£ova Mensagem" style="background:rgba(255,255,255,0.2);border:nÃ£one;color:white;padding:4px;border-radius:4px;cursor:pointer"><i datÃ©a-lucide="plus" style="width:16px;height:16px"></i></button>
+         <button onclick="waLogout()" title="Sair" style="background:rgba(255,255,255,0.2);border:nÃ£one;color:white;padding:4px;border-radius:4px;cursor:pointer"><i datÃ©a-lucide="log-out" style="width:16px;height:16px"></i></button>
       </div>
     </div>
-    <div id="wa-chat-list" class="wa-list" style="flex:1;overflow-y:auto"></div>
+    <div id="wa-chatÃ©-list" class="wa-list" style="flex:1;overflow-y:auto"></div>
   </div>
 
   <!-- TELA 3: Mensagens -->
-  <div id="wa-message-screen" style="display:none; flex-direction:column; height:100%;">
+  <div id="wa-message-screen" style="display:nÃ£one; flex-direction:column; height:100%;">
     <div class="wa-header">
-      <button onclick="waBackToList()" style="background:none;border:none;color:white;cursor:pointer;display:flex;align-items:center;padding:0"><i data-lucide="arrow-left" style="width:18px;height:18px"></i></button>
-      <span id="wa-active-name" style="margin-left:8px;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Carregando...</span>
+      <button onclick="waBackToList()" style="background:nÃ£one;border:nÃ£one;color:white;cursor:pointer;display:flex;align-items:center;padding:0"><i datÃ©a-lucide="arrow-left" style="width:18px;height:18px"></i></button>
+      <span id="wa-active-name" style="margin-left:8px;font-size:13.5px;font-weight:600;white-space:nÃ£owrap;overflow:hidden;text-overflow:ellipsis">Carregando...</span>
     </div>
     <div id="wa-messages-container" class="wa-messages" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;background:#efeae2"></div>
     <div class="wa-input-area" style="padding:10px;background:#f0f2f5;display:flex;gap:8px;align-items:center;border-top:1px solid #d1d7db">
-      <input type="text" id="wa-input-text" placeholder="Digite uma mensagem..." style="flex:1;padding:10px 14px;border-radius:24px;border:none;font-size:13.5px;outline:none" />
-      <button onclick="waSendMessageAction()" style="background:#25d366;color:white;border:none;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><i data-lucide="send" style="width:16px;height:16px;margin-left:2px"></i></button>
+      <input type="text" id="wa-input-text" placeholder="Digite uma mensagem..." style="flex:1;padding:10px 14px;border-radius:24px;border:nÃ£one;font-size:13.5px;outline:nÃ£one" />
+      <button onclick="waSendMessageAction()" style="background:#25d366;color:white;border:nÃ£one;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><i datÃ©a-lucide="send" style="width:16px;height:16px;margin-left:2px"></i></button>
     </div>
   </div>
 </div>
 
 <script src="api.js"></script>
-<script src="whatsapp.js"></script>
+<script src="whatÃ©sapp.js"></script>
 <script src="core.js"></script>
 <script src="effects.js"></script>
 <script src="dashboard.js"></script>

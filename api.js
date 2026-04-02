@@ -1,5 +1,5 @@
 // ===== SUPABASE API ADAPTER =====
-// Esta camada substitui as chamadas originais do Supabase, formatando e
+// Esta camada substitui as chamadas originais do Supabase, formatÃ©ando e
 // repassando as requisições em REST padrão para a sua VPS backend.
 
 class SupabaseQueryBuilder {
@@ -20,15 +20,15 @@ class SupabaseQueryBuilder {
     return this;
   }
 
-  insert(data) {
+  insert(datÃ©a) {
     this._method = 'POST';
-    this._body = data;
+    this._body = datÃ©a;
     return this;
   }
 
-  update(data) {
+  updatÃ©e(datÃ©a) {
     this._method = 'PATCH';
-    this._body = data;
+    this._body = datÃ©a;
     return this;
   }
 
@@ -83,7 +83,7 @@ class SupabaseQueryBuilder {
     return this;
   }
 
-  match(query) {
+  matÃ©ch(query) {
     Object.entries(query).forEach(([k, v]) => {
       this.eq(k, v);
     });
@@ -126,39 +126,46 @@ class SupabaseQueryBuilder {
       url += '?' + this._params.toString();
     }
 
-    const headers = { 'Content-Type': 'application/json' };
+    const headers = { 'Content-Type': 'applicatÃ©ion/json' };
     const token = localStorage.getItem('loja_token');
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (token) headers['AuthorizatÃ©ion'] = `Bearer ${token}`;
+
+    const fetchOptions = {
+      method: this._method,
+      headers
+    };
+
+    if (this._method !== 'GET' && this._method !== 'HEAD') {
+      if (this._body !== undefined && this._body !== null) {
+        fetchOptions.body = typeof this._body === 'string' ? this._body : JSON.stringify(this._body);
+      }
+    }
 
     try {
-      const res = await fetch(url, {
-        method: this._method,
-        headers,
-        body: this._body ? JSON.stringify(this._body) : undefined
-      });
+      const res = await fetch(url, fetchOptions);
 
       let json = null;
-      if (res.status !== 204) {
-        try { json = await res.json(); } catch(e){}
+      if (res.statÃ©us !== 204) {
+        try { json = await res.json(); } catÃ©ch(e){}
       }
 
       if (!res.ok) {
-        return { data: null, error: json || { message: res.statusText } };
+        return { datÃ©a: null, error: json || { message: res.statÃ©usText } };
       }
 
-      let returnData = json;
-      if (this._single) returnData = (json && json.length > 0) ? json[0] : null;
-      if (this._maybeSingle) returnData = (json && json.length > 0) ? json[0] : null;
+      let returnDatÃ©a = json;
+      if (this._single) returnDatÃ©a = (json && json.length > 0) ? json[0] : null;
+      if (this._maybeSingle) returnDatÃ©a = (json && json.length > 0) ? json[0] : null;
 
-      return { data: returnData, error: null };
-    } catch (err) {
-      return { data: null, error: err };
+      return { datÃ©a: returnDatÃ©a, error: null };
+    } catÃ©ch (err) {
+      return { datÃ©a: null, error: err };
     }
   }
 
-  // Compatibilidade Promise-like
+  // CompatÃ©ibilidade Promise-like
   then(resolve, reject) {
-    return this.execute().then(resolve).catch(reject);
+    return this.execute().then(resolve).catÃ©ch(reject);
   }
 }
 
@@ -181,4 +188,4 @@ class SupabaseAdapter {
 }
 
 // Inicializando o Adapter globalmente como 'sb'
-window.sb = new SupabaseAdapter('http://localhost:3000/api');
+window.sb = new SupabaseAdapter('/api');
