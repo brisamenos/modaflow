@@ -297,7 +297,7 @@ function parseSelect(selectStr) {
   const last = current.trim().replace(/"/g,'').replace(/[!:].*$/,'').trim();
   if (last) fields.push(last);
   const clean = fields.filter(f=>f);
-  return { fields: clean.length ? clean.map(f=>`"${f}"`).join(',') : '*', relations };
+  return { fields: clean.length ? clean.map(f => f === '*' ? '*' : `"${f}"`).join(',') : '*', relations };
 }
 
 function coerceBool(v) {
@@ -414,9 +414,11 @@ function fetchRelations(db, table, results, relations) {
     else if (table === 'conferencias_estoque' && rel.table === 'conferencia_itens') { isHasMany = true; parentFk = 'conferencia_id'; }
 
     let relFieldsSql = '*';
-    if (rel.fields && rel.fields.trim()) {
+    if (rel.fields && rel.fields.trim() && rel.fields.trim() !== '*') {
       const cols = rel.fields.split(',').map(f=>f.trim().replace(/"/g,'').replace(/[!:].*$/,'').trim()).filter(f=>f&&!f.includes('('));
-      if (cols.length) relFieldsSql = cols.map(c=>`"${c}"`).join(',');
+      if (cols.length) {
+        relFieldsSql = cols.map(c => c === '*' ? '*' : `"${c}"`).join(',');
+      }
     }
 
     if (isHasMany) {
