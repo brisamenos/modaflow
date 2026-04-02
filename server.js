@@ -126,6 +126,7 @@ function aplicarMigracoes(tdb) {
   ac('produto_grades','ean','TEXT'); ac('produto_grades','cor_hexa','TEXT');
   ac('produto_grades','cor_descricao','TEXT'); ac('produto_grades','custo','REAL');
   ac('produto_grades','preco_venda','REAL'); ac('produto_grades','margem_lucro','REAL');
+  ac('vendedores','cpf','TEXT'); ac('vendedores','telefone','TEXT'); ac('vendedores','email','TEXT'); ac('vendedores','meta_mensal','REAL DEFAULT 0');
   ac('categorias','ativo','INTEGER'); ac('colecoes','ativo','INTEGER'); ac('grades','ativo','INTEGER');
   ac('classificacoes','visao_contabil','TEXT');
   ac('classificacoes','created_at','TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
