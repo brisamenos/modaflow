@@ -985,8 +985,23 @@ async function executarImportacaoClientes() {
     <button onclick="navigate('clientes')" class="btn btn-primary">
       <i data-lucide="users"></i>Ver Clientes
     </button>
+    <button onclick="repararAniversarios()" style="margin-left:10px;padding:8px 16px;background:white;color:var(--text-2);border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px">
+      <i data-lucide="refresh-cw" style="width:14px;height:14px"></i>Reparar Aniversários
+    </button>
   </div>`;
   lucide.createIcons();
+}
+
+async function repararAniversarios() {
+  toast('Sincronizando aniversários...','info');
+  try {
+    const {data,error} = await sb.rpc('repairBirthdays');
+    if(error) return toast('Erro: '+error.message,'error');
+    const d = data||{};
+    toast(`Aniversários reparados! ${d.from_data_niver||0} de data_nascimento, ${d.from_dia_mes||0} de dia/mês. Total com niver: ${d.total_com_aniversario||0}`,'success');
+  } catch(e) {
+    toast('Erro ao reparar: '+e.message,'error');
+  }
 }
 
 // ===== PRODUTOS =====

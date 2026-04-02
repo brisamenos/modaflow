@@ -163,6 +163,25 @@ function aplicarMigracoes(tdb) {
   try { tdb.exec(`UPDATE produtos SET preco_venda=0 WHERE preco_venda IS NULL`); } catch(e){}
   // Auto-numerar bags existentes sem numero_bag
   try { tdb.exec(`UPDATE bags SET numero_bag=id WHERE numero_bag IS NULL`); } catch(e){}
+  // Sincronizar dia_nascimento e mes_nascimento a partir de data_nascimento para clientes antigos
+  // (resolve o caso de clientes importados antes das colunas existirem)
+  try {
+    tdb.exec(`UPDATE clientes SET
+      dia_nascimento = CAST(strftime('%d', data_nascimento) AS INTEGER),
+      mes_nascimento = CAST(strftime('%m', data_nascimento) AS INTEGER)
+      WHERE data_nascimento IS NOT NULL
+        AND data_nascimento != ''
+        AND (dia_nascimento IS NULL OR dia_nascimento = 0)
+        AND (mes_nascimento IS NULL OR mes_nascimento = 0)`);
+  } catch(e){}
+  // Sincronizar data_nascimento a partir de dia_nascimento/mes_nascimento quando data_nascimento está vazia
+  try {
+    tdb.exec(`UPDATE clientes SET
+      data_nascimento = '2000-' || printf('%02d', mes_nascimento) || '-' || printf('%02d', dia_nascimento)
+      WHERE dia_nascimento IS NOT NULL AND dia_nascimento > 0
+        AND mes_nascimento IS NOT NULL AND mes_nascimento > 0
+        AND (data_nascimento IS NULL OR data_nascimento = '')`);
+  } catch(e){}
 }
 
 // =============================================
@@ -590,8 +609,81 @@ app.delete('/api/:table', resolveDb, (req, res) => {
 });
 
 app.post('/api/rpc/:fn', resolveDb, (req, res) => {
-  console.log('RPC:', req.params.fn, req.body);
+  const db = req.db;
+  const fn = req.params.fn;
+  
+  if (fn === 'repairBirthdays') {
+    try {
+      // Popula dia/mês a partir de data_nascimento (para clientes importados antes das colunas existirem)
+      const r1 = db.prepare(`UPDATE clientes SET
+        dia_nascimento = CAST(strftime('%d', data_nascimento) AS INTEGER),
+        mes_nascimento = CAST(strftime('%m', data_nascimento) AS INTEGER)
+        WHERE data_nascimento IS NOT NULL AND data_nascimento != ''
+          AND (dia_nascimento IS NULL OR dia_nascimento = 0)
+          AND (mes_nascimento IS NULL OR mes_nascimento = 0)`).run();
+      
+      // Popula data_nascimento a partir de dia/mês (para clientes que tinham só dia/mês)
+      const r2 = db.prepare(`UPDATE clientes SET
+        data_nascimento = '2000-' || printf('%02d', mes_nascimento) || '-' || printf('%02d', dia_nascimento)
+        WHERE dia_nascimento IS NOT NULL AND dia_nascimento > 0
+          AND mes_nascimento IS NOT NULL AND mes_nascimento > 0
+          AND (data_nascimento IS NULL OR data_nascimento = '')`).run();
+      
+      // Conta clientes com aniversário agora
+      const total = db.prepare(`SELECT COUNT(*) as n FROM clientes WHERE dia_nascimento > 0 AND mes_nascimento > 0`).get();
+      
+      return res.json({ ok: true, from_data_niver: r1.changes, from_dia_mes: r2.changes, total_com_aniversario: total.n });
+    } catch(e) {
+      return res.status(500).json({ message: e.message });
+    }
+  }
+  
+  console.log('RPC:', fn, req.body);
   res.json({});
+});
+
+// Rota admin para reparar aniversários em todos os tenants
+app.post('/api/admin/repair-birthdays', adminAuth, (req, res) => {
+  try {
+    const results = [];
+    const gestores = adminDb.prepare('SELECT slug FROM gestores WHERE ativo=1').all();
+    
+    for (const g of gestores) {
+      const db = getTenantDb(g.slug);
+      try {
+        const r1 = db.prepare(`UPDATE clientes SET
+          dia_nascimento = CAST(strftime('%d', data_nascimento) AS INTEGER),
+          mes_nascimento = CAST(strftime('%m', data_nascimento) AS INTEGER)
+          WHERE data_nascimento IS NOT NULL AND data_nascimento != ''
+            AND (dia_nascimento IS NULL OR dia_nascimento = 0)
+            AND (mes_nascimento IS NULL OR mes_nascimento = 0)`).run();
+        const r2 = db.prepare(`UPDATE clientes SET
+          data_nascimento = '2000-' || printf('%02d', mes_nascimento) || '-' || printf('%02d', dia_nascimento)
+          WHERE dia_nascimento IS NOT NULL AND dia_nascimento > 0
+            AND mes_nascimento IS NOT NULL AND mes_nascimento > 0
+            AND (data_nascimento IS NULL OR data_nascimento = '')`).run();
+        results.push({ slug: g.slug, r1: r1.changes, r2: r2.changes });
+      } catch(e) { results.push({ slug: g.slug, error: e.message }); }
+    }
+    
+    // Também faz no banco legado
+    try {
+      const r1 = legacyDb.prepare(`UPDATE clientes SET
+        dia_nascimento = CAST(strftime('%d', data_nascimento) AS INTEGER),
+        mes_nascimento = CAST(strftime('%m', data_nascimento) AS INTEGER)
+        WHERE data_nascimento IS NOT NULL AND data_nascimento != ''
+          AND (dia_nascimento IS NULL OR dia_nascimento = 0)
+          AND (mes_nascimento IS NULL OR mes_nascimento = 0)`).run();
+      const r2 = legacyDb.prepare(`UPDATE clientes SET
+        data_nascimento = '2000-' || printf('%02d', mes_nascimento) || '-' || printf('%02d', dia_nascimento)
+        WHERE dia_nascimento IS NOT NULL AND dia_nascimento > 0
+          AND mes_nascimento IS NOT NULL AND mes_nascimento > 0
+          AND (data_nascimento IS NULL OR data_nascimento = '')`).run();
+      results.push({ slug: 'legacy', r1: r1.changes, r2: r2.changes });
+    } catch(e) { results.push({ slug: 'legacy', error: e.message }); }
+    
+    res.json({ ok: true, results });
+  } catch(e) { res.status(500).json({ message: e.message }); }
 });
 
 const PORT = process.env.PORT || 3000;
