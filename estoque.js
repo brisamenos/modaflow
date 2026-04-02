@@ -193,8 +193,14 @@ async function executeImportCSV() {
         const col_id = await getCol(r[iCol]);
         const forn_id = await getForn(r[iForn]);
 
-        const custo=parseFloat((r[iCusto]||'0').toString().replace(',','.'))||0;
-        const venda=parseFloat((r[iVenda]||'0').toString().replace(',','.'))||0;
+        const parseCSVBrMoney = (val) => {
+          if(!val) return 0;
+          let s = val.toString().replace(/[^\d,\.-]/g, '');
+          if(s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+          return parseFloat(s) || 0;
+        };
+        const custo=parseCSVBrMoney(r[iCusto]);
+        const venda=parseCSVBrMoney(r[iVenda]);
         const margem=venda>0?((venda-custo)/venda*100):0;
         const genero=(r[iGen]||'').toString().trim().toUpperCase()||null;
 
