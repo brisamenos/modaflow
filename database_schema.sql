@@ -26,12 +26,70 @@ CREATE TABLE grades (
 CREATE TABLE clientes (
     id SERIAL PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
-    documento VARCHAR(50),      -- CPF/CNPJ
+    nome_abreviado VARCHAR(255),
+    documento VARCHAR(50),      -- CPF/CNPJ (legacy)
+    cpf VARCHAR(50),
+    rg VARCHAR(50),
+    ie VARCHAR(50),
     celular VARCHAR(20),
     email VARCHAR(255),
-    endereco TEXT,
-    origem VARCHAR(100),        -- Como conheceu
+    instagram VARCHAR(255),
+    sexo VARCHAR(5),
+    como_conheceu VARCHAR(255),
+    data_nascimento DATE,
+    observacoes TEXT,
+    tipo_pessoa VARCHAR(10) DEFAULT 'PF',
+    endereco TEXT,               -- legacy
+    logradouro VARCHAR(255),
+    numero VARCHAR(50),
+    complemento VARCHAR(255),
+    bairro VARCHAR(255),
+    cep VARCHAR(20),
+    estado VARCHAR(5),
+    cidade VARCHAR(255),
+    origem VARCHAR(100),        -- Como conheceu (legacy)
     ativo BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE como_conheceu (
+    id SERIAL PRIMARY KEY,
+    descricao VARCHAR(255) NOT NULL,
+    ativo BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE cliente_filhos (
+    id SERIAL PRIMARY KEY,
+    cliente_id INT REFERENCES clientes(id) ON DELETE CASCADE,
+    nome VARCHAR(255) NOT NULL,
+    nome_abreviado VARCHAR(255),
+    sexo VARCHAR(5),
+    data_nascimento DATE,
+    grade_id INT,
+    grade_nome VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE contas_receber (
+    id SERIAL PRIMARY KEY,
+    cliente_id INT REFERENCES clientes(id),
+    descricao VARCHAR(255),
+    valor DECIMAL(10,2) NOT NULL,
+    vencimento DATE,
+    data_pagamento DATE NULL,
+    status VARCHAR(50) DEFAULT 'aberta',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE agenda (
+    id SERIAL PRIMARY KEY,
+    cliente_id INT REFERENCES clientes(id),
+    titulo VARCHAR(255),
+    descricao TEXT,
+    data DATE,
+    hora VARCHAR(10),
+    concluido BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -80,6 +138,7 @@ CREATE TABLE produto_grades (
 
 CREATE TABLE vendas (
     id SERIAL PRIMARY KEY,
+    numero_venda INT,
     cliente_id INT REFERENCES clientes(id),
     vendedor_id INT REFERENCES vendedores(id),
     total DECIMAL(10,2) NOT NULL,
@@ -106,6 +165,10 @@ CREATE TABLE crediario (
     venda_id INT REFERENCES vendas(id),
     cliente_id INT REFERENCES clientes(id),
     total DECIMAL(10,2) NOT NULL,
+    saldo_devedor DECIMAL(10,2) DEFAULT 0.00,
+    num_parcelas INT DEFAULT 1,
+    parcelas_pagas INT DEFAULT 0,
+    valor_parcela DECIMAL(10,2) DEFAULT 0.00,
     status VARCHAR(50) DEFAULT 'aberto', -- aberto, quitado, atrasado
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -113,7 +176,9 @@ CREATE TABLE crediario (
 CREATE TABLE crediario_parcelas (
     id SERIAL PRIMARY KEY,
     crediario_id INT REFERENCES crediario(id) ON DELETE CASCADE,
+    numero_parcela INT DEFAULT 1,
     valor DECIMAL(10,2) NOT NULL,
+    valor_pago DECIMAL(10,2),
     vencimento DATE NOT NULL,
     data_pagamento DATE NULL,
     status VARCHAR(50) DEFAULT 'pendente', -- pendente, pago, atrasado
@@ -185,12 +250,13 @@ CREATE TABLE duplicatas (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE metas (
+CREATE TABLE metas_vendas (
     id SERIAL PRIMARY KEY,
+    tipo VARCHAR(50) DEFAULT 'loja',
     vendedor_id INT REFERENCES vendedores(id),
-    mes VARCHAR(7), -- YYYY-MM
-    meta_valor DECIMAL(10,2) NOT NULL,
-    atingido DECIMAL(10,2) DEFAULT 0.00,
+    mes INT,
+    ano INT,
+    valor_meta DECIMAL(10,2) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -223,5 +289,39 @@ CREATE TABLE trocas (
     produto_id INT REFERENCES produtos(id),
     motivo TEXT,
     status VARCHAR(50) DEFAULT 'pendente', -- pendente, concluida
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE agenda_tarefas (
+    id SERIAL PRIMARY KEY,
+    titulo VARCHAR(255) NOT NULL,
+    descricao TEXT,
+    data_tarefa DATE,
+    concluida BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE changelog (
+    id SERIAL PRIMARY KEY,
+    descricao TEXT NOT NULL,
+    data_lancamento DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE configuracoes (
+    id SERIAL PRIMARY KEY,
+    chave VARCHAR(255) UNIQUE NOT NULL,
+    valor TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE contas_bancarias (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    banco VARCHAR(255),
+    agencia VARCHAR(50),
+    conta VARCHAR(50),
+    saldo DECIMAL(10,2) DEFAULT 0.00,
+    ativo BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

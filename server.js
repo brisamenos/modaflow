@@ -31,10 +31,64 @@ if (!dbExists) {
     schemaObj = schemaObj.replace(/SERIAL PRIMARY KEY/g, 'INTEGER PRIMARY KEY AUTOINCREMENT');
     schemaObj = schemaObj.replace(/JSONB/g, 'TEXT');
     schemaObj = schemaObj.replace(/BOOLEAN/g, 'INTEGER');
+    schemaObj = schemaObj.replace(/VARCHAR\(\d+\)\s+UNIQUE/g, 'TEXT UNIQUE');
     db.exec(schemaObj);
     console.log("Database initialized successfully!");
   }
 }
+
+// --- Auto-Migration: ensure all tables and columns exist ---
+function safeExec(sql) { try { db.exec(sql); } catch(e) {} }
+function safeAddCol(table, col, type) { safeExec(`ALTER TABLE "${table}" ADD COLUMN "${col}" ${type}`); }
+
+// Missing tables
+safeExec(`CREATE TABLE IF NOT EXISTS como_conheceu (id INTEGER PRIMARY KEY AUTOINCREMENT, descricao TEXT, ativo INTEGER DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+safeExec(`CREATE TABLE IF NOT EXISTS cliente_filhos (id INTEGER PRIMARY KEY AUTOINCREMENT, cliente_id INT, nome TEXT, nome_abreviado TEXT, sexo TEXT, data_nascimento DATE, grade_id INT, grade_nome TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+safeExec(`CREATE TABLE IF NOT EXISTS contas_receber (id INTEGER PRIMARY KEY AUTOINCREMENT, cliente_id INT, descricao TEXT, valor DECIMAL(10,2), vencimento DATE, data_pagamento DATE, data_recebimento DATE, origem TEXT, status TEXT DEFAULT 'aberta', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+safeExec(`CREATE TABLE IF NOT EXISTS agenda_tarefas (id INTEGER PRIMARY KEY AUTOINCREMENT, titulo TEXT, descricao TEXT, data_tarefa DATE, concluida INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+safeExec(`CREATE TABLE IF NOT EXISTS changelog (id INTEGER PRIMARY KEY AUTOINCREMENT, descricao TEXT, data_lancamento DATE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+safeExec(`CREATE TABLE IF NOT EXISTS configuracoes (id INTEGER PRIMARY KEY AUTOINCREMENT, chave TEXT UNIQUE, valor TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+safeExec(`CREATE TABLE IF NOT EXISTS contas_bancarias (id INTEGER PRIMARY KEY AUTOINCREMENT, nome TEXT, banco TEXT, agencia TEXT, conta TEXT, saldo DECIMAL(10,2) DEFAULT 0, ativo INTEGER DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+safeExec(`CREATE TABLE IF NOT EXISTS metas_vendas (id INTEGER PRIMARY KEY AUTOINCREMENT, tipo TEXT DEFAULT 'loja', vendedor_id INT, mes INT, ano INT, valor_meta DECIMAL(10,2), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+safeExec(`CREATE TABLE IF NOT EXISTS agenda (id INTEGER PRIMARY KEY AUTOINCREMENT, cliente_id INT, titulo TEXT, descricao TEXT, data DATE, hora TEXT, concluido INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+
+// Missing columns on clientes
+safeAddCol('clientes','nome_abreviado','TEXT');
+safeAddCol('clientes','cpf','TEXT');
+safeAddCol('clientes','rg','TEXT');
+safeAddCol('clientes','ie','TEXT');
+safeAddCol('clientes','instagram','TEXT');
+safeAddCol('clientes','sexo','TEXT');
+safeAddCol('clientes','como_conheceu','TEXT');
+safeAddCol('clientes','data_nascimento','DATE');
+safeAddCol('clientes','observacoes','TEXT');
+safeAddCol('clientes','tipo_pessoa','TEXT');
+safeAddCol('clientes','logradouro','TEXT');
+safeAddCol('clientes','numero','TEXT');
+safeAddCol('clientes','complemento','TEXT');
+safeAddCol('clientes','bairro','TEXT');
+safeAddCol('clientes','cep','TEXT');
+safeAddCol('clientes','estado','TEXT');
+safeAddCol('clientes','cidade','TEXT');
+
+// Missing columns on vendas
+safeAddCol('vendas','numero_venda','INT');
+
+// Missing columns on crediario
+safeAddCol('crediario','saldo_devedor','DECIMAL(10,2)');
+safeAddCol('crediario','num_parcelas','INT');
+safeAddCol('crediario','parcelas_pagas','INT');
+safeAddCol('crediario','valor_parcela','DECIMAL(10,2)');
+
+// Missing columns on crediario_parcelas
+safeAddCol('crediario_parcelas','numero_parcela','INT');
+safeAddCol('crediario_parcelas','valor_pago','DECIMAL(10,2)');
+
+// Missing columns on contas_receber
+safeAddCol('contas_receber','data_recebimento','DATE');
+safeAddCol('contas_receber','origem','TEXT');
+
+console.log("Database migration check complete.");
 
 // --- Query Builder Helpers ---
 function parseSelect(selectStr) {

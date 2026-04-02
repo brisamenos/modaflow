@@ -1,4 +1,4 @@
-﻿// ===== SUPABASE API ADAPTER =====
+// ===== SUPABASE API ADAPTER =====
 // Esta camada substitui as chamadas originais do Supabase, formatando e
 // repassando as requisições em REST padrão para a sua VPS backend.
 
@@ -15,7 +15,8 @@ class SupabaseQueryBuilder {
   }
 
   select(columns = '*') {
-    this._method = 'GET';
+    // Only set GET if not already a POST/PATCH (chained after insert/update)
+    if (!this._body) this._method = 'GET';
     this._params.set('select', columns);
     return this;
   }
