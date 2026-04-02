@@ -38,48 +38,48 @@ class SupabaseQueryBuilder {
   }
 
   eq(column, value) {
-    this._params.append(column, \`eq.\${value}\`);
+    this._params.append(column, `eq.${value}`);
     return this;
   }
 
   neq(column, value) {
-    this._params.append(column, \`neq.\${value}\`);
+    this._params.append(column, `neq.${value}`);
     return this;
   }
 
   gt(column, value) {
-    this._params.append(column, \`gt.\${value}\`);
+    this._params.append(column, `gt.${value}`);
     return this;
   }
 
   gte(column, value) {
-    this._params.append(column, \`gte.\${value}\`);
+    this._params.append(column, `gte.${value}`);
     return this;
   }
 
   lt(column, value) {
-    this._params.append(column, \`lt.\${value}\`);
+    this._params.append(column, `lt.${value}`);
     return this;
   }
 
   lte(column, value) {
-    this._params.append(column, \`lte.\${value}\`);
+    this._params.append(column, `lte.${value}`);
     return this;
   }
 
   ilike(column, value) {
-    this._params.append(column, \`ilike.\${value}\`);
+    this._params.append(column, `ilike.${value}`);
     return this;
   }
 
   like(column, value) {
-    this._params.append(column, \`like.\${value}\`);
+    this._params.append(column, `like.${value}`);
     return this;
   }
 
   in(column, values) {
     const list = Array.isArray(values) ? values.join(',') : values;
-    this._params.append(column, \`in.(\${list})\`);
+    this._params.append(column, `in.(${list})`);
     return this;
   }
 
@@ -92,7 +92,7 @@ class SupabaseQueryBuilder {
 
   order(column, options = { ascending: true }) {
     const dir = options.ascending === false ? 'desc' : 'asc';
-    this._params.append('order', \`\${column}.\${dir}\`);
+    this._params.append('order', `${column}.${dir}`);
     return this;
   }
 
@@ -115,11 +115,11 @@ class SupabaseQueryBuilder {
 
   // Execução Assíncrona via promise interna
   async execute() {
-    let url = \`\${this.apiUrl}/\${this.table}\`;
+    let url = `${this.apiUrl}/${this.table}`;
     
     // Se for RPC
     if (this._rpcName) {
-      url = \`\${this.apiUrl}/rpc/\${this._rpcName}\`;
+      url = `${this.apiUrl}/rpc/${this._rpcName}`;
     }
 
     if (this._params.toString().length > 0) {
@@ -128,7 +128,7 @@ class SupabaseQueryBuilder {
 
     const headers = { 'Content-Type': 'application/json' };
     const token = localStorage.getItem('loja_token');
-    if (token) headers['Authorization'] = \`Bearer \${token}\`;
+    if (token) headers['Authorization'] = `Bearer ${token}`;
 
     try {
       const res = await fetch(url, {
