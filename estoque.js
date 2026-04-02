@@ -32,6 +32,7 @@ function downloadModeloCSV() {
 }
 
 
+function parseCSVLine(line) {
   const sep = ';';
   const result = [];
   let cur = '', inQ = false;
