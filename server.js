@@ -367,24 +367,43 @@ const FK_MAP = {
 function fetchRelations(db, table, results, relations) {
   if (!results.length || !relations.length) return;
   for (const rel of relations) {
-    let fk = FK_MAP[rel.table];
-    if (!fk) {
-      let s = rel.table;
-      if (s.endsWith('oes')) s = s.slice(0,-3)+'ao';
-      else if (s.endsWith('s')) s = s.slice(0,-1);
-      fk = s+'_id';
-    }
+    let isHasMany = false;
+    let parentFk = null;
+    if (table === 'produtos' && rel.table === 'produto_grades') { isHasMany = true; parentFk = 'produto_id'; }
+    else if (table === 'vendas' && rel.table === 'venda_itens') { isHasMany = true; parentFk = 'venda_id'; }
+    else if (table === 'bags' && rel.table === 'bag_itens') { isHasMany = true; parentFk = 'bag_id'; }
+    else if (table === 'conferencias_estoque' && rel.table === 'conferencia_itens') { isHasMany = true; parentFk = 'conferencia_id'; }
+
     let relFieldsSql = '*';
     if (rel.fields && rel.fields.trim()) {
       const cols = rel.fields.split(',').map(f=>f.trim().replace(/"/g,'').replace(/[!:].*$/,'').trim()).filter(f=>f&&!f.includes('('));
       if (cols.length) relFieldsSql = cols.map(c=>`"${c}"`).join(',');
     }
-    let stmt; try { stmt = db.prepare(`SELECT ${relFieldsSql} FROM "${rel.table}" WHERE id=? LIMIT 1`); } catch(e) { continue; }
-    for (const row of results) {
-      const fkVal = row[fk];
-      if (fkVal != null && fkVal !== '') {
-        try { const r = stmt.get(fkVal); if(r) parseJsonFields([r]); row[rel.table]=r||null; } catch(e) { row[rel.table]=null; }
-      } else { row[rel.table]=null; }
+
+    if (isHasMany) {
+      let stmt; try { stmt = db.prepare(`SELECT ${relFieldsSql} FROM "${rel.table}" WHERE "${parentFk}"=?`); } catch(e) { continue; }
+      for (const row of results) {
+        try {
+          const r = stmt.all(row.id);
+          if(r) parseJsonFields(r);
+          row[rel.table] = r || [];
+        } catch(e) { row[rel.table] = []; }
+      }
+    } else {
+      let fk = FK_MAP[rel.table];
+      if (!fk) {
+        let s = rel.table;
+        if (s.endsWith('oes')) s = s.slice(0,-3)+'ao';
+        else if (s.endsWith('s')) s = s.slice(0,-1);
+        fk = s+'_id';
+      }
+      let stmt; try { stmt = db.prepare(`SELECT ${relFieldsSql} FROM "${rel.table}" WHERE id=? LIMIT 1`); } catch(e) { continue; }
+      for (const row of results) {
+        const fkVal = row[fk];
+        if (fkVal != null && fkVal !== '') {
+          try { const r = stmt.get(fkVal); if(r) parseJsonFields([r]); row[rel.table]=r||null; } catch(e) { row[rel.table]=null; }
+        } else { row[rel.table]=null; }
+      }
     }
   }
 }
