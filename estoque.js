@@ -210,6 +210,7 @@ async function executeImportCSV() {
           marca:(r[iMarca]||'').toString().trim()||null,
           unidade:(r[iUN]||'UN').toString().trim(),
           ncm:(r[iNCM]||'').toString().trim()||null,
+          fornecedor_cnpj:(r[iForn]||'').toString().trim()||null,
           categoria_id:cat_id, colecao_id:col_id, fornecedor_id:forn_id,
           custo, preco_venda:venda, margem_lucro:parseFloat(margem.toFixed(2)),
           genero, ativo:true
@@ -245,8 +246,14 @@ async function executeImportCSV() {
             const qtde=parseInt(vr[iQtde])||0;
             const corHex=(vr[iCorHex]||'').toString().trim();
             const corDesc=(vr[iCorDesc]||'').toString().trim();
-            const vPayload={produto_id:prodId,tamanho:tam,estoque:qtde,ean:ean||null,cor_hexa:corHex||null,cor_descricao:corDesc||null};
-            const {data:ev}=await sb.from('produto_grades').select('id').match({produto_id:prodId,tamanho:tam}).maybeSingle();
+            const vCusto=parseCSVBrMoney(vr[iCusto]);
+            const vVenda=parseCSVBrMoney(vr[iVenda]);
+            const vPayload={produto_id:prodId,tamanho:tam,estoque:qtde,ean:ean||null,cor_hexa:corHex||null,cor_descricao:corDesc||null,custo:vCusto||null,preco_venda:vVenda||null};
+            // match por produto_id + tamanho + ean para suportar múltiplas cores por tamanho
+            const matchObj = ean
+              ? {produto_id:prodId, tamanho:tam, ean}
+              : {produto_id:prodId, tamanho:tam};
+            const {data:ev}=await sb.from('produto_grades').select('id').match(matchObj).maybeSingle();
             if(ev){await sb.from('produto_grades').update(vPayload).eq('id',ev.id);}
             else{await sb.from('produto_grades').insert(vPayload);}
           }
@@ -635,7 +642,7 @@ async function carregarVisaoDetalhada(tab) {
     subs.forEach(sub => {
       const pctSub = grupo.valor>0?((sub.valor/grupo.valor)*100).toFixed(0)+'%':'0%';
       rows += `<tr style="background:#fff;">
-        ${showCnpj?`<td style="padding:8px 10px;text-align:left;font-size:11.5px;color:#7f8c8d;border:1px solid #ecf0f1;font-weight:600;">${sub.cnpj||''}</td>`:''}
+        ${showCnpj?`<td style="padding:8px 10px;text-align:left;font-size:11.5px;color:#7f8c8d;border:1px solid #ecf0f1;font-weight:600;word-break:break-all;">${sub.cnpj||''}</td>`:''}
         <td style="padding:8px 10px;text-align:center;font-size:11.5px;color:#7f8c8d;border:1px solid #ecf0f1;font-weight:700;text-transform:uppercase;">${sub.label}</td>
         <td style="padding:8px 10px;text-align:center;font-size:11.5px;color:#7f8c8d;border:1px solid #ecf0f1;font-weight:600;">${sub.qtde}</td>
         <td style="padding:8px 10px;text-align:center;font-size:11.5px;color:#7f8c8d;border:1px solid #ecf0f1;font-weight:600;">${fmtNum(sub.valor)}</td>
@@ -656,14 +663,14 @@ async function carregarVisaoDetalhada(tab) {
 
   body.innerHTML = `
   <div style="background:transparent;border:none;border-radius:0;overflow:hidden">
-    <div class="table-wrap" style="box-shadow:none;"><table style="width:100%;border-collapse:collapse;background:transparent;">
+    <div class="table-wrap" style="box-shadow:none;"><table style="width:100%;table-layout:fixed;border-collapse:collapse;background:transparent;">
       <thead>
         <tr style="background:#f9fafb;">
-          ${showCnpj?'<th style="padding:12px;text-align:center;font-size:12px;font-weight:800;color:#2c3e50;border:1px solid #ecf0f1;">CNPJ</th>':''}
-          <th style="padding:12px;text-align:center;font-size:12px;font-weight:800;color:#2c3e50;border:1px solid #ecf0f1;">${subHeader}</th>
-          <th style="padding:12px;text-align:center;font-size:12px;font-weight:800;color:#2c3e50;border:1px solid #ecf0f1;">Qtde</th>
-          <th style="padding:12px;text-align:center;font-size:12px;font-weight:800;color:#2c3e50;border:1px solid #ecf0f1;">Valor</th>
-          <th style="padding:12px;text-align:center;font-size:12px;font-weight:800;color:#2c3e50;border:1px solid #ecf0f1;">Percentual</th>
+          ${showCnpj?'<th style="width:16%;padding:12px;text-align:center;font-size:12px;font-weight:800;color:#2c3e50;border:1px solid #ecf0f1;">CNPJ</th>':''}
+          <th style="width:${showCnpj?'44%':'60%'};padding:12px;text-align:center;font-size:12px;font-weight:800;color:#2c3e50;border:1px solid #ecf0f1;">${subHeader}</th>
+          <th style="width:10%;padding:12px;text-align:center;font-size:12px;font-weight:800;color:#2c3e50;border:1px solid #ecf0f1;">Qtde</th>
+          <th style="width:15%;padding:12px;text-align:center;font-size:12px;font-weight:800;color:#2c3e50;border:1px solid #ecf0f1;">Valor</th>
+          <th style="width:15%;padding:12px;text-align:center;font-size:12px;font-weight:800;color:#2c3e50;border:1px solid #ecf0f1;">Percentual</th>
         </tr>
       </thead>
       <tbody>${rows||'<tr><td colspan="5" style="text-align:center;color:#7f8c8d;padding:32px;border:1px solid #ecf0f1;background:#fff;">Nenhum dado</td></tr>'}</tbody>
