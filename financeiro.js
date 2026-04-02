@@ -842,3 +842,139 @@ async function renderCaixaMensal() {
   try { document.getElementById('sel-cmes').value = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(month)-1]; } catch(e){}
   lucide.createIcons();
 }
+
+// ===== OPERAÇÕES DE CAIXA =====
+async function renderOperacoesCaixa() {
+  const dataStore = document.getElementById('opcx-data')?.value || new Date().toISOString().split('T')[0];
+  
+  document.getElementById('topbar-actions').innerHTML = `
+    <button class="btn btn-success" style="background:#2ecc71;border:none;border-radius:20px;padding:8px 16px;color:#fff;font-weight:700;display:flex;align-items:center;gap:6px;" onclick="openOperacaoCaixaModal()">
+      <i data-lucide="plus" style="width:18px;"></i> Nova Operação de Caixa
+    </button>
+  `;
+
+  // Buscar movimentos do caixa dessa data
+  const {data:movs} = await sb.from('movimentos_caixa').select('*').gte('created_at', dataStore+'T00:00:00').lte('created_at', dataStore+'T23:59:59').order('created_at',{ascending:false});
+  
+  const movRows = (movs||[]).map(m => `
+    <tr>
+      <td style="color:var(--text-2);font-weight:600;text-align:center;">${fmtDatetime(m.created_at)}</td>
+      <td style="text-align:center;">
+        <span style="display:inline-block;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;background:${m.tipo==='suprimento'||m.tipo==='entrada'?'#eafaf1':'#fbeee6'};color:${m.tipo==='suprimento'||m.tipo==='entrada'?'#27ae60':'#e67e22'};text-transform:capitalize;">${m.tipo}</span>
+      </td>
+      <td style="text-align:center;color:var(--text);font-weight:600;">${m.descricao||'—'}</td>
+      <td style="text-align:center;font-weight:700;color:${m.tipo==='suprimento'||m.tipo==='entrada'?'#27ae60':'#c0392b'};">${fmt(m.valor)}</td>
+      <td style="text-align:center;color:var(--text-3);font-weight:600;">Administrador</td>
+      <td style="text-align:center;">
+         <button class="btn btn-sm btn-danger" onclick="deleteOpCaixa('${m.id}')" title="Excluir" style="background:transparent;color:#e74c3c;border:none;box-shadow:none;"><i data-lucide="trash-2"></i></button>
+      </td>
+    </tr>
+  `).join('');
+
+  document.getElementById('content').innerHTML = `
+    <div style="font-family:var(--font-sans);padding-bottom:30px;">
+      
+      <div style="display:flex; align-items:center; gap:8px; background:#fff; padding:8px 14px; border-radius:6px; width:fit-content; border:1px solid #e1e8ed; margin-bottom:18px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+        <span style="font-weight:700;font-size:13px;color:#2c3e50;">Caixa dia:</span>
+        <input type="date" id="opcx-data" value="${dataStore}" onchange="renderOperacoesCaixa()" style="border:none; outline:none; font-weight:700; font-family:var(--font-sans); color:#7f8c8d; background:transparent;">
+        <i data-lucide="calendar" style="color:#bdc3c7;width:16px;height:16px;"></i>
+      </div>
+
+      <div style="background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.02);overflow-x:auto;border:1px solid #f1f2f6;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead style="background:#fcfcfc;border-bottom:2px solid #f1f2f6;">
+            <tr>
+               <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Data Operação</th>
+               <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Tipo Operação</th>
+               <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Descrição</th>
+               <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Valor</th>
+               <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Quem</th>
+               <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Ação</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${movs && movs.length > 0 ? movRows : `
+              <tr><td colspan="6" style="padding:60px 0;text-align:center;color:#95a5a6;background:#fdfdfd;">
+                <i data-lucide="arrow-left-right" style="width:40px;height:40px;color:#bdc3c7;margin-bottom:12px;opacity:0.6;"></i><br>
+                <span style="font-weight:600;font-size:14px;color:#7f8c8d;">Nenhuma Operação de caixa</span>
+              </td></tr>
+            `}
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  `;
+  lucide.createIcons();
+}
+
+async function openOperacaoCaixaModal() {
+  openModal(`
+    <style>
+      .oc-modal-focus:focus { border-color:#3498db !important; box-shadow:0 0 0 3px rgba(52,152,219,0.15) !important; }
+    </style>
+    <div class="modal-header" style="border-bottom:none;padding-bottom:10px;">
+      <h3 style="color:#2c3e50;font-weight:800;font-size:18px;">Nova Operação de Caixa</h3>
+    </div>
+    <div class="modal-body" style="padding-top:0;">
+      <div class="form-grid" style="display:flex;flex-direction:column;gap:14px;">
+        <div class="form-group">
+          <label style="color:#c0392b;font-weight:800;font-size:12px;margin-bottom:6px;display:block;">Operação *</label>
+          <select id="oc-tipo" class="oc-modal-focus" style="width:100%;border:1px solid #3498db;border-radius:6px;padding:10px 14px;color:#2c3e50;font-weight:600;outline:none;background:#fff;transition:all .2s;">
+            <option value="">Selecione</option>
+            <option value="suprimento">Suprimento (Entrada)</option>
+            <option value="sangria">Sangria (Saída)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label style="color:#2c3e50;font-weight:800;font-size:12px;margin-bottom:6px;display:block;">Descrição</label>
+          <input id="oc-desc" class="oc-modal-focus" placeholder="Descrição" style="width:100%;border:1px solid #3498db;border-radius:6px;padding:10px 14px;color:#2c3e50;outline:none;transition:all .2s;font-weight:600;">
+        </div>
+        <div class="form-group">
+          <label style="color:#c0392b;font-weight:800;font-size:12px;margin-bottom:6px;display:block;">Valor *</label>
+          <input id="oc-val" class="oc-modal-focus" type="number" step="0.01" style="width:100%;border:1px solid #ecf0f1;border-radius:6px;padding:10px 14px;color:#2c3e50;outline:none;transition:all .2s;font-weight:800;">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="border-top:none;display:flex;justify-content:space-between;padding-top:20px;">
+      <button class="btn" style="background:#e74c3c;color:#fff;border-radius:20px;padding:8px 24px;font-weight:800;border:none;display:flex;align-items:center;gap:6px;box-shadow:0 3px 6px rgba(231,76,60,0.2);" onclick="closeModalDirect()">
+        <i data-lucide="arrow-left" style="width:14px;"></i> Voltar
+      </button>
+      <button class="btn" style="background:#3498db;color:#fff;border-radius:20px;padding:8px 24px;font-weight:800;border:none;display:flex;align-items:center;gap:6px;box-shadow:0 3px 6px rgba(52,152,219,0.2);" onclick="saveOperacaoCaixa()">
+        <i data-lucide="thumbs-up" style="width:14px;"></i> Salvar
+      </button>
+    </div>
+  `, 'modal-sm');
+  lucide.createIcons();
+}
+
+async function saveOperacaoCaixa() {
+  const tipo = document.getElementById('oc-tipo').value;
+  const desc = document.getElementById('oc-desc').value.trim();
+  const val = parseFloat(document.getElementById('oc-val').value||0);
+  
+  if(!tipo) return toast('Selecione a operação (Suprimento/Sangria)','error');
+  if(val<=0 || isNaN(val)) return toast('Informe um valor numérico válido','error');
+
+  const {data:cxAber} = await sb.from('caixas').select('*').eq('status','aberto').order('created_at',{ascending:false}).limit(1);
+  const cx = cxAber?.[0];
+  if(!cx) return toast('Atenção: Não há um caixa aberto no sistema. Vá ao Caixa Diário e abra-o primeiro.','error');
+
+  await sb.from('movimentos_caixa').insert({
+    caixa_id: cx.id,
+    tipo: tipo,
+    descricao: desc || (tipo==='suprimento'?'Suprimento Manual':'Sangria Manual'),
+    valor: val
+  });
+
+  closeModalDirect();
+  toast('Sua operação foi lançada com sucesso no Caixa!');
+  renderOperacoesCaixa();
+}
+
+async function deleteOpCaixa(id) {
+  if(!confirm('Atenção: Deseja realmente excluir esta operação de caixa permanentemente?')) return;
+  await sb.from('movimentos_caixa').delete().eq('id',id);
+  toast('Registro excluído!');
+  renderOperacoesCaixa();
+}
