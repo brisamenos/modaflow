@@ -1,4 +1,4 @@
-﻿// ===== RELA��O DE VENDAS =====
+﻿// ===== RELAÇÃO DE VENDAS =====
 async function renderRelacaoVendas() {
   const now = new Date();
   const ini = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
@@ -29,16 +29,16 @@ async function loadRelacaoVendas() {
   const total=(data||[]).filter(v=>v.status==='concluida').reduce((a,v)=>a+parseFloat(v.total||0),0);
   document.getElementById('rv-table').innerHTML = `
     <div style="padding:12px 20px;background:var(--accent-light);border-bottom:1px solid var(--border)">
-      <strong style="color:var(--accent)">${(data||[]).length} vendas � Total: ${fmt(total)}</strong>
+      <strong style="color:var(--accent)">${(data||[]).length} vendas à Total: ${fmt(total)}</strong>
     </div>
     <div class="table-wrap"><table class="data-table">
-      <thead><tr><th>#</th><th>Data</th><th>Cliente</th><th>Vendedor</th><th>Forma Pag.</th><th>Total</th><th>Status</th><th>A��es</th></tr></thead>
+      <thead><tr><th>#</th><th>Data</th><th>Cliente</th><th>Vendedor</th><th>Forma Pag.</th><th>Total</th><th>Status</th><th>Ações</th></tr></thead>
       <tbody>${(data||[]).map(v=>`<tr>
         <td><strong>#${v.numero_venda}</strong></td>
         <td>${fmtDatetime(v.created_at)}</td>
         <td>${v.clientes?.nome||'Consumidor'}</td>
-        <td>${v.vendedores?.nome||'�'}</td>
-        <td style="text-transform:capitalize">${v.forma_pagamento||'�'}</td>
+        <td>${v.vendedores?.nome||'—'}</td>
+        <td style="text-transform:capitalize">${v.forma_pagamento||'—'}</td>
         <td><strong>${fmt(v.total)}</strong></td>
         <td>${badgeStatus(v.status)}</td>
         <td><div class="actions">
@@ -61,13 +61,13 @@ async function verVenda(id) {
     <div class="modal-body">
       <div class="form-row" style="margin-bottom:16px">
         <div><strong>Cliente:</strong> ${v?.clientes?.nome||'Consumidor'}</div>
-        <div><strong>Vendedor:</strong> ${v?.vendedores?.nome||'�'}</div>
+        <div><strong>Vendedor:</strong> ${v?.vendedores?.nome||'—'}</div>
         <div><strong>Data:</strong> ${fmtDatetime(v?.created_at)}</div>
         <div><strong>Status:</strong> ${badgeStatus(v?.status)}</div>
       </div>
       <table class="data-table">
         <thead><tr><th>Produto</th><th>Tam.</th><th>Qtd</th><th>Unit.</th><th>Total</th></tr></thead>
-        <tbody>${(itens||[]).map(i=>`<tr><td>${i.produto_nome}</td><td>${i.tamanho||'�'}</td><td>${i.quantidade}</td><td>${fmt(i.preco_unitario)}</td><td>${fmt(i.total)}</td></tr>`).join('')}</tbody>
+        <tbody>${(itens||[]).map(i=>`<tr><td>${i.produto_nome}</td><td>${i.tamanho||'—'}</td><td>${i.quantidade}</td><td>${fmt(i.preco_unitario)}</td><td>${fmt(i.total)}</td></tr>`).join('')}</tbody>
       </table>
       <div style="margin-top:16px;text-align:right">
         <div>Subtotal: <strong>${fmt(v?.subtotal)}</strong></div>
@@ -88,10 +88,10 @@ async function cancelarVenda(id) {
 async function renderConsultaVendas() {
   document.getElementById('content').innerHTML = `
     <div class="tabs">
-      <div class="tab active" onclick="switchTab('cv-geral')">Vis�o Geral</div>
-      <div class="tab" onclick="switchTab('cv-trocas')">Rela��o de Trocas</div>
-      <div class="tab" onclick="switchTab('cv-excluidas')">Vendas Exclu�das</div>
-      <div class="tab" onclick="switchTab('cv-creditos')">Cr�ditos de Clientes</div>
+      <div class="tab active" onclick="switchTab('cv-geral')">Visão Geral</div>
+      <div class="tab" onclick="switchTab('cv-trocas')">Relação de Trocas</div>
+      <div class="tab" onclick="switchTab('cv-excluidas')">Vendas Excluídas</div>
+      <div class="tab" onclick="switchTab('cv-creditos')">Créditos de Clientes</div>
     </div>
     <div id="cv-geral" class="tab-panel active"></div>
     <div id="cv-trocas" class="tab-panel"></div>
@@ -106,9 +106,9 @@ async function renderConsultaVendas() {
 
   document.getElementById('cv-geral').innerHTML = `
     <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
-      <div class="stat-card"><div class="stat-value">${fmt(total)}</div><div class="stat-label">Faturamento do m�s</div></div>
+      <div class="stat-card"><div class="stat-value">${fmt(total)}</div><div class="stat-label">Faturamento do mês</div></div>
       <div class="stat-card"><div class="stat-value">${(vs||[]).length}</div><div class="stat-label">Vendas realizadas</div></div>
-      <div class="stat-card"><div class="stat-value">${fmt((vs||[]).length?(total/(vs||[]).length):0)}</div><div class="stat-label">Ticket m�dio</div></div>
+      <div class="stat-card"><div class="stat-value">${fmt((vs||[]).length?(total/(vs||[]).length):0)}</div><div class="stat-label">Ticket médio</div></div>
     </div>
     <div class="card"><div class="card-header"><h3>Por Forma de Pagamento</h3></div>
     <div class="card-body"><div class="table-wrap"><table class="data-table">
@@ -118,8 +118,8 @@ async function renderConsultaVendas() {
 
   const {data:trocasD}=await sb.from('trocas').select('*,clientes(nome)').order('created_at',{ascending:false}).limit(20);
   document.getElementById('cv-trocas').innerHTML=`<div class="card"><div class="table-wrap"><table class="data-table">
-    <thead><tr><th>Data</th><th>Cliente</th><th>Tipo</th><th>Cr�dito</th><th>Status</th></tr></thead>
-    <tbody>${(trocasD||[]).map(t=>`<tr><td>${fmtDate(t.created_at?.split('T')[0])}</td><td>${t.clientes?.nome||'�'}</td><td style="text-transform:capitalize">${t.tipo}</td><td>${fmt(t.valor_credito)}</td><td>${badgeStatus(t.status)}</td></tr>`).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--text-2)">Nenhuma troca</td></tr>'}</tbody>
+    <thead><tr><th>Data</th><th>Cliente</th><th>Tipo</th><th>Crédito</th><th>Status</th></tr></thead>
+    <tbody>${(trocasD||[]).map(t=>`<tr><td>${fmtDate(t.created_at?.split('T')[0])}</td><td>${t.clientes?.nome||'—'}</td><td style="text-transform:capitalize">${t.tipo}</td><td>${fmt(t.valor_credito)}</td><td>${badgeStatus(t.status)}</td></tr>`).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--text-2)">Nenhuma troca</td></tr>'}</tbody>
   </table></div></div>`;
 
   const {data:excl}=await sb.from('vendas').select('*,clientes(nome)').eq('status','cancelada').order('created_at',{ascending:false}).limit(30);
@@ -128,7 +128,7 @@ async function renderConsultaVendas() {
     <tbody>${(excl||[]).map(v=>`<tr><td>#${v.numero_venda}</td><td>${fmtDatetime(v.created_at)}</td><td>${v.clientes?.nome||'Consumidor'}</td><td>${fmt(v.total)}</td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--text-2)">Nenhuma venda cancelada</td></tr>'}</tbody>
   </table></div></div>`;
 
-  document.getElementById('cv-creditos').innerHTML=`<div class="card"><div class="card-body"><p style="color:var(--text-2);text-align:center">M�dulo de cr�ditos de clientes � em breve</p></div></div>`;
+  document.getElementById('cv-creditos').innerHTML=`<div class="card"><div class="card-body"><p style="color:var(--text-2);text-align:center">Módulo de créditos de clientes à em breve</p></div></div>`;
   lucide.createIcons();
 }
 
@@ -147,11 +147,11 @@ async function renderBAG() {
   document.getElementById('content').innerHTML=`
     <div class="card">
       <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>#BAG</th><th>Cliente</th><th>Vendedor</th><th>Data Retorno</th><th>Total</th><th>Status</th><th>A��es</th></tr></thead>
+        <thead><tr><th>#BAG</th><th>Cliente</th><th>Vendedor</th><th>Data Retorno</th><th>Total</th><th>Status</th><th>Ações</th></tr></thead>
         <tbody>${(data||[]).map(b=>`<tr>
           <td><strong>#${b.numero_bag}</strong></td>
-          <td>${b.clientes?.nome||'�'}</td>
-          <td>${b.vendedores?.nome||'�'}</td>
+          <td>${b.clientes?.nome||'—'}</td>
+          <td>${b.vendedores?.nome||'—'}</td>
           <td>${fmtDate(b.data_retorno)}</td>
           <td>${fmt(b.total)}</td>
           <td>${badgeStatus(b.status)}</td>
@@ -181,7 +181,7 @@ async function openBagModal() {
         <div class="form-group"><label>Data Retorno</label><input id="bg-ret" type="date"></div>
       </div>
       <div class="form-group" style="margin-bottom:12px"><label>Adicionar Produto</label>
-        <select id="bg-prod" onchange="addBagItem(this)"><option value="">Selecionar produto...</option>${(prods||[]).map(p=>`<option value="${p.id}" data-nome="${p.nome}" data-preco="${p.preco_venda}">${p.nome} � ${fmt(p.preco_venda)}</option>`).join('')}</select>
+        <select id="bg-prod" onchange="addBagItem(this)"><option value="">Selecionar produto...</option>${(prods||[]).map(p=>`<option value="${p.id}" data-nome="${p.nome}" data-preco="${p.preco_venda}">${p.nome} à ${fmt(p.preco_venda)}</option>`).join('')}</select>
       </div>
       <div id="bag-items-list"></div>
       <div style="text-align:right;font-weight:700;font-size:15px;margin-top:8px">Total: <span id="bag-total">R$ 0,00</span></div>
@@ -197,7 +197,7 @@ function addBagItem(sel) {
   const opt=sel.options[sel.selectedIndex];
   if(!opt.value) return;
   window._bagItems=window._bagItems||[];
-  window._bagItems.push({id:opt.value,nome:opt.getAttribute('data-nome'),preco:parseFloat(opt.getAttribute('data-preco')),qty:1,tamanho:'�nico'});
+  window._bagItems.push({id:opt.value,nome:opt.getAttribute('data-nome'),preco:parseFloat(opt.getAttribute('data-preco')),qty:1,tamanho:'único'});
   sel.value='';
   renderBagItems();
 }
@@ -244,13 +244,13 @@ async function verBAG(id) {
     <div class="modal-header"><h3>BAG #${b?.numero_bag}</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
     <div class="modal-body">
       <div class="form-row" style="margin-bottom:16px">
-        <div><strong>Cliente:</strong> ${b?.clientes?.nome||'�'}</div>
+        <div><strong>Cliente:</strong> ${b?.clientes?.nome||'—'}</div>
         <div><strong>Retorno:</strong> ${fmtDate(b?.data_retorno)}</div>
         <div><strong>Status:</strong> ${badgeStatus(b?.status)}</div>
       </div>
       <table class="data-table">
         <thead><tr><th>Produto</th><th>Tamanho</th><th>Qtd</th><th>Total</th></tr></thead>
-        <tbody>${(itens||[]).map(i=>`<tr><td>${i.produto_nome}</td><td>${i.tamanho||'�'}</td><td>${i.quantidade}</td><td>${fmt(i.total)}</td></tr>`).join('')}</tbody>
+        <tbody>${(itens||[]).map(i=>`<tr><td>${i.produto_nome}</td><td>${i.tamanho||'—'}</td><td>${i.quantidade}</td><td>${fmt(i.total)}</td></tr>`).join('')}</tbody>
       </table>
       <div style="text-align:right;margin-top:12px;font-size:16px;font-weight:700">Total: ${fmt(b?.total)}</div>
     </div>
@@ -259,21 +259,21 @@ async function verBAG(id) {
 
 // ===== TROCAS =====
 async function renderTrocas() {
-  document.getElementById('topbar-actions').innerHTML=`<button class="btn btn-primary" onclick="openTrocaModal()"><i data-lucide="plus"></i>Nova Troca/Devolu��o</button>`;
+  document.getElementById('topbar-actions').innerHTML=`<button class="btn btn-primary" onclick="openTrocaModal()"><i data-lucide="plus"></i>Nova Troca/Devolução</button>`;
   const {data}=await sb.from('trocas').select('*,clientes(nome)').order('created_at',{ascending:false});
   document.getElementById('content').innerHTML=`
     <div class="card">
       <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>Data</th><th>Cliente</th><th>Tipo</th><th>Motivo</th><th>Cr�dito</th><th>Status</th><th>A��es</th></tr></thead>
+        <thead><tr><th>Data</th><th>Cliente</th><th>Tipo</th><th>Motivo</th><th>Crédito</th><th>Status</th><th>Ações</th></tr></thead>
         <tbody>${(data||[]).map(t=>`<tr>
           <td>${fmtDate(t.data_troca?.split('T')[0])}</td>
-          <td>${t.clientes?.nome||'�'}</td>
+          <td>${t.clientes?.nome||'—'}</td>
           <td><span class="badge badge-${t.tipo==='troca'?'blue':'yellow'}" style="text-transform:capitalize">${t.tipo}</span></td>
-          <td>${t.motivo||'�'}</td>
+          <td>${t.motivo||'—'}</td>
           <td>${fmt(t.valor_credito)}</td>
           <td>${badgeStatus(t.status)}</td>
           <td><button class="btn btn-sm btn-success" onclick="concluirTroca('${t.id}')"><i data-lucide="check"></i></button></td>
-        </tr>`).join('')||'<tr><td colspan="7" style="text-align:center;color:var(--text-2)">Nenhuma troca/devolu��o</td></tr>'}
+        </tr>`).join('')||'<tr><td colspan="7" style="text-align:center;color:var(--text-2)">Nenhuma troca/devolução</td></tr>'}
         </tbody>
       </table></div>
     </div>`;
@@ -283,14 +283,14 @@ async function renderTrocas() {
 async function openTrocaModal() {
   const {data:cls}=await sb.from('clientes').select('id,nome').eq('ativo',true);
   openModal(`
-    <div class="modal-header"><h3>Nova Troca / Devolu��o</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
+    <div class="modal-header"><h3>Nova Troca / Devolução</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
     <div class="modal-body"><div class="form-grid">
       <div class="form-row">
         <div class="form-group"><label>Cliente</label><select id="tr-cli"><option value="">Nenhum</option>${(cls||[]).map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}</select></div>
-        <div class="form-group"><label>Tipo</label><select id="tr-tipo"><option value="troca">Troca</option><option value="devolucao">Devolu��o</option></select></div>
+        <div class="form-group"><label>Tipo</label><select id="tr-tipo"><option value="troca">Troca</option><option value="devolucao">Devolução</option></select></div>
       </div>
       <div class="form-group"><label>Motivo</label><textarea id="tr-motivo"></textarea></div>
-      <div class="form-group"><label>Valor Cr�dito (R$)</label><input id="tr-cred" type="number" step="0.01" value="0"></div>
+      <div class="form-group"><label>Valor Crédito (R$)</label><input id="tr-cred" type="number" step="0.01" value="0"></div>
     </div></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModalDirect()">Cancelar</button>
@@ -304,7 +304,7 @@ async function saveTroca() {
   closeModalDirect();toast('Troca registrada');renderTrocas();
 }
 
-async function concluirTroca(id){await sb.from('trocas').update({status:'concluida'}).eq('id',id);toast('Troca conclu�da');renderTrocas();}
+async function concluirTroca(id){await sb.from('trocas').update({status:'concluida'}).eq('id',id);toast('Troca concluída');renderTrocas();}
 
 // ===== PAINEL DE VENDAS =====
 async function renderPainelVendas() {
@@ -331,9 +331,9 @@ async function renderPainelVendas() {
 
   document.getElementById('content').innerHTML=`
     <div class="stats-grid">
-      <div class="stat-card"><div class="stat-value">${fmt(totalMes)}</div><div class="stat-label">Faturamento do m�s</div></div>
+      <div class="stat-card"><div class="stat-value">${fmt(totalMes)}</div><div class="stat-label">Faturamento do mês</div></div>
       <div class="stat-card"><div class="stat-value">${(vs||[]).length}</div><div class="stat-label">Vendas realizadas</div></div>
-      <div class="stat-card"><div class="stat-value">${fmt(ticketMedio)}</div><div class="stat-label">Ticket m�dio</div></div>
+      <div class="stat-card"><div class="stat-value">${fmt(ticketMedio)}</div><div class="stat-label">Ticket médio</div></div>
       <div class="stat-card"><div class="stat-value">${topVends.length}</div><div class="stat-label">Vendedores ativos</div></div>
     </div>
     <div class="dash-grid">
@@ -359,22 +359,22 @@ async function renderPainelVendas() {
   lucide.createIcons();
 }
 
-// ===== COMISS�ES =====
+// ===== COMISSÕES =====
 async function renderComissoes() {
   const now=new Date(),m=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const {data:vs}=await sb.from('vendas').select('total,vendedor_id,vendedores(nome,comissao_percentual)').gte('created_at',m+'-01').eq('status','concluida');
   const porVend={};
   (vs||[]).filter(v=>v.vendedor_id).forEach(v=>{
     const k=v.vendedor_id;
-    if(!porVend[k]) porVend[k]={nome:v.vendedores?.nome||'�',pct:v.vendedores?.comissao_percentual||0,total:0,qtd:0};
+    if(!porVend[k]) porVend[k]={nome:v.vendedores?.nome||'—',pct:v.vendedores?.comissao_percentual||0,total:0,qtd:0};
     porVend[k].total+=parseFloat(v.total||0);porVend[k].qtd++;
   });
 
   document.getElementById('content').innerHTML=`
     <div class="card">
-      <div class="card-header"><h3>Comiss�es � ${new Date().toLocaleString('pt-BR',{month:'long',year:'numeric'})}</h3></div>
+      <div class="card-header"><h3>Comissões à ${new Date().toLocaleString('pt-BR',{month:'long',year:'numeric'})}</h3></div>
       <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>Vendedor</th><th>Qtd Vendas</th><th>Total Vendido</th><th>Comiss�o %</th><th>Comiss�o R$</th></tr></thead>
+        <thead><tr><th>Vendedor</th><th>Qtd Vendas</th><th>Total Vendido</th><th>Comissão %</th><th>Comissão R$</th></tr></thead>
         <tbody>${Object.values(porVend).map(v=>`<tr>
           <td><strong>${v.nome}</strong></td>
           <td>${v.qtd}</td>

@@ -5,10 +5,10 @@ async function renderNotasFiscais() {
   document.getElementById('content').innerHTML=`
     <div class="card">
       <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>N�mero</th><th>Fornecedor</th><th>Data Emiss�o</th><th>Total</th><th>Status</th><th>A��es</th></tr></thead>
+        <thead><tr><th>Número</th><th>Fornecedor</th><th>Data Emissão</th><th>Total</th><th>Status</th><th>Ações</th></tr></thead>
         <tbody>${(data||[]).map(n=>`<tr>
-          <td><strong>${n.numero||'�'}</strong></td>
-          <td>${n.fornecedores?.razao_social||'�'}</td>
+          <td><strong>${n.numero||'—'}</strong></td>
+          <td>${n.fornecedores?.razao_social||'—'}</td>
           <td>${fmtDate(n.data_emissao)}</td>
           <td><strong>${fmt(n.total_nota)}</strong></td>
           <td>${badgeStatus(n.status)}</td>
@@ -28,10 +28,10 @@ async function openNFModal() {
   openModal(`
     <div class="modal-header"><h3>Digitar Nota Fiscal</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
     <div class="modal-body"><div class="form-grid">
-      <div class="form-row"><div class="form-group"><label>N�mero NF</label><input id="nf-num"></div>
-      <div class="form-group"><label>S�rie</label><input id="nf-serie"></div></div>
+      <div class="form-row"><div class="form-group"><label>Número NF</label><input id="nf-num"></div>
+      <div class="form-group"><label>Série</label><input id="nf-serie"></div></div>
       <div class="form-group"><label>Fornecedor</label><select id="nf-forn"><option value="">Selecione</option>${(forns||[]).map(f=>`<option value="${f.id}">${f.razao_social}</option>`).join('')}</select></div>
-      <div class="form-row"><div class="form-group"><label>Data Emiss�o</label><input id="nf-emit" type="date"></div>
+      <div class="form-row"><div class="form-group"><label>Data Emissão</label><input id="nf-emit" type="date"></div>
       <div class="form-group"><label>Data Entrada</label><input id="nf-ent" type="date" value="${new Date().toISOString().split('T')[0]}"></div></div>
       <div class="form-row-4">
         <div class="form-group"><label>Total Produtos</label><input id="nf-tprod" type="number" step="0.01" value="0"></div>
@@ -62,14 +62,14 @@ async function renderDuplicatas() {
   document.getElementById('content').innerHTML=`
     <div class="card">
       <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>N�</th><th>Fornecedor</th><th>Vencimento</th><th>Valor</th><th>Status</th><th>A��es</th></tr></thead>
+        <thead><tr><th>Nº</th><th>Fornecedor</th><th>Vencimento</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>
         <tbody>${(data||[]).map(d=>`<tr>
-          <td>${d.numero||'�'}</td>
-          <td>${d.fornecedores?.razao_social||'�'}</td>
+          <td>${d.numero||'—'}</td>
+          <td>${d.fornecedores?.razao_social||'—'}</td>
           <td>${fmtDate(d.vencimento)}</td>
           <td><strong>${fmt(d.valor)}</strong></td>
           <td>${badgeStatus(d.status)}</td>
-          <td>${d.status==='aberta'?`<button class="btn btn-sm btn-success" onclick="pagarDuplicata('${d.id}')"><i data-lucide="check"></i>Pagar</button>`:'�'}</td>
+          <td>${d.status==='aberta'?`<button class="btn btn-sm btn-success" onclick="pagarDuplicata('${d.id}')"><i data-lucide="check"></i>Pagar</button>`:'—'}</td>
         </tr>`).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--text-2)">Nenhuma duplicata</td></tr>'}
         </tbody>
       </table></div>
@@ -84,7 +84,7 @@ async function openDuplicataModal() {
     <div class="modal-body"><div class="form-grid">
       <div class="form-group"><label>Fornecedor</label><select id="dp-forn"><option value="">Selecione</option>${(forns||[]).map(f=>`<option value="${f.id}">${f.razao_social}</option>`).join('')}</select></div>
       <div class="form-row">
-        <div class="form-group"><label>N�mero</label><input id="dp-num"></div>
+        <div class="form-group"><label>Número</label><input id="dp-num"></div>
         <div class="form-group"><label>Valor (R$)</label><input id="dp-val" type="number" step="0.01"></div>
         <div class="form-group"><label>Vencimento</label><input id="dp-venc" type="date"></div>
       </div>
@@ -107,28 +107,28 @@ async function pagarDuplicata(id) {
   toast('Duplicata paga');renderDuplicatas();
 }
 
-// ===== GEST�O ESTOQUE =====
-// ===== PAR�METROS ESTOQUE =====
+// ===== GESTÃO ESTOQUE =====
+// ===== PARÂMETROS ESTOQUE =====
 let _paramTab = 'colecao';
 
 async function renderParametrosEstoque() {
   document.getElementById('topbar-actions').innerHTML = '';
   document.getElementById('content').innerHTML = `
   <div style="text-align:center;margin-bottom:14px">
-    <h2 style="font-size:18px;font-weight:700">Par�metros estoque</h2>
+    <h2 style="font-size:18px;font-weight:700">Parâmetros estoque</h2>
   </div>
   <div style="display:flex;gap:0;align-items:flex-start">
 
     <!-- SIDEBAR -->
     <div style="width:230px;flex-shrink:0;background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:0;overflow:hidden;margin-right:16px">
       <div style="padding:12px 14px;background:#f8fafc;border-bottom:1px solid var(--border)">
-        <div style="font-size:12px;font-weight:700;color:var(--text);line-height:1.4">Cadastro de par�metros e varia��es do estoque</div>
+        <div style="font-size:12px;font-weight:700;color:var(--text);line-height:1.4">Cadastro de parâmetros e variações do estoque</div>
       </div>
 
-      <!-- Par�metros group -->
+      <!-- Parâmetros group -->
       <div style="padding:8px 0">
-        <div style="padding:6px 14px;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.6px">Par�metros</div>
-        ${[['colecao','Cadastrar cole��o','layers'],['categoria','Cadastrar categoria','folder'],['genero','Cadastrar g�nero','users']].map(([t,l,ic])=>`
+        <div style="padding:6px 14px;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.6px">Parâmetros</div>
+        ${[['colecao','Cadastrar coleção','layers'],['categoria','Cadastrar categoria','folder'],['genero','Cadastrar gênero','users']].map(([t,l,ic])=>`
           <div id="param-menu-${t}" onclick="switchParamTab('${t}')"
             style="display:flex;align-items:center;gap:8px;padding:7px 14px;cursor:pointer;font-size:13px;color:var(--text-2);transition:all .15s"
             onmouseover="if(_paramTab!=='${t}')this.style.background='#f1f5f9'" onmouseout="if(_paramTab!=='${t}')this.style.background=''">
@@ -137,7 +137,7 @@ async function renderParametrosEstoque() {
       </div>
 
       <div style="border-top:1px solid var(--border);padding:8px 0">
-        <div style="padding:6px 14px;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.6px">Varia��es</div>
+        <div style="padding:6px 14px;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.6px">Variações</div>
         ${[['grade','Cadastrar grade','list'],['cor','Cadastrar Cor','palette']].map(([t,l,ic])=>`
           <div id="param-menu-${t}" onclick="switchParamTab('${t}')"
             style="display:flex;align-items:center;gap:8px;padding:7px 14px;cursor:pointer;font-size:13px;color:var(--text-2);transition:all .15s"
@@ -147,7 +147,7 @@ async function renderParametrosEstoque() {
       </div>
     </div>
 
-    <!-- CONTE�DO -->
+    <!-- CONTEÚDO -->
     <div id="param-body" style="flex:1;min-width:0">
       <div class="loading" style="padding:48px;text-align:center">Carregando...</div>
     </div>
@@ -187,16 +187,16 @@ function paramAcoes(editFn, deleteFn) {
   </td>`;
 }
 
-// -- COLE��O --
+// -- COLEÇÃO --
 let _editColId = null;
 async function carregarParamColecao() {
   const body = document.getElementById('param-body');
   const {data} = await sb.from('colecoes').select('*').eq('ativo',true).order('created_at',{ascending:false});
   body.innerHTML = `
   <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
-    <div style="text-align:center;padding:12px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700">Cadastrar cole��o</div>
+    <div style="text-align:center;padding:12px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700">Cadastrar coleção</div>
     <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
-      <div style="text-align:center;margin-bottom:8px;font-size:13px;font-weight:600">Nome da cole��o</div>
+      <div style="text-align:center;margin-bottom:8px;font-size:13px;font-weight:600">Nome da coleção</div>
       <input id="pc-col-nome" placeholder="" style="display:block;width:100%;max-width:500px;margin:0 auto 10px;padding:8px 12px;border:1.5px solid ${_editColId?'var(--accent)':'var(--border-2)'};border-radius:var(--radius);font-size:13px;font-family:inherit">
       <div style="display:flex;justify-content:flex-end;gap:8px">
         <button onclick="salvarColecaoParam()" style="padding:7px 20px;background:#2563eb;color:white;border:none;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Salvar</button>
@@ -204,15 +204,15 @@ async function carregarParamColecao() {
     </div>
     <div class="table-wrap"><table style="width:100%;border-collapse:collapse">
       <thead><tr style="background:#f8fafc">
-        <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border);width:80px">C�digo</th>
-        <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border)">Descri��o</th>
-        <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border);width:80px">A��o</th>
+        <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border);width:80px">Código</th>
+        <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border)">Descrição</th>
+        <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border);width:80px">Ação</th>
       </tr></thead>
       <tbody>${(data||[]).map((r,i)=>`<tr style="${i%2===0?'':'background:#fafafa'}">
         <td style="padding:7px 12px;text-align:center;font-size:12px;color:var(--text-2)">${r.codigo||i+1}</td>
         <td style="padding:7px 12px;text-align:center;font-size:13px">${r.nome}</td>
         ${paramAcoes(`editarColecao('${r.id}','${r.nome.replace(/'/g,"\\\\'")}')`,`deletarColecao('${r.id}')`)}
-      </tr>`).join('')||`<tr><td colspan="3" style="padding:24px;text-align:center;color:var(--text-2)">Nenhuma cole��o cadastrada</td></tr>`}
+      </tr>`).join('')||`<tr><td colspan="3" style="padding:24px;text-align:center;color:var(--text-2)">Nenhuma coleção cadastrada</td></tr>`}
       </tbody>
     </table></div>
   </div>`;
@@ -228,19 +228,19 @@ function editarColecao(id, nome) {
 
 async function salvarColecaoParam() {
   const nome = document.getElementById('pc-col-nome')?.value?.trim();
-  if(!nome) return toast('Nome obrigat�rio','error');
+  if(!nome) return toast('Nome obrigatório','error');
   if(_editColId) {
     await sb.from('colecoes').update({nome}).eq('id',_editColId);
     _editColId = null;
   } else {
     await sb.from('colecoes').insert({nome});
   }
-  toast('Cole��o salva');
+  toast('Coleção salva');
   carregarParamColecao();
 }
 
 async function deletarColecao(id) {
-  if(!confirm('Excluir cole��o?')) return;
+  if(!confirm('Excluir coleção?')) return;
   await sb.from('colecoes').update({ativo:false}).eq('id',id);
   toast('Removida'); carregarParamColecao();
 }
@@ -254,7 +254,7 @@ async function carregarParamCategoria() {
   <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
     <div style="text-align:center;padding:12px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700">Cadastrar categoria</div>
     <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
-      <div style="text-align:center;margin-bottom:8px;font-size:13px;font-weight:600">Descri��o categoria</div>
+      <div style="text-align:center;margin-bottom:8px;font-size:13px;font-weight:600">Descrição categoria</div>
       <input id="pc-cat-nome" style="display:block;width:100%;max-width:500px;margin:0 auto 10px;padding:8px 12px;border:1.5px solid ${_editCatId?'var(--accent)':'var(--border-2)'};border-radius:var(--radius);font-size:13px;font-family:inherit">
       <div style="display:flex;justify-content:flex-end;gap:8px">
         <button onclick="_editCatId=null;document.getElementById('pc-cat-nome').value='';carregarParamCategoria()" style="padding:7px 16px;background:white;color:var(--text-2);border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Atualizar</button>
@@ -264,8 +264,8 @@ async function carregarParamCategoria() {
     <div style="text-align:center;padding:8px;font-size:12px;font-weight:700;color:var(--text-2)">Listagem das categorias de estoque</div>
     <div class="table-wrap"><table style="width:100%;border-collapse:collapse">
       <thead><tr style="background:#f8fafc">
-        <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border)">Descri��o</th>
-        <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border);width:80px">A��o</th>
+        <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border)">Descrição</th>
+        <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border);width:80px">Ação</th>
       </tr></thead>
       <tbody>${(data||[]).map((r,i)=>`<tr style="${i%2===0?'':'background:#fafafa'}">
         <td style="padding:7px 12px;text-align:center;font-size:13px">${r.nome}</td>
@@ -285,7 +285,7 @@ function editarCategoriaParam(id, nome) {
 
 async function salvarCategoriaParam() {
   const nome = document.getElementById('pc-cat-nome')?.value?.trim();
-  if(!nome) return toast('Descri��o obrigat�ria','error');
+  if(!nome) return toast('Descrição obrigatória','error');
   if(_editCatId) {
     await sb.from('categorias').update({nome}).eq('id',_editCatId);
     _editCatId = null;
@@ -301,16 +301,16 @@ async function deletarCategoriaParam(id) {
   toast('Removida'); carregarParamCategoria();
 }
 
-// -- G�NERO --
+// -- GÊNERO --
 let _editGenId = null;
 async function carregarParamGenero() {
   const body = document.getElementById('param-body');
   const {data} = await sb.from('generos_estoque').select('*').order('descricao');
   body.innerHTML = `
   <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
-    <div style="text-align:center;padding:12px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700">Cadastrar g�nero</div>
+    <div style="text-align:center;padding:12px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700">Cadastrar gênero</div>
     <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
-      <div style="text-align:center;margin-bottom:8px;font-size:13px;font-weight:600">Descri��o</div>
+      <div style="text-align:center;margin-bottom:8px;font-size:13px;font-weight:600">Descrição</div>
       <input id="pc-gen-nome" style="display:block;width:100%;max-width:500px;margin:0 auto 10px;padding:8px 12px;border:1.5px solid ${_editGenId?'var(--accent)':'var(--border-2)'};border-radius:var(--radius);font-size:13px;font-family:inherit">
       <div style="display:flex;justify-content:flex-end">
         <button onclick="salvarGeneroParam()" style="padding:7px 20px;background:#2563eb;color:white;border:none;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Salvar</button>
@@ -318,13 +318,13 @@ async function carregarParamGenero() {
     </div>
     <div class="table-wrap"><table style="width:100%;border-collapse:collapse">
       <thead><tr style="background:#f8fafc">
-        <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border)">Descri��o</th>
-        <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border);width:80px">A��o</th>
+        <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border)">Descrição</th>
+        <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border);width:80px">Ação</th>
       </tr></thead>
       <tbody>${(data||[]).map((r,i)=>`<tr style="${i%2===0?'':'background:#fafafa'}">
         <td style="padding:7px 12px;text-align:center;font-size:13px">${r.descricao}</td>
         ${paramAcoes(`editarGeneroParam('${r.id}','${r.descricao.replace(/'/g,"\\\\'")}')`,`deletarGeneroParam('${r.id}')`)}
-      </tr>`).join('')||`<tr><td colspan="2" style="padding:24px;text-align:center;color:var(--text-2)">Nenhum g�nero cadastrado</td></tr>`}
+      </tr>`).join('')||`<tr><td colspan="2" style="padding:24px;text-align:center;color:var(--text-2)">Nenhum gênero cadastrado</td></tr>`}
       </tbody>
     </table></div>
   </div>`;
@@ -339,18 +339,18 @@ function editarGeneroParam(id, desc) {
 
 async function salvarGeneroParam() {
   const desc = document.getElementById('pc-gen-nome')?.value?.trim();
-  if(!desc) return toast('Descri��o obrigat�ria','error');
+  if(!desc) return toast('Descrição obrigatória','error');
   if(_editGenId) {
     await sb.from('generos_estoque').update({descricao:desc}).eq('id',_editGenId);
     _editGenId = null;
   } else {
     await sb.from('generos_estoque').insert({descricao:desc});
   }
-  toast('G�nero salvo'); carregarParamGenero();
+  toast('Gênero salvo'); carregarParamGenero();
 }
 
 async function deletarGeneroParam(id) {
-  if(!confirm('Excluir g�nero?')) return;
+  if(!confirm('Excluir gênero?')) return;
   await sb.from('generos_estoque').delete().eq('id',id);
   toast('Removido'); carregarParamGenero();
 }
@@ -370,7 +370,7 @@ async function carregarParamGrade() {
           <input id="pc-grade-tam" placeholder="" style="width:160px;padding:8px 12px;border:1.5px solid ${_editGradeItemId?'var(--accent)':'var(--border-2)'};border-radius:var(--radius);font-size:13px;font-family:inherit">
         </div>
         <div>
-          <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:5px;text-align:center">Faixa et�ria</div>
+          <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:5px;text-align:center">Faixa etária</div>
           <input id="pc-grade-faixa" placeholder="" style="width:200px;padding:8px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit">
         </div>
       </div>
@@ -384,12 +384,12 @@ async function carregarParamGrade() {
     <div class="table-wrap"><table style="width:100%;border-collapse:collapse">
       <thead><tr style="background:#f8fafc">
         <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border);width:120px">Tamanho</th>
-        <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border)">Faixa Et�ria</th>
-        <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border);width:80px">A��o</th>
+        <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border)">Faixa Etária</th>
+        <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border);width:80px">Ação</th>
       </tr></thead>
       <tbody>${(data||[]).map((r,i)=>`<tr style="${i%2===0?'':'background:#fafafa'}">
         <td style="padding:7px 12px;text-align:center;font-size:13px;font-weight:600">${r.tamanho}</td>
-        <td style="padding:7px 12px;text-align:center;font-size:13px">${r.faixa_etaria||'�'}</td>
+        <td style="padding:7px 12px;text-align:center;font-size:13px">${r.faixa_etaria||'—'}</td>
         ${paramAcoes(`editarGradeTamanho('${r.id}','${r.tamanho.replace(/'/g,"\\\\'")}','${(r.faixa_etaria||'').replace(/'/g,"\\\\'")}')`,`deletarGradeTamanho('${r.id}')`)}
       </tr>`).join('')||`<tr><td colspan="3" style="padding:24px;text-align:center;color:var(--text-2)">Nenhum tamanho cadastrado</td></tr>`}
       </tbody>
@@ -408,7 +408,7 @@ function editarGradeTamanho(id, tam, faixa) {
 async function salvarGradeTamanho() {
   const tam   = document.getElementById('pc-grade-tam')?.value?.trim();
   const faixa = document.getElementById('pc-grade-faixa')?.value?.trim()||null;
-  if(!tam) return toast('Tamanho obrigat�rio','error');
+  if(!tam) return toast('Tamanho obrigatório','error');
   if(_editGradeItemId) {
     await sb.from('grade_tamanhos').update({tamanho:tam,faixa_etaria:faixa}).eq('id',_editGradeItemId);
     _editGradeItemId=null;
@@ -440,7 +440,7 @@ async function carregarParamCor() {
             style="width:50px;height:38px;padding:2px;border:1.5px solid var(--border-2);border-radius:var(--radius);cursor:pointer;display:block;margin:0 auto">
         </div>
         <div>
-          <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:5px;text-align:center">Descri��o da cor</div>
+          <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:5px;text-align:center">Descrição da cor</div>
           <input id="pc-cor-desc" style="width:260px;padding:8px 12px;border:1.5px solid ${_editCorId?'var(--accent)':'var(--border-2)'};border-radius:var(--radius);font-size:13px;font-family:inherit">
         </div>
       </div>
@@ -454,16 +454,16 @@ async function carregarParamCor() {
     <div class="table-wrap"><table style="width:100%;border-collapse:collapse">
       <thead><tr style="background:#f8fafc">
         <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border);width:100px">Cor</th>
-        <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border)">Descri��o</th>
+        <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border)">Descrição</th>
         <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border)">Codigo hexadecimal</th>
-        <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border);width:80px">A��o</th>
+        <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);border-bottom:1px solid var(--border);width:80px">Ação</th>
       </tr></thead>
       <tbody>${(data||[]).map((r,i)=>`<tr style="${i%2===0?'':'background:#fafafa'}">
         <td style="padding:6px 12px;text-align:center">
           <div style="width:80px;height:22px;background:${r.cor_hex||'#eee'};border-radius:3px;border:1px solid rgba(0,0,0,.1);display:inline-block"></div>
         </td>
         <td style="padding:7px 12px;text-align:center;font-size:13px">${r.descricao}</td>
-        <td style="padding:7px 12px;text-align:center;font-size:12px;font-family:monospace;color:var(--text-2)">${r.cor_hex||'�'}</td>
+        <td style="padding:7px 12px;text-align:center;font-size:12px;font-family:monospace;color:var(--text-2)">${r.cor_hex||'—'}</td>
         ${paramAcoes(`editarCorParam('${r.id}','${r.descricao.replace(/'/g,"\\\\'")}','${r.cor_hex||'#cccccc'}')`,`deletarCorParam('${r.id}')`)}
       </tr>`).join('')||`<tr><td colspan="4" style="padding:24px;text-align:center;color:var(--text-2)">Nenhuma cor cadastrada</td></tr>`}
       </tbody>
@@ -482,7 +482,7 @@ function editarCorParam(id, desc, hex) {
 async function salvarCorParam() {
   const desc = document.getElementById('pc-cor-desc')?.value?.trim();
   const hex  = document.getElementById('pc-cor-hex')?.value||'#cccccc';
-  if(!desc) return toast('Descri��o obrigat�ria','error');
+  if(!desc) return toast('Descrição obrigatória','error');
   if(_editCorId) {
     await sb.from('cores_estoque').update({descricao:desc,cor_hex:hex}).eq('id',_editCorId);
     _editCorId=null;
@@ -507,23 +507,23 @@ async function renderGestaoEstoque() {
   document.getElementById('content').innerHTML=`
     <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
       <div class="stat-card"><div class="stat-value">${totalProd}</div><div class="stat-label">Total de produtos</div></div>
-      <div class="stat-card"><div class="stat-value">${totalPecas}</div><div class="stat-label">Total de pe�as</div></div>
-      <div class="stat-card"><div class="stat-value" style="color:var(--red)">${estBaixo}</div><div class="stat-label">Estoque cr�tico</div></div>
+      <div class="stat-card"><div class="stat-value">${totalPecas}</div><div class="stat-label">Total de peças</div></div>
+      <div class="stat-card"><div class="stat-value" style="color:var(--red)">${estBaixo}</div><div class="stat-label">Estoque crítico</div></div>
     </div>
     <div class="card">
       <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>Produto</th><th>Categoria</th><th>Pre�o</th><th>Estoque por Grade</th><th>Total</th><th>Status</th><th>A��es</th></tr></thead>
+        <thead><tr><th>Produto</th><th>Categoria</th><th>Preço</th><th>Estoque por Grade</th><th>Total</th><th>Status</th><th>Ações</th></tr></thead>
         <tbody>${(data||[]).map(p=>{
           const grades=p.produto_grades||[];
           const total=grades.reduce((a,g)=>a+g.estoque,0);
           const critico=total<(p.estoque_minimo||5);
           return `<tr>
             <td><strong>${p.nome}</strong>${p.codigo?`<br><small style="color:var(--text-2)">${p.codigo}</small>`:''}
-            <td>${p.categorias?.nome||'�'}</td>
+            <td>${p.categorias?.nome||'—'}</td>
             <td>${fmt(p.preco_venda)}</td>
-            <td><div style="display:flex;flex-wrap:wrap;gap:4px">${grades.map(g=>`<span class="badge badge-${g.estoque<=0?'red':g.estoque<3?'yellow':'green'}">${g.tamanho}: ${g.estoque}</span>`).join('')||'�'}</div></td>
+            <td><div style="display:flex;flex-wrap:wrap;gap:4px">${grades.map(g=>`<span class="badge badge-${g.estoque<=0?'red':g.estoque<3?'yellow':'green'}">${g.tamanho}: ${g.estoque}</span>`).join('')||'—'}</div></td>
             <td><strong>${total}</strong></td>
-            <td>${critico?'<span class="badge badge-red">Cr�tico</span>':'<span class="badge badge-green">OK</span>'}</td>
+            <td>${critico?'<span class="badge badge-red">Crítico</span>':'<span class="badge badge-green">OK</span>'}</td>
             <td><button class="btn btn-sm btn-secondary" onclick="openEstoqueModal('${p.id}','${p.nome.replace(/'/g,"\\'")}')"><i data-lucide="edit-2"></i>Ajustar</button></td>
           </tr>`;
         }).join('')}
@@ -534,13 +534,13 @@ async function renderGestaoEstoque() {
 }
 
 
-// ===== CONFER�NCIA ESTOQUE =====
-let _confAtual = null; // confer�ncia aberta
+// ===== CONFERÊNCIA ESTOQUE =====
+let _confAtual = null; // conferência aberta
 
 async function renderConferenciaEstoque() {
   document.getElementById('topbar-actions').innerHTML = '';
 
-  // Verificar se h� confer�ncia aberta
+  // Verificar se há conferência aberta
   const {data:confAberta} = await sb.from('conferencias_estoque')
     .select('*').eq('status','aberta').order('created_at',{ascending:false}).limit(1);
 
@@ -560,7 +560,7 @@ async function abrirNovaConferencia() {
     total_lido: 0
   }).select().single();
 
-  if(error) { toast('Erro ao criar confer�ncia: '+error.message,'error'); return; }
+  if(error) { toast('Erro ao criar conferência: '+error.message,'error'); return; }
   _confAtual = nova;
   await exibirConferencia(nova);
 }
@@ -580,7 +580,7 @@ async function exibirConferencia(conf) {
     <!-- SIDEBAR -->
     <div style="width:170px;flex-shrink:0;display:flex;flex-direction:column;gap:10px">
       <button onclick="limparConferencia()" style="padding:9px 0;border-radius:var(--radius);border:1.5px solid var(--border-2);background:white;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--text-2);width:100%">Limpar</button>
-      <button onclick="concluirConferencia('${conf.id}')" style="padding:9px 0;border-radius:var(--radius);border:none;background:#2563eb;color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;width:100%">Concluir Confer�ncia</button>
+      <button onclick="concluirConferencia('${conf.id}')" style="padding:9px 0;border-radius:var(--radius);border:none;background:#2563eb;color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;width:100%">Concluir Conferência</button>
       <button onclick="excluirConferencia('${conf.id}')" style="padding:9px 0;border-radius:var(--radius);border:1.5px solid var(--border-2);background:white;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--text);width:100%">Excluir</button>
       <button onclick="navigate('conferencia-estoque')" style="padding:9px 0;border-radius:var(--radius);border:none;background:#16a34a;color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;width:100%">Listar</button>
       <div style="border-top:1px solid var(--border);padding-top:10px">
@@ -588,26 +588,26 @@ async function exibirConferencia(conf) {
       </div>
     </div>
 
-    <!-- CONTE�DO PRINCIPAL -->
+    <!-- CONTEÚDO PRINCIPAL -->
     <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:14px">
 
-      <!-- T�TULO -->
+      <!-- TÍTULO -->
       <div style="text-align:center">
-        <h2 style="font-size:18px;font-weight:700;color:var(--text)">Confer�ncia Estoque</h2>
+        <h2 style="font-size:18px;font-weight:700;color:var(--text)">Conferência Estoque</h2>
       </div>
 
-      <!-- IDENTIFICA��O -->
+      <!-- IDENTIFICAÇÃO -->
       <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
         <div style="padding:10px 20px;border-bottom:1px solid var(--border)">
-          <span style="font-size:13px;font-weight:700;color:var(--text)">Identifica��o</span>
+          <span style="font-size:13px;font-weight:700;color:var(--text)">Identificação</span>
         </div>
         <div style="display:grid;grid-template-columns:1fr 2fr 2fr 1fr;text-align:center;padding:14px 20px;gap:12px;border-bottom:1px solid var(--border)">
           <div>
-            <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">N�mero</div>
+            <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Número</div>
             <div style="font-size:15px;font-weight:700">${conf.id.slice(-4).toUpperCase()}</div>
           </div>
           <div>
-            <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Data in�cio</div>
+            <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Data início</div>
             <div style="font-size:13px;font-weight:600">${dataIni}</div>
           </div>
           <div>
@@ -666,7 +666,7 @@ function renderConferenciaItens(itens) {
     <thead><tr>
       <th>Data / Hora</th>
       <th>Produto</th>
-      <th>Pre�o</th>
+      <th>Preço</th>
       <th>Grade</th>
       <th>Cor</th>
       <th>Marca</th>
@@ -677,17 +677,17 @@ function renderConferenciaItens(itens) {
       const pg = i.produto_grades;
       const prod = pg?.produtos;
       const corHex = pg?.cor_hexa;
-      const corDesc = pg?.cor_descricao||'�';
-      const marca = prod?.fornecedores?.razao_social || 'Fornecedor padr�o';
+      const corDesc = pg?.cor_descricao||'—';
+      const marca = prod?.fornecedores?.razao_social || 'Fornecedor padrão';
       const dt = new Date(i.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
       const corDot = corHex
         ? `<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${corHex};border:1px solid rgba(0,0,0,.15);vertical-align:-3px;margin-right:5px;flex-shrink:0"></span>`
         : '';
       return `<tr>
         <td style="font-size:11px;color:var(--text-2);white-space:nowrap">${dt}</td>
-        <td style="font-size:12px">${i.ean||''} - ${prod?.nome||i.produto_nome||'�'}</td>
-        <td style="font-size:12px">${prod?.preco_venda?fmt(prod.preco_venda):'�'}</td>
-        <td style="font-size:12px">${pg?.tamanho||'�'}</td>
+        <td style="font-size:12px">${i.ean||''} - ${prod?.nome||i.produto_nome||'—'}</td>
+        <td style="font-size:12px">${prod?.preco_venda?fmt(prod.preco_venda):'—'}</td>
+        <td style="font-size:12px">${pg?.tamanho||'—'}</td>
         <td style="white-space:nowrap">${corDot}${corDesc}</td>
         <td style="font-size:11px;color:var(--text-2)">${marca}</td>
         <td style="text-align:center">
@@ -708,7 +708,7 @@ async function lerEANConferencia() {
   const ean = inp.value.trim();
   if(!ean || ean.length < 4) return;
 
-  if(!_confAtual) return toast('Nenhuma confer�ncia ativa','error');
+  if(!_confAtual) return toast('Nenhuma conferência ativa','error');
 
   // Buscar produto_grade pelo EAN
   const {data:pg} = await sb.from('produto_grades')
@@ -716,13 +716,13 @@ async function lerEANConferencia() {
     .eq('ean', ean).maybeSingle();
 
   if(!pg) {
-    toast('EAN n�o encontrado: '+ean,'error');
+    toast('EAN não encontrado: '+ean,'error');
     inp.value='';
     inp.focus();
     return;
   }
 
-  // Verificar se j� tem item desta grade nesta confer�ncia
+  // Verificar se já tem item desta grade nesta conferência
   const {data:existing} = await sb.from('conferencia_itens')
     .select('id,quantidade')
     .eq('conferencia_id',_confAtual.id)
@@ -777,7 +777,7 @@ async function editarQtdeConferencia(id, qtdeAtual) {
   const nova = prompt(`Quantidade atual: ${qtdeAtual}\nNova quantidade:`, qtdeAtual);
   if(nova === null) return;
   const n = parseInt(nova);
-  if(isNaN(n)||n<0) return toast('Quantidade inv�lida','error');
+  if(isNaN(n)||n<0) return toast('Quantidade inválida','error');
   if(n===0) {
     await sb.from('conferencia_itens').delete().eq('id',id);
   } else {
@@ -792,7 +792,7 @@ function limparConferencia() {
 }
 
 async function concluirConferencia(id) {
-  if(!confirm('Concluir a confer�ncia e atualizar o estoque com as quantidades lidas?')) return;
+  if(!confirm('Concluir a conferência e atualizar o estoque com as quantidades lidas?')) return;
 
   // Buscar todos os itens
   const {data:itens} = await sb.from('conferencia_itens')
@@ -812,21 +812,21 @@ async function concluirConferencia(id) {
   }).eq('id',id);
 
   _confAtual = null;
-  toast('Confer�ncia conclu�da! Estoque atualizado.');
+  toast('Conferência concluída! Estoque atualizado.');
   navigate('gestao-estoque');
 }
 
 async function excluirConferencia(id) {
-  if(!confirm('Excluir esta confer�ncia? Os dados n�o ser�o recuperados.')) return;
+  if(!confirm('Excluir esta conferência? Os dados não serão recuperados.')) return;
   await sb.from('conferencia_itens').delete().eq('conferencia_id',id);
   await sb.from('conferencias_estoque').delete().eq('id',id);
   _confAtual = null;
-  toast('Confer�ncia exclu�da');
+  toast('Conferência excluída');
   navigate('conferencia-estoque');
 }
 
 async function zerarEstoque(confId) {
-  if(!confirm('Zerar TODO o estoque dos produtos? Esta a��o n�o pode ser desfeita.')) return;
+  if(!confirm('Zerar TODO o estoque dos produtos? Esta ação não pode ser desfeita.')) return;
   await sb.from('produto_grades').update({estoque:0});
   toast('Estoque zerado com sucesso','info');
 }

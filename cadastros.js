@@ -8,7 +8,7 @@ function renderCRUDPage(opts) {
 }
 
 // ===== CLIENTES =====
-// ===== CLIENTES � LISTAR =====
+// ===== CLIENTES à LISTAR =====
 async function renderClientes() {
   document.getElementById('topbar-actions').innerHTML = `
     <button class="btn btn-primary" style="background:#16a34a;box-shadow:0 2px 8px rgba(22,163,74,.3)" onclick="navigate('cadastrar-cliente')">
@@ -33,9 +33,9 @@ async function loadClientes(filtros={}) {
   const {data} = await q;
 
   const tableRows = (data||[]).map(c => {
-    const dataCad = c.created_at?new Date(c.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'�';
-    const ultCompra = c.ultima_compra?new Date(c.ultima_compra+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'�';
-    let niverFmt = '�';
+    const dataCad = c.created_at?new Date(c.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
+    const ultCompra = c.ultima_compra?new Date(c.ultima_compra+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
+    let niverFmt = '—';
     if(c.data_nascimento) {
       const d = new Date(c.data_nascimento+'T00:00:00');
       niverFmt = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
@@ -43,9 +43,9 @@ async function loadClientes(filtros={}) {
     return `<tr>
       <td style="padding:8px 10px;text-align:center"><span style="font-size:16px">??</span></td>
       <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">${dataCad}</td>
-      <td style="padding:8px 10px;font-size:12px;font-family:monospace">${c.celular||'�'}</td>
-      <td style="padding:8px 10px;font-size:13px;font-weight:600">${c.nome||'�'}</td>
-      <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">${c.email||'�'}</td>
+      <td style="padding:8px 10px;font-size:12px;font-family:monospace">${c.celular||'—'}</td>
+      <td style="padding:8px 10px;font-size:13px;font-weight:600">${c.nome||'—'}</td>
+      <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">${c.email||'—'}</td>
       <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">${ultCompra}</td>
       <td style="padding:8px 10px;font-size:12px;text-align:center;color:var(--text-2)">${niverFmt}</td>
       <td style="padding:8px 10px;white-space:nowrap">
@@ -60,7 +60,7 @@ async function loadClientes(filtros={}) {
     <!-- barra superior -->
     <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <button onclick="toggleClientesFiltro()" style="padding:7px 14px;border:1.5px solid var(--border-2);border-radius:var(--radius);background:white;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;color:var(--text-2)">
-        <i data-lucide="sliders-horizontal" style="width:13px;height:13px"></i>Filtros Avan�ados
+        <i data-lucide="sliders-horizontal" style="width:13px;height:13px"></i>Filtros Avançados
       </button>
       <div style="display:flex;gap:0;flex:1;min-width:180px">
         <input id="cl-nome" class="filter-input" placeholder="Nome abreviado ou completo" style="border-radius:var(--radius) 0 0 var(--radius);flex:1">
@@ -90,9 +90,9 @@ async function loadClientes(filtros={}) {
         <th style="padding:9px 10px;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Fone</th>
         <th style="padding:9px 10px;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Nome</th>
         <th style="padding:9px 10px;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Email</th>
-        <th style="padding:9px 10px;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">�ltima compra</th>
-        <th style="padding:9px 10px;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;text-align:center">Niver Dia/M�s</th>
-        <th style="padding:9px 10px;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">A��o</th>
+        <th style="padding:9px 10px;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">última compra</th>
+        <th style="padding:9px 10px;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;text-align:center">Niver Dia/Mês</th>
+        <th style="padding:9px 10px;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Ação</th>
       </tr></thead>
       <tbody>${tableRows||'<tr><td colspan="8" style="text-align:center;color:var(--text-2);padding:32px">Nenhum cliente cadastrado</td></tr>'}</tbody>
     </table></div>
@@ -116,7 +116,7 @@ async function deleteCliente(id) {
   toast('Cliente removido'); loadClientes();
 }
 
-// ===== CADASTRAR CLIENTE � P�GINA COMPLETA =====
+// ===== CADASTRAR CLIENTE à PÁGINA COMPLETA =====
 let _editClienteId = null;
 let _cadClienteId  = null;
 let _filhosTemp    = [];
@@ -144,7 +144,7 @@ async function renderCadastrarCliente() {
     ? new Date(cli.created_at).toLocaleDateString('pt-BR')
     : new Date().toLocaleDateString('pt-BR');
 
-  // Parse anivers�rio
+  // Parse aniversário
   let aniDia='', aniMes='';
   if(cli.data_nascimento) {
     const d = new Date(cli.data_nascimento+'T00:00:00');
@@ -154,7 +154,7 @@ async function renderCadastrarCliente() {
   const html = `
   <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;max-width:900px;margin:0 auto">
 
-    <!-- T�TULO -->
+    <!-- TÍTULO -->
     <div style="padding:10px 20px;font-size:15px;font-weight:700;color:var(--text)">Cadastrar Cliente</div>
 
     <!-- TABS -->
@@ -178,8 +178,8 @@ async function renderCadastrarCliente() {
         <input id="cl2-celular" value="${cli.celular||''}" placeholder="(__) ____-____"
           style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:14px;font-family:inherit"
           oninput="aplicarMaskCelular(this)">
-        <div style="font-size:11px;color:var(--text-2);margin-top:3px">Informe apenas os dois d�gitos do DDD</div>
-        <div id="cl2-celular-err" style="font-size:12px;color:#dc2626;display:none">Celular � obrigat�rio.</div>
+        <div style="font-size:11px;color:var(--text-2);margin-top:3px">Informe apenas os dois dígitos do DDD</div>
+        <div id="cl2-celular-err" style="font-size:12px;color:#dc2626;display:none">Celular à obrigatório.</div>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
@@ -197,7 +197,7 @@ async function renderCadastrarCliente() {
         <div class="form-group">
           <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:none">Como nos conheceu *</label>
           <select id="cl2-como" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;background:white;font-family:inherit">
-            <option value="">Selecione uma op��o</option>
+            <option value="">Selecione uma opção</option>
             ${await getComoConheceuOpts(cli.como_conheceu)}
           </select>
         </div>
@@ -213,11 +213,11 @@ async function renderCadastrarCliente() {
           </div>
         </div>
         <div class="form-group" style="min-width:140px">
-          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:none">Anivers�rio *</label>
+          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:none">Aniversário *</label>
           <div style="display:flex;align-items:center;gap:4px">
             <input id="cl2-ani-dia" type="number" min="1" max="31" placeholder="Dia" value="${aniDia}" style="width:60px;padding:9px 8px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;text-align:center;font-family:inherit">
             <span>/</span>
-            <input id="cl2-ani-mes" type="number" min="1" max="12" placeholder="M�s" value="${aniMes}" style="width:60px;padding:9px 8px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;text-align:center;font-family:inherit">
+            <input id="cl2-ani-mes" type="number" min="1" max="12" placeholder="Mês" value="${aniMes}" style="width:60px;padding:9px 8px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;text-align:center;font-family:inherit">
           </div>
         </div>
       </div>
@@ -234,8 +234,8 @@ async function renderCadastrarCliente() {
       </div>
 
       <div class="form-group">
-        <label style="font-size:12px;font-weight:600;color:var(--text-2)">Observa��o</label>
-        <textarea id="cl2-obs" placeholder="Informa��es complementares do cliente..." style="width:100%;min-height:100px;padding:10px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit;resize:vertical">${cli.observacoes||''}</textarea>
+        <label style="font-size:12px;font-weight:600;color:var(--text-2)">Observação</label>
+        <textarea id="cl2-obs" placeholder="Informações complementares do cliente..." style="width:100%;min-height:100px;padding:10px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit;resize:vertical">${cli.observacoes||''}</textarea>
       </div>
     </div>
 
@@ -245,8 +245,8 @@ async function renderCadastrarCliente() {
         <div class="form-group" style="grid-column:1/2">
           <label style="font-size:12px;font-weight:600;color:var(--text-2)">Tipo Pessoa</label>
           <select id="cl2-tipo" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;background:white;font-family:inherit">
-            <option value="PF" ${cli.tipo_pessoa!=='PJ'?'selected':''}>Pessoa F�sica</option>
-            <option value="PJ" ${cli.tipo_pessoa==='PJ'?'selected':''}>Pessoa Jur�dica</option>
+            <option value="PF" ${cli.tipo_pessoa!=='PJ'?'selected':''}>Pessoa Física</option>
+            <option value="PJ" ${cli.tipo_pessoa==='PJ'?'selected':''}>Pessoa Jurídica</option>
           </select>
         </div>
         <div class="form-group">
@@ -258,7 +258,7 @@ async function renderCadastrarCliente() {
           <input id="cl2-rg" value="${cli.rg||''}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit">
         </div>
         <div class="form-group">
-          <label style="font-size:12px;font-weight:600;color:var(--text-2)">Inscri��o Estadual</label>
+          <label style="font-size:12px;font-weight:600;color:var(--text-2)">Inscrição Estadual</label>
           <input id="cl2-ie" value="${cli.ie||''}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit">
         </div>
       </div>
@@ -274,7 +274,7 @@ async function renderCadastrarCliente() {
       </div>
       <div style="display:grid;grid-template-columns:200px 1fr;gap:12px;margin-bottom:12px">
         <div class="form-group">
-          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:none">N�mero *</label>
+          <label style="color:#dc2626;font-size:12px;font-weight:700;text-transform:none">Número *</label>
           <input id="cl2-numero" value="${cli.numero||''}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit">
         </div>
         <div class="form-group">
@@ -345,7 +345,7 @@ async function renderCadastrarCliente() {
       </div>
     </div>
 
-    <!-- RODAP� -->
+    <!-- RODAPÉ -->
     <div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center">
       <button onclick="navigate('clientes')" style="padding:8px 16px;background:#dc2626;color:white;border:none;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
         <i data-lucide="arrow-left" style="width:13px;height:13px"></i>Voltar
@@ -365,9 +365,9 @@ async function renderCadastrarCliente() {
 }
 
 async function getComoConheceuOpts(selected) {
-  // Tentar buscar da tabela, fallback para padr�es
+  // Tentar buscar da tabela, fallback para padrões
   const {data} = await sb.from('como_conheceu').select('id,descricao').eq('ativo',true).order('descricao');
-  const opcoes = (data||[]).length ? data.map(o=>o.descricao) : ['Viu a Loja na rua','Indica��o de Cliente','Google','Facebook','Instagram','Outros'];
+  const opcoes = (data||[]).length ? data.map(o=>o.descricao) : ['Viu a Loja na rua','Indicação de Cliente','Google','Facebook','Instagram','Outros'];
   return opcoes.map(o=>`<option value="${o}" ${selected===o?'selected':''}>${o}</option>`).join('');
 }
 
@@ -432,13 +432,13 @@ function renderFilhosTable(filhos) {
       <th style="padding:9px 12px;text-align:left;font-size:12px;font-weight:700;color:var(--text-2)">Nascimento</th>
       <th style="padding:9px 12px;text-align:left;font-size:12px;font-weight:700;color:var(--text-2)">Grade</th>
       <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2)">Sexo</th>
-      <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2)">A��es</th>
+      <th style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2)">Ações</th>
     </tr></thead>
     <tbody>${filhos.map((f,i)=>`<tr style="border-bottom:1px solid var(--border)">
       <td style="padding:8px 12px;font-size:13px">${f.nome}</td>
-      <td style="padding:8px 12px;font-size:12px;color:var(--text-2)">${f.data_nascimento?new Date(f.data_nascimento+'T00:00:00').toLocaleDateString('pt-BR'):'�'}</td>
-      <td style="padding:8px 12px;font-size:12px;color:var(--text-2)">${f.grade_nome||'�'}</td>
-      <td style="padding:8px 12px;text-align:center;font-size:12px">${f.sexo||'�'}</td>
+      <td style="padding:8px 12px;font-size:12px;color:var(--text-2)">${f.data_nascimento?new Date(f.data_nascimento+'T00:00:00').toLocaleDateString('pt-BR'):'—'}</td>
+      <td style="padding:8px 12px;font-size:12px;color:var(--text-2)">${f.grade_nome||'—'}</td>
+      <td style="padding:8px 12px;text-align:center;font-size:12px">${f.sexo||'—'}</td>
       <td style="padding:8px 12px;text-align:center">
         <button onclick="removerFilho(${i})" style="width:24px;height:24px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:var(--red)"><i data-lucide="trash-2" style="width:12px;height:12px"></i></button>
       </td>
@@ -453,8 +453,8 @@ async function incluirFilho() {
   const sexo  = document.querySelector('input[name="cf-sexo"]:checked')?.value||'';
   const nasc  = document.getElementById('cf-nasc')?.value||null;
   const gid   = document.getElementById('cf-grade')?.value||null;
-  const gnome = document.getElementById('cf-grade')?.options[document.getElementById('cf-grade')?.selectedIndex]?.text||'�';
-  if(!nome) return toast('Nome do filho obrigat�rio','error');
+  const gnome = document.getElementById('cf-grade')?.options[document.getElementById('cf-grade')?.selectedIndex]?.text||'—';
+  if(!nome) return toast('Nome do filho obrigatório','error');
   const filho = {nome, nome_abreviado:abrev, sexo, data_nascimento:nasc, grade_id:gid, grade_nome:gnome};
 
   if(_cadClienteId) {
@@ -472,14 +472,14 @@ async function incluirFilho() {
   document.getElementById('cf-grade').value='';
   const r=document.querySelector('input[name="cf-sexo"]:checked'); if(r) r.checked=false;
   lucide.createIcons();
-  toast('Filho inclu�do');
+  toast('Filho incluído');
 }
 
 function removerFilho(idx) {
   if(!confirm('Remover filho?')) return;
   if(_cadClienteId) {
     // recarregar da DB via callback
-    toast('Use o bot�o de deletar ap�s salvar o cliente','info');
+    toast('Use o botão de deletar após salvar o cliente','info');
     return;
   }
   _filhosTemp.splice(idx,1);
@@ -507,9 +507,9 @@ async function salvarClienteCompleto() {
     if(err) err.style.display='block';
     document.getElementById('cl2-celular').style.borderColor='#dc2626';
     switchCliTab('cli');
-    return toast('Celular obrigat�rio','error');
+    return toast('Celular obrigatório','error');
   }
-  if(!nome) { switchCliTab('cli'); return toast('Nome completo obrigat�rio','error'); }
+  if(!nome) { switchCliTab('cli'); return toast('Nome completo obrigatório','error'); }
 
   const dia  = parseInt(document.getElementById('cl2-ani-dia')?.value||0);
   const mes  = parseInt(document.getElementById('cl2-ani-mes')?.value||0);
@@ -548,7 +548,7 @@ async function salvarClienteCompleto() {
     if(error) return toast('Erro: '+error.message,'error');
     savedId = nc.id;
     _cadClienteId = savedId;
-    // Salvar filhos tempor�rios
+    // Salvar filhos temporários
     for(const f of _filhosTemp)
       await sb.from('cliente_filhos').insert({...f, cliente_id:savedId});
     _filhosTemp=[];
@@ -564,22 +564,22 @@ async function renderComoConheceu() {
   const {data} = await sb.from('como_conheceu').select('*').eq('ativo',true).order('descricao');
   document.getElementById('content').innerHTML = `
   <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;max-width:600px">
-    <div style="padding:12px 20px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700">Como nos Conheceu � Op��es</div>
+    <div style="padding:12px 20px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700">Como nos Conheceu à Opções</div>
     <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
       <div class="form-group">
-        <label>Descri��o *</label>
-        <input id="cc-desc" placeholder="Ex: Indica��o de amigo" style="width:100%;padding:8px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit">
+        <label>Descrição *</label>
+        <input id="cc-desc" placeholder="Ex: Indicação de amigo" style="width:100%;padding:8px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit">
       </div>
       <div style="margin-top:10px;text-align:right">
         <button onclick="salvarComoConheceu()" style="padding:8px 20px;background:#2563eb;color:white;border:none;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Salvar</button>
       </div>
     </div>
     <div class="table-wrap"><table class="data-table">
-      <thead><tr><th>Descri��o</th><th style="width:80px">A��o</th></tr></thead>
+      <thead><tr><th>Descrição</th><th style="width:80px">Ação</th></tr></thead>
       <tbody>${(data||[]).map(r=>`<tr>
         <td>${r.descricao}</td>
         <td><button onclick="deletarComoConheceu('${r.id}')" style="width:26px;height:26px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:var(--red)"><i data-lucide="trash-2" style="width:12px;height:12px"></i></button></td>
-      </tr>`).join('')||'<tr><td colspan="2" style="text-align:center;color:var(--text-2);padding:24px">Nenhuma op��o cadastrada</td></tr>'}
+      </tr>`).join('')||'<tr><td colspan="2" style="text-align:center;color:var(--text-2);padding:24px">Nenhuma opção cadastrada</td></tr>'}
       </tbody>
     </table></div>
   </div>`;
@@ -588,18 +588,18 @@ async function renderComoConheceu() {
 
 async function salvarComoConheceu() {
   const desc = document.getElementById('cc-desc')?.value?.trim();
-  if(!desc) return toast('Descri��o obrigat�ria','error');
+  if(!desc) return toast('Descrição obrigatória','error');
   await sb.from('como_conheceu').insert({descricao:desc});
-  toast('Op��o salva'); renderComoConheceu();
+  toast('Opção salva'); renderComoConheceu();
 }
 
 async function deletarComoConheceu(id) {
-  if(!confirm('Remover op��o?')) return;
+  if(!confirm('Remover opção?')) return;
   await sb.from('como_conheceu').update({ativo:false}).eq('id',id);
   toast('Removido'); renderComoConheceu();
 }
 
-// ===== HIST�RICO DE CLIENTES =====
+// ===== HISTÓRICO DE CLIENTES =====
 async function renderHistoricoClientes() {
   document.getElementById('content').innerHTML = `
   <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
@@ -622,7 +622,7 @@ async function buscarHistoricoCliente() {
   if(clis.length===1) { carregarHistoricoCliente(clis[0].id, clis[0].nome); return; }
   res.innerHTML = `<div class="card"><div class="card-body"><div style="font-size:13px;margin-bottom:8px;font-weight:600">Selecione o cliente:</div>${clis.map(c=>`
     <div onclick="carregarHistoricoCliente('${c.id}','${c.nome.replace(/'/g,"\\\\'")}');this.parentElement.remove()" style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;margin-bottom:6px;font-size:13px" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background=''">
-      <strong>${c.nome}</strong> � ${c.celular||'�'}
+      <strong>${c.nome}</strong> à ${c.celular||'—'}
     </div>`).join('')}</div></div>`;
 }
 
@@ -630,16 +630,16 @@ async function carregarHistoricoCliente(id, nome) {
   const {data:vendas} = await sb.from('vendas').select('id,numero_venda,total,forma_pagamento,status,created_at,venda_itens(produto_nome,quantidade,total)').eq('cliente_id',id).order('created_at',{ascending:false});
   const totalGasto = (vendas||[]).filter(v=>v.status==='concluida').reduce((a,v)=>a+parseFloat(v.total||0),0);
   document.getElementById('hc-resultado').innerHTML = `
-  <div style="font-size:15px;font-weight:700;margin-bottom:12px">${nome} � ${(vendas||[]).length} compras | Total: ${fmt(totalGasto)}</div>
+  <div style="font-size:15px;font-weight:700;margin-bottom:12px">${nome} à ${(vendas||[]).length} compras | Total: ${fmt(totalGasto)}</div>
   <div class="card"><div class="table-wrap"><table class="data-table">
     <thead><tr><th>#</th><th>Data</th><th>Forma Pag.</th><th>Total</th><th>Status</th><th>Itens</th></tr></thead>
     <tbody>${(vendas||[]).map(v=>`<tr>
       <td>#${v.numero_venda}</td>
       <td>${fmtDatetime(v.created_at)}</td>
-      <td style="text-transform:capitalize">${v.forma_pagamento||'�'}</td>
+      <td style="text-transform:capitalize">${v.forma_pagamento||'—'}</td>
       <td><strong>${fmt(v.total)}</strong></td>
       <td>${badgeStatus(v.status)}</td>
-      <td style="font-size:11px;color:var(--text-2)">${(v.venda_itens||[]).map(i=>`${i.produto_nome} (${i.quantidade})`).join(', ')||'�'}</td>
+      <td style="font-size:11px;color:var(--text-2)">${(v.venda_itens||[]).map(i=>`${i.produto_nome} (${i.quantidade})`).join(', ')||'—'}</td>
     </tr>`).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--text-2);padding:24px">Nenhuma compra</td></tr>'}
     </tbody>
   </table></div></div>`;
@@ -666,7 +666,7 @@ async function renderPainelClientes() {
   const cliMap = {};
   (vendas||[]).forEach(v=>{
     const key = v.cliente_id||'balcao';
-    const nome = v.clientes?.nome||'Cliente balc�o';
+    const nome = v.clientes?.nome||'Cliente balcão';
     const fone = v.clientes?.celular||'';
     if(!cliMap[key]) cliMap[key]={nome,fone,total:0,pecas:0,freq:0};
     cliMap[key].total+=parseFloat(v.total||0);
@@ -686,21 +686,21 @@ async function renderPainelClientes() {
   document.getElementById('content').innerHTML = `
   <div style="font-size:13px;color:var(--text-2);margin-bottom:12px">
     Painel de Clientes por compras: ${new Date(ini+'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(fim+'T00:00:00').toLocaleDateString('pt-BR')}
-    <button onclick="toast('Filtrar per�odos: em breve','info')" style="margin-left:12px;padding:5px 12px;border:1px solid var(--border-2);border-radius:var(--radius);background:white;font-size:12px;cursor:pointer;font-family:inherit"><i data-lucide="calendar" style="width:12px;height:12px;vertical-align:-2px;margin-right:4px"></i>Filtrar Per�odos</button>
+    <button onclick="toast('Filtrar períodos: em breve','info')" style="margin-left:12px;padding:5px 12px;border:1px solid var(--border-2);border-radius:var(--radius);background:white;font-size:12px;cursor:pointer;font-family:inherit"><i data-lucide="calendar" style="width:12px;height:12px;vertical-align:-2px;margin-right:4px"></i>Filtrar Períodos</button>
   </div>
   <div class="stats-grid" style="margin-bottom:16px">
-    <div class="stat-card" style="background:#2563eb;color:white;border:none"><div style="font-size:11px;font-weight:600;opacity:.8;margin-bottom:4px">Vendas no per�odo</div><div style="font-size:26px;font-weight:800">${fmtNum(totalVendas)}</div></div>
-    <div class="stat-card" style="background:#16a34a;color:white;border:none"><div style="font-size:11px;font-weight:600;opacity:.8;margin-bottom:4px">Pe�as vendidas</div><div style="font-size:26px;font-weight:800">${(clientes||[]).reduce((a,i)=>a+i.quantidade,0)}</div></div>
-    <div class="stat-card" style="background:#d97706;color:white;border:none"><div style="font-size:11px;font-weight:600;opacity:.8;margin-bottom:4px">Ticket m�dio</div><div style="font-size:26px;font-weight:800">${fmtNum(ticketMedio)}</div></div>
+    <div class="stat-card" style="background:#2563eb;color:white;border:none"><div style="font-size:11px;font-weight:600;opacity:.8;margin-bottom:4px">Vendas no período</div><div style="font-size:26px;font-weight:800">${fmtNum(totalVendas)}</div></div>
+    <div class="stat-card" style="background:#16a34a;color:white;border:none"><div style="font-size:11px;font-weight:600;opacity:.8;margin-bottom:4px">Peças vendidas</div><div style="font-size:26px;font-weight:800">${(clientes||[]).reduce((a,i)=>a+i.quantidade,0)}</div></div>
+    <div class="stat-card" style="background:#d97706;color:white;border:none"><div style="font-size:11px;font-weight:600;opacity:.8;margin-bottom:4px">Ticket médio</div><div style="font-size:26px;font-weight:800">${fmtNum(ticketMedio)}</div></div>
     <div class="stat-card" style="background:#7c3aed;color:white;border:none"><div style="font-size:11px;font-weight:600;opacity:.8;margin-bottom:4px">Clientes que compraram</div><div style="font-size:26px;font-weight:800">${clientesUnicos}</div></div>
   </div>
   <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px">
     <div>
-      <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px">Clientes que mais compraram na loja (at� 100)</div>
+      <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px">Clientes que mais compraram na loja (até 100)</div>
       <div class="card"><div class="table-wrap"><table class="data-table" style="font-size:12px">
         <thead><tr><th>Celular</th><th>Nome</th><th style="text-align:right">Valor total</th><th style="text-align:center">Freq</th></tr></thead>
         <tbody>${topCli.map(c=>`<tr>
-          <td style="font-family:monospace">${c.fone||'�'}</td>
+          <td style="font-family:monospace">${c.fone||'—'}</td>
           <td><strong>${c.nome}</strong></td>
           <td style="text-align:right">${fmtNum(c.total)}</td>
           <td style="text-align:center">${c.freq}</td>
@@ -729,8 +729,8 @@ async function renderImportarClientes() {
       <div style="padding:16px 22px;border-bottom:1px solid var(--border)">
         <h3 style="font-size:15px;font-weight:700;margin-bottom:6px">Importar Clientes via CSV</h3>
         <p style="font-size:12.5px;color:var(--text-2);margin:0">
-          Compat�vel com o formato de backup: <strong>ID; Data cadastro; Nome; Abreviado; Celular; Sexo; Dia Aniv; M�s Aniv; Email; Instagram; Ativo; Limite; CPF; CEP; Logradouro; N�mero; Complemento; Bairro; UF; Cidade</strong>
-          <br>Separador: <code style="background:#f1f5f9;padding:1px 5px;border-radius:3px">;</code> � Encoding: UTF-8 ou Latin-1
+          Compatível com o formato de backup: <strong>ID; Data cadastro; Nome; Abreviado; Celular; Sexo; Dia Aniv; Mês Aniv; Email; Instagram; Ativo; Limite; CPF; CEP; Logradouro; Número; Complemento; Bairro; UF; Cidade</strong>
+          <br>Separador: <code style="background:#f1f5f9;padding:1px 5px;border-radius:3px">;</code> à Encoding: UTF-8 ou Latin-1
         </p>
       </div>
 
@@ -783,7 +783,7 @@ async function previewClientesCSV(file) {
 
   const lines = text.split(/\r?\n/).filter(l=>l.trim());
 
-  // Detectar se tem cabe�alho (primeira c�lula n�o num�rica)
+  // Detectar se tem cabeçalho (primeira célula não numérica)
   const firstCell = parseCSVLineCliente(lines[0])[0].replace(/^\uFEFF/,'');
   const hasHeader = isNaN(parseInt(firstCell));
   const dataLines = hasHeader ? lines.slice(1) : lines;
@@ -794,14 +794,14 @@ async function previewClientesCSV(file) {
 
   if(!rows.length) {
     document.getElementById('ic-preview').innerHTML =
-      '<div class="empty-state" style="padding:32px"><i data-lucide="alert-circle"></i><p>Nenhuma linha v�lida encontrada no arquivo</p></div>';
+      '<div class="empty-state" style="padding:32px"><i data-lucide="alert-circle"></i><p>Nenhuma linha válida encontrada no arquivo</p></div>';
     lucide.createIcons(); return;
   }
 
   window._icRows = rows;
 
   const preview = rows.slice(0,5).map(r=>
-    `<tr><td style="font-size:12px;color:var(--text-2)">${r[0]||'�'}</td><td style="font-size:12px">${r[1]||'�'}</td><td style="font-size:13px;font-weight:600">${r[2]||'�'}</td><td style="font-size:12px">${r[3]||'�'}</td><td style="font-family:monospace;font-size:12px">${r[4]||'�'}</td><td style="font-size:12px;text-align:center">${r[5]||'�'}</td><td style="font-size:12px;text-align:center">${r[6]||''}/${r[7]||''}</td><td style="font-size:11px;color:var(--text-2)">${r[8]||'�'}</td></tr>`
+    `<tr><td style="font-size:12px;color:var(--text-2)">${r[0]||'—'}</td><td style="font-size:12px">${r[1]||'—'}</td><td style="font-size:13px;font-weight:600">${r[2]||'—'}</td><td style="font-size:12px">${r[3]||'—'}</td><td style="font-family:monospace;font-size:12px">${r[4]||'—'}</td><td style="font-size:12px;text-align:center">${r[5]||'—'}</td><td style="font-size:12px;text-align:center">${r[6]||''}/${r[7]||''}</td><td style="font-size:11px;color:var(--text-2)">${r[8]||'—'}</td></tr>`
   ).join('');
 
   document.getElementById('ic-preview').innerHTML = `
@@ -821,8 +821,8 @@ async function previewClientesCSV(file) {
       </div>
     </div>
 
-    <!-- Pr�via -->
-    <div style="font-size:13px;font-weight:600;margin-bottom:8px">Pr�via dos primeiros 5 registros:</div>
+    <!-- Prévia -->
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px">Prévia dos primeiros 5 registros:</div>
     <div style="overflow-x:auto;margin-bottom:16px">
       <table style="width:100%;border-collapse:collapse;font-size:12px">
         <thead><tr style="background:#f8fafc;border-bottom:2px solid var(--border)">
@@ -842,10 +842,10 @@ async function previewClientesCSV(file) {
 
     <!-- Aviso -->
     <div style="background:#fefce8;border:1px solid #fde68a;border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;font-size:12.5px;color:#854d0e">
-      <strong>Aviso:</strong> Clientes com o mesmo celular ser�o <strong>atualizados</strong>. Novos celulares ser�o criados como novos clientes.
+      <strong>Aviso:</strong> Clientes com o mesmo celular serão <strong>atualizados</strong>. Novos celulares serão criados como novos clientes.
     </div>
 
-    <!-- Progresso (oculto at� importar) -->
+    <!-- Progresso (oculto até importar) -->
     <div id="ic-progress-wrap" style="display:none;margin-bottom:16px">
       <div style="font-size:12px;color:var(--text-2);margin-bottom:6px" id="ic-progress-label">Importando...</div>
       <div style="background:var(--border);border-radius:99px;height:8px;overflow:hidden">
@@ -853,7 +853,7 @@ async function previewClientesCSV(file) {
       </div>
     </div>
 
-    <!-- Bot�es -->
+    <!-- Botões -->
     <div style="display:flex;justify-content:flex-end;gap:10px">
       <button onclick="renderImportarClientes()" class="btn btn-secondary"><i data-lucide="x"></i>Cancelar</button>
       <button id="ic-btn-import" onclick="executarImportacaoClientes()" class="btn btn-primary" style="background:#16a34a;box-shadow:0 2px 8px rgba(22,163,74,.3)">
@@ -891,7 +891,7 @@ async function executarImportacaoClientes() {
 
   let criados=0, atualizados=0, erros=0;
 
-  // Processar em lotes de 20 para n�o sobrecarregar
+  // Processar em lotes de 20 para não sobrecarregar
   const BATCH = 20;
   for(let i=0;i<rows.length;i++) {
     const r = rows[i];
@@ -907,7 +907,7 @@ async function executarImportacaoClientes() {
       // Data de cadastro
       const dataCad = parseDateBR(r[1]);
 
-      // Anivers�rio: guardar como data fict�cia ano 2000
+      // Aniversário: guardar como data fictícia ano 2000
       let dataNasc = null;
       const dia = parseInt(r[6]||0), mes = parseInt(r[7]||0);
       if(dia>0 && mes>0) dataNasc = `2000-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
@@ -943,7 +943,7 @@ async function executarImportacaoClientes() {
           criados++;
         }
       } else {
-        // Sem celular � inserir apenas se nome n�o existe
+        // Sem celular à inserir apenas se nome não existe
         const {data:ex2} = await sb.from('clientes')
           .select('id').eq('nome',nome).eq('ativo',true).maybeSingle();
         if(!ex2) {
@@ -963,7 +963,7 @@ async function executarImportacaoClientes() {
   document.getElementById('ic-preview').innerHTML = `
   <div style="text-align:center;padding:32px">
     <div style="font-size:40px;margin-bottom:12px">?</div>
-    <h3 style="font-size:18px;font-weight:700;margin-bottom:10px">Importa��o conclu�da!</h3>
+    <h3 style="font-size:18px;font-weight:700;margin-bottom:10px">Importação concluída!</h3>
     <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:20px">
       <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--radius);padding:12px 20px;text-align:center">
         <div style="font-size:24px;font-weight:800;color:var(--green)">${criados}</div>
@@ -983,7 +983,7 @@ async function executarImportacaoClientes() {
 }
 
 // ===== PRODUTOS =====
-// ===== PRODUTOS � LISTA =====
+// ===== PRODUTOS à LISTA =====
 async function renderProdutos() {
   document.getElementById('topbar-actions').innerHTML = `
     <button class="btn btn-primary" style="background:#16a34a;border:none;box-shadow:0 2px 8px rgba(22,163,74,.3)" onclick="navigate('cadastrar-produto')">
@@ -998,7 +998,7 @@ async function renderListaProdutosEstoque() {
   const el = document.getElementById('content');
   if(!el) return;
 
-  // Buscar op��es dos selects
+  // Buscar opções dos selects
   const [{data:cats},{data:forns},{data:grades}] = await Promise.all([
     sb.from('categorias').select('id,nome').eq('ativo',true).order('nome'),
     sb.from('fornecedores').select('id,razao_social').eq('ativo',true).order('razao_social'),
@@ -1014,10 +1014,10 @@ async function renderListaProdutosEstoque() {
 
       <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Informe o Produto</div>
       <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:14px">
-        <input id="lp-ean" placeholder="C�d. Barra"
+        <input id="lp-ean" placeholder="Cód. Barra"
           style="padding:7px 10px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit"
           onkeydown="if(event.key==='Enter')buscarListaProdutos()">
-        <input id="lp-codigo" placeholder="C�digo do Produto"
+        <input id="lp-codigo" placeholder="Código do Produto"
           style="padding:7px 10px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit"
           onkeydown="if(event.key==='Enter')buscarListaProdutos()">
       </div>
@@ -1037,7 +1037,7 @@ async function renderListaProdutosEstoque() {
           ${(grades||[]).map(g=>`<option value="${g.id}">${g.nome}</option>`).join('')}
         </select>
         <select id="lp-gen" style="padding:7px 10px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:12px;background:white">
-          <option value="">Todos os g�neros</option>
+          <option value="">Todos os gêneros</option>
           <option value="F">Feminino</option>
           <option value="M">Masculino</option>
           <option value="U">Unissex</option>
@@ -1052,10 +1052,10 @@ async function renderListaProdutosEstoque() {
       </div>
     </div>
 
-    <!-- �REA PRINCIPAL -->
+    <!-- ÁREA PRINCIPAL -->
     <div style="flex:1;min-width:0;background:white;border:1px solid var(--border);border-radius:0 var(--radius-lg) var(--radius-lg) 0;overflow:hidden">
 
-      <!-- BARRA DE A��ES -->
+      <!-- BARRA DE AÇÕES -->
       <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <div style="display:flex;flex-direction:column;gap:3px">
           <div style="font-size:11px;font-weight:700;color:var(--text-2)">Listar Produtos que:</div>
@@ -1070,7 +1070,7 @@ async function renderListaProdutosEstoque() {
               </label>
             </div>
             <select id="lp-opcao" style="padding:5px 10px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:12px;background:white;min-width:180px">
-              <option value="">Selecione uma op��o</option>
+              <option value="">Selecione uma opção</option>
               <option value="sem_etiqueta">Sem etiqueta impressa</option>
               <option value="com_etiqueta">Com etiqueta impressa</option>
               <option value="todos">Todos os produtos</option>
@@ -1080,7 +1080,7 @@ async function renderListaProdutosEstoque() {
 
         <div style="display:flex;gap:8px;align-items:center;margin-left:auto;flex-wrap:wrap">
           <button onclick="adicionarFilaImpressao()" style="padding:8px 14px;background:#7c3aed;color:white;border:none;border-radius:var(--radius);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">
-            Adicionar fila de impress�o
+            Adicionar fila de impressão
           </button>
           <div style="position:relative">
             <button onclick="verFilaImpressao()" style="padding:8px 14px;background:white;color:var(--text);border:2px solid var(--border-2);border-radius:var(--radius);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">
@@ -1099,8 +1099,8 @@ async function renderListaProdutosEstoque() {
       <div style="padding:10px 18px;background:#eff6ff;border-bottom:1px solid #bfdbfe;display:flex;align-items:flex-start;gap:8px">
         <i data-lucide="info" style="width:15px;height:15px;color:#2563eb;flex-shrink:0;margin-top:1px"></i>
         <div style="font-size:12px;color:#1e40af">
-          <strong>NOVO:</strong> Lan�amos novos bot�es para facilitar as impress�es de etiquetas.
-          Assista o v�deo tutorial de como usar esses bot�es de impress�o:
+          <strong>NOVO:</strong> Lançamos novos botões para facilitar as impressões de etiquetas.
+          Assista o vídeo tutorial de como usar esses botões de impressão:
           <span style="color:#2563eb;font-weight:700;cursor:pointer;text-decoration:underline" onclick="ajudaEtiquetas()">CLIQUE AQUI E ASSISTA AGORA.</span>
         </div>
       </div>
@@ -1112,9 +1112,9 @@ async function renderListaProdutosEstoque() {
         </div>
       </div>
 
-      <!-- RODAP� TOTAIS -->
+      <!-- RODAPÉ TOTAIS -->
       <div id="lp-footer" style="padding:10px 18px;border-top:1px solid var(--border);background:#f8fafc;font-size:13px;display:flex;justify-content:space-between;align-items:center">
-        <span id="lp-count" style="color:var(--text-2)">Existem 0 produtos nesta sele��o.</span>
+        <span id="lp-count" style="color:var(--text-2)">Existem 0 produtos nesta seleção.</span>
         <span style="color:var(--text-2)">Valor Total (R$): <strong id="lp-total">0,00</strong></span>
       </div>
     </div>
@@ -1164,7 +1164,7 @@ async function buscarListaProdutos() {
 
   if(error||!rows.length) {
     wrap.innerHTML = `<div style="padding:24px;text-align:center;color:var(--text-2);font-size:13px">Nenhum produto encontrado.</div>`;
-    document.getElementById('lp-count').textContent = 'Existem 0 produtos nesta sele��o.';
+    document.getElementById('lp-count').textContent = 'Existem 0 produtos nesta seleção.';
     document.getElementById('lp-total').textContent = '0,00';
     return;
   }
@@ -1175,20 +1175,20 @@ async function buscarListaProdutos() {
   const totalValor = rows.reduce((a,r)=>a+((r.estoque||0)*parseFloat(r.preco_venda||r.produtos?.preco_venda||0)),0);
   const tableRows = rows.map(r => {
     const p = r.produtos;
-    const dataCad = p.created_at?new Date(p.created_at).toLocaleDateString('pt-BR'):'�';
+    const dataCad = p.created_at?new Date(p.created_at).toLocaleDateString('pt-BR'):'—';
     const corDot  = r.cor_hexa?`<span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:${r.cor_hexa};border:1px solid rgba(0,0,0,.15);vertical-align:-2px;margin-right:4px"></span>`:'';
     const totalLinha = (r.estoque||0)*parseFloat(r.preco_venda||p?.preco_venda||0);
     const genMap = {F:'Feminino',M:'Masculino',U:'Unissex',J:'Juvenil'};
     return `<tr>
       <td style="padding:7px 10px;text-align:center"><input type="checkbox" data-gid="${r.id}" class="lp-check"></td>
       <td style="padding:7px 10px;font-size:12px;color:var(--text-2);white-space:nowrap">${dataCad}</td>
-      <td style="padding:7px 10px;font-size:12px">${p?.marca||'�'}</td>
-      <td style="padding:7px 10px;font-size:11px;font-family:monospace;color:var(--text-2)">${p?.ncm||'�'}</td>
-      <td style="padding:7px 10px;font-size:12px">${p?.codigo||'�'}</td>
-      <td style="padding:7px 10px;font-size:11px;font-family:monospace">${r.ean||'�'}</td>
-      <td style="padding:7px 10px;font-size:12px"><strong>${p?.nome||'�'}</strong>${r.cor_descricao?`<br><small>${corDot}${r.cor_descricao}</small>`:''}</td>
-      <td style="padding:7px 10px;font-size:12px;text-align:center">${r.tamanho||'�'}</td>
-      <td style="padding:7px 10px;font-size:12px;text-align:center">${genMap[p?.genero]||'�'}</td>
+      <td style="padding:7px 10px;font-size:12px">${p?.marca||'—'}</td>
+      <td style="padding:7px 10px;font-size:11px;font-family:monospace;color:var(--text-2)">${p?.ncm||'—'}</td>
+      <td style="padding:7px 10px;font-size:12px">${p?.codigo||'—'}</td>
+      <td style="padding:7px 10px;font-size:11px;font-family:monospace">${r.ean||'—'}</td>
+      <td style="padding:7px 10px;font-size:12px"><strong>${p?.nome||'—'}</strong>${r.cor_descricao?`<br><small>${corDot}${r.cor_descricao}</small>`:''}</td>
+      <td style="padding:7px 10px;font-size:12px;text-align:center">${r.tamanho||'—'}</td>
+      <td style="padding:7px 10px;font-size:12px;text-align:center">${genMap[p?.genero]||'—'}</td>
       <td style="padding:7px 10px;font-size:12px;text-align:right">${fmtNum(r.custo||0)}</td>
       <td style="padding:7px 10px;font-size:12px;text-align:right">${fmtNum(r.preco_venda||p?.preco_venda||0)}</td>
       <td style="padding:7px 10px;font-size:12px;text-align:center;font-weight:700">${r.estoque||0}</td>
@@ -1205,11 +1205,11 @@ async function buscarListaProdutos() {
           <th style="padding:9px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">Data<br>Cadastro</th>
           <th style="padding:9px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Marca</th>
           <th style="padding:9px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">NCM</th>
-          <th style="padding:9px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">C�digo</th>
-          <th style="padding:9px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">C�d. Barra</th>
-          <th style="padding:9px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Descri��o Produto / Cor</th>
+          <th style="padding:9px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Código</th>
+          <th style="padding:9px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Cód. Barra</th>
+          <th style="padding:9px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Descrição Produto / Cor</th>
           <th style="padding:9px 10px;text-align:center;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Grade</th>
-          <th style="padding:9px 10px;text-align:center;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">G�nero</th>
+          <th style="padding:9px 10px;text-align:center;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Gênero</th>
           <th style="padding:9px 10px;text-align:right;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Valor Un<br>Custo</th>
           <th style="padding:9px 10px;text-align:right;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Valor Un<br>Venda</th>
           <th style="padding:9px 10px;text-align:center;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Qtde</th>
@@ -1220,7 +1220,7 @@ async function buscarListaProdutos() {
     </table>
   </div>`;
 
-  document.getElementById('lp-count').textContent = `Existem ${rows.length} produto(s) nesta sele��o.`;
+  document.getElementById('lp-count').textContent = `Existem ${rows.length} produto(s) nesta seleção.`;
   document.getElementById('lp-total').textContent = fmtNum(totalValor);
 
   const badge = document.getElementById('fila-badge');
@@ -1247,26 +1247,26 @@ function adicionarFilaImpressao() {
   }
   const badge = document.getElementById('fila-badge');
   if(badge) badge.textContent = _filaImpressao.length;
-  toast(`${selecionados.length||'Todos'} item(ns) adicionado(s) � fila de impress�o`);
+  toast(`${selecionados.length||'Todos'} item(ns) adicionado(s) à fila de impressão`);
 }
 
 function verFilaImpressao() {
   if(!_filaImpressao.length) {
-    openModal(`<div class="modal-header"><h3>Fila de Impress�o</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
-    <div class="modal-body"><div class="empty-state"><i data-lucide="printer"></i><p>Fila vazia. Selecione produtos e clique em "Adicionar fila de impress�o".</p></div></div>
+    openModal(`<div class="modal-header"><h3>Fila de Impressão</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
+    <div class="modal-body"><div class="empty-state"><i data-lucide="printer"></i><p>Fila vazia. Selecione produtos e clique em "Adicionar fila de impressão".</p></div></div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModalDirect()">Fechar</button></div>`,'modal-sm');
     return;
   }
   const rows = (window._lpRows||[]).filter(r=>_filaImpressao.includes(r.id));
   openModal(`
-    <div class="modal-header"><h3>Fila de Impress�o (${_filaImpressao.length})</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
+    <div class="modal-header"><h3>Fila de Impressão (${_filaImpressao.length})</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
     <div class="modal-body">
       <div class="table-wrap"><table class="data-table" style="font-size:12px">
-        <thead><tr><th>Produto</th><th>EAN</th><th>Grade</th><th>Pre�o</th><th></th></tr></thead>
+        <thead><tr><th>Produto</th><th>EAN</th><th>Grade</th><th>Preço</th><th></th></tr></thead>
         <tbody>${rows.map(r=>`<tr>
-          <td>${r.produtos?.nome||'�'}</td>
-          <td style="font-family:monospace">${r.ean||'�'}</td>
-          <td>${r.tamanho||'�'}</td>
+          <td>${r.produtos?.nome||'—'}</td>
+          <td style="font-family:monospace">${r.ean||'—'}</td>
+          <td>${r.tamanho||'—'}</td>
           <td>${fmtNum(r.preco_venda||r.produtos?.preco_venda||0)}</td>
           <td><button onclick="removerDaFila('${r.id}')" style="background:none;border:none;cursor:pointer;color:var(--red)"><i data-lucide="x" style="width:14px;height:14px"></i></button></td>
         </tr>`).join('')}
@@ -1294,7 +1294,7 @@ function imprimirEtiquetas() {
   const ids = _filaImpressao.length ? _filaImpressao
     : [...document.querySelectorAll('.lp-check:checked')].map(c=>c.getAttribute('data-gid'));
 
-  if(!ids.length) return toast('Nenhum produto selecionado para impress�o','error');
+  if(!ids.length) return toast('Nenhum produto selecionado para impressão','error');
 
   const prods = (window._lpRows||[]).filter(r=>ids.includes(r.id));
   if(!prods.length) return toast('Carregue os produtos primeiro','error');
@@ -1302,7 +1302,7 @@ function imprimirEtiquetas() {
   const etiquetas = prods.map(r=>`
     <div style="width:62mm;min-height:38mm;border:1px solid #ccc;padding:6px;display:inline-block;margin:4px;font-family:monospace;vertical-align:top;page-break-inside:avoid">
       <div style="font-size:8pt;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.produtos?.nome||''}</div>
-      <div style="font-size:7pt;color:#555">${r.tamanho||''} ${r.cor_descricao?'� '+r.cor_descricao:''}</div>
+      <div style="font-size:7pt;color:#555">${r.tamanho||''} ${r.cor_descricao?'— '+r.cor_descricao:''}</div>
       <div style="font-size:10pt;font-weight:bold;margin:2px 0">R$ ${fmtNum(r.preco_venda||r.produtos?.preco_venda||0)}</div>
       <div style="font-size:6.5pt;letter-spacing:2px">${r.ean||''}</div>
     </div>`).join('');
@@ -1319,7 +1319,7 @@ function imprimirEtiquetas() {
   _filaImpressao = [];
   const badge = document.getElementById('fila-badge');
   if(badge) badge.textContent = 0;
-  toast('Etiquetas enviadas para impress�o');
+  toast('Etiquetas enviadas para impressão');
 }
 
 function ajudaEtiquetas() {
@@ -1327,9 +1327,9 @@ function ajudaEtiquetas() {
     <div class="modal-header"><h3>Como usar as Etiquetas</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
     <div class="modal-body">
       <div class="info-list">
-        <div class="info-row"><span class="label">1. Adicionar fila de impress�o</span><span class="value">Selecione os produtos (checkbox) e clique no bot�o roxo para adicion�-los � fila</span></div>
-        <div class="info-row"><span class="label">2. Ver Fila</span><span class="value">Veja todos os produtos na fila antes de imprimir. � poss�vel remover individualmente.</span></div>
-        <div class="info-row"><span class="label">3. Imprimir Etiqueta</span><span class="value">Gera um layout de etiquetas 62x38mm com nome, tamanho, cor, pre�o e c�digo de barras</span></div>
+        <div class="info-row"><span class="label">1. Adicionar fila de impressão</span><span class="value">Selecione os produtos (checkbox) e clique no botão roxo para adicioná-los à fila</span></div>
+        <div class="info-row"><span class="label">2. Ver Fila</span><span class="value">Veja todos os produtos na fila antes de imprimir. à possível remover individualmente.</span></div>
+        <div class="info-row"><span class="label">3. Imprimir Etiqueta</span><span class="value">Gera um layout de etiquetas 62x38mm com nome, tamanho, cor, preço e código de barras</span></div>
       </div>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModalDirect()">Entendi</button></div>`,'modal-md');
@@ -1342,34 +1342,34 @@ async function loadProdutos(filtros={}) {
       <!-- Barra de buscas -->
       <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:8px;align-items:center">
         <div style="display:flex;gap:0;flex:1;min-width:220px">
-          <input id="pf-ean" class="filter-input" placeholder="Buscar produtos pela c�d. barras" style="border-radius:var(--radius) 0 0 var(--radius);flex:1;min-width:120px">
+          <input id="pf-ean" class="filter-input" placeholder="Buscar produtos pela cód. barras" style="border-radius:var(--radius) 0 0 var(--radius);flex:1;min-width:120px">
           <button class="btn btn-primary" style="border-radius:0 var(--radius) var(--radius) 0;padding:7px 12px" onclick="aplicarFiltrosProdutos()"><i data-lucide="barcode"></i>Pesquisar</button>
         </div>
         <div style="display:flex;gap:0;flex:1;min-width:220px">
-          <input id="pf-desc" class="filter-input" placeholder="Buscar produtos pela descri��o" style="border-radius:var(--radius) 0 0 var(--radius);flex:1;min-width:120px">
+          <input id="pf-desc" class="filter-input" placeholder="Buscar produtos pela descrição" style="border-radius:var(--radius) 0 0 var(--radius);flex:1;min-width:120px">
           <button class="btn btn-primary" style="border-radius:0 var(--radius) var(--radius) 0;padding:7px 12px" onclick="aplicarFiltrosProdutos()"><i data-lucide="search"></i>Pesquisar</button>
         </div>
         <div style="display:flex;gap:0;flex:1;min-width:160px">
-          <input id="pf-cod" class="filter-input" placeholder="Buscar produtos pelo C�digo" style="border-radius:var(--radius) 0 0 var(--radius);flex:1;min-width:100px">
+          <input id="pf-cod" class="filter-input" placeholder="Buscar produtos pelo Código" style="border-radius:var(--radius) 0 0 var(--radius);flex:1;min-width:100px">
           <button class="btn btn-primary" style="border-radius:0 var(--radius) var(--radius) 0;padding:7px 12px" onclick="aplicarFiltrosProdutos()"><i data-lucide="search"></i>Pesquisar</button>
         </div>
         <div style="display:flex;gap:6px;align-items:center;margin-left:auto">
           <select id="pf-acao" class="filter-select" style="min-width:180px">
-            <option value="">A��es</option>
+            <option value="">Ações</option>
             <option value="excluir">Excluir selecionados</option>
             <option value="exportar">Exportar selecionados</option>
           </select>
-          <button class="btn btn-secondary btn-sm" onclick="toggleFiltrosAvancados()"><i data-lucide="sliders-horizontal"></i>Filtros Avan�ados</button>
+          <button class="btn btn-secondary btn-sm" onclick="toggleFiltrosAvancados()"><i data-lucide="sliders-horizontal"></i>Filtros Avançados</button>
         </div>
       </div>
-      <!-- Filtros Avan�ados (oculto por padr�o) -->
+      <!-- Filtros Avançados (oculto por padrão) -->
       <div id="filtros-avancados" style="display:none;padding:12px 16px;background:#f8fafc;border-bottom:1px solid var(--border);gap:10px;flex-wrap:wrap">
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
           <div class="form-group" style="min-width:140px"><label>Fornecedor</label>
             <select id="pf-forn" class="filter-select"><option value="">Todos</option></select></div>
           <div class="form-group" style="min-width:130px"><label>Categoria</label>
             <select id="pf-cat" class="filter-select"><option value="">Todas</option></select></div>
-          <div class="form-group" style="min-width:120px"><label>G�nero</label>
+          <div class="form-group" style="min-width:120px"><label>Gênero</label>
             <select id="pf-gen" class="filter-select">
               <option value="">Todos</option><option value="F">Feminino</option>
               <option value="M">Masculino</option><option value="U">Unissex</option><option value="J">Juvenil</option>
@@ -1451,7 +1451,7 @@ async function carregarTabelaProdutos(filtros) {
   const {data, error} = await q;
 
   if(error) {
-    // Fallback: mostrar produtos sem variantes tamb�m
+    // Fallback: mostrar produtos sem variantes também
     const {data:prods} = await sb.from('produtos').select('*,categorias(nome),grades(nome)').eq('ativo',true).order('nome');
     renderTabelaProdutosFallback(prods||[]);
     return;
@@ -1490,13 +1490,13 @@ async function carregarTabelaProdutos(filtros) {
       // Produto sem variantes
       rows += `<tr>
         <td style="padding:8px 12px"><input type="checkbox" data-pid="${prod.id}"></td>
-        <td style="padding:8px 10px;font-size:12px;color:var(--text-2)" rowspan="1">${prod.sku||'�'}</td>
-        <td style="padding:8px 10px;font-size:12px" rowspan="1">${prod.codigo||'�'}</td>
+        <td style="padding:8px 10px;font-size:12px;color:var(--text-2)" rowspan="1">${prod.sku||'—'}</td>
+        <td style="padding:8px 10px;font-size:12px" rowspan="1">${prod.codigo||'—'}</td>
         <td style="padding:8px 10px;font-size:13px;font-weight:600" rowspan="1">${prod.nome}</td>
-        <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">�</td>
-        <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">�</td>
-        <td style="padding:8px 10px">�</td>
-        <td style="padding:8px 10px;font-size:13px;font-weight:600">�</td>
+        <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">—</td>
+        <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">—</td>
+        <td style="padding:8px 10px">—</td>
+        <td style="padding:8px 10px;font-size:13px;font-weight:600">—</td>
         <td style="padding:8px 10px;font-size:12px;text-align:center">0</td>
         <td style="padding:8px 10px">
           <div style="display:flex;gap:4px">
@@ -1510,18 +1510,18 @@ async function carregarTabelaProdutos(filtros) {
         const corDot = v.cor_hexa
           ? `<span style="display:inline-block;width:13px;height:13px;border-radius:50%;background:${v.cor_hexa};border:1px solid rgba(0,0,0,.15);vertical-align:-2px;margin-right:5px"></span>`
           : '';
-        const corLabel = v.cor_descricao||'�';
+        const corLabel = v.cor_descricao||'—';
         const isFirst = vi === 0;
         const rowBg = vi % 2 === 0 ? '' : 'background:#f8fafc';
         rows += `<tr style="${rowBg}">
           ${isFirst ? `<td style="padding:8px 12px;vertical-align:top" rowspan="${numVar}"><input type="checkbox" data-pid="${prod.id}"></td>
-          <td style="padding:8px 10px;font-size:12px;color:var(--text-2);vertical-align:top" rowspan="${numVar}">${prod.sku||'�'}</td>
-          <td style="padding:8px 10px;font-size:12px;vertical-align:top" rowspan="${numVar}">${prod.codigo||'�'}</td>
+          <td style="padding:8px 10px;font-size:12px;color:var(--text-2);vertical-align:top" rowspan="${numVar}">${prod.sku||'—'}</td>
+          <td style="padding:8px 10px;font-size:12px;vertical-align:top" rowspan="${numVar}">${prod.codigo||'—'}</td>
           <td style="padding:8px 10px;font-size:13px;font-weight:600;vertical-align:top" rowspan="${numVar}">${prod.nome}</td>` : ''}
-          <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">${v.ean||'�'}</td>
-          <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">${v.tamanho||'�'}</td>
+          <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">${v.ean||'—'}</td>
+          <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">${v.tamanho||'—'}</td>
           <td style="padding:8px 10px;font-size:12px;white-space:nowrap">${corDot}${corLabel}</td>
-          <td style="padding:8px 10px;font-size:13px;font-weight:600">${v.preco_venda?fmt(v.preco_venda):(prod.preco_venda?fmt(prod.preco_venda):'�')}</td>
+          <td style="padding:8px 10px;font-size:13px;font-weight:600">${v.preco_venda?fmt(v.preco_venda):(prod.preco_venda?fmt(prod.preco_venda):'—')}</td>
           <td style="padding:8px 10px;font-size:12px;text-align:center">${v.estoque??0}</td>
           ${isFirst ? `<td style="padding:8px 10px;vertical-align:top" rowspan="${numVar}">
             <div style="display:flex;gap:4px">
@@ -1542,14 +1542,14 @@ async function carregarTabelaProdutos(filtros) {
       <thead><tr>
         <th style="width:36px"><input type="checkbox" id="chk-all" onchange="document.querySelectorAll('[data-pid]').forEach(c=>c.checked=this.checked)"></th>
         <th style="min-width:80px">SKU</th>
-        <th style="min-width:90px">C�digo</th>
-        <th style="min-width:180px">Descri��o</th>
-        <th style="min-width:130px">C�d. barras</th>
+        <th style="min-width:90px">Código</th>
+        <th style="min-width:180px">Descrição</th>
+        <th style="min-width:130px">Cód. barras</th>
         <th style="min-width:60px">Grade</th>
         <th style="min-width:110px">Cor</th>
         <th style="min-width:100px">Vlr Venda UN</th>
         <th style="min-width:60px;text-align:center">Qtde</th>
-        <th style="min-width:70px">A��o</th>
+        <th style="min-width:70px">Ação</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table></div>`;
@@ -1561,12 +1561,12 @@ function renderTabelaProdutosFallback(prods) {
   if(!wrap) return;
   let rows = prods.map(p=>`<tr>
     <td style="padding:8px 12px"><input type="checkbox" data-pid="${p.id}"></td>
-    <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">${p.sku||'�'}</td>
-    <td style="padding:8px 10px;font-size:12px">${p.codigo||'�'}</td>
+    <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">${p.sku||'—'}</td>
+    <td style="padding:8px 10px;font-size:12px">${p.codigo||'—'}</td>
     <td style="padding:8px 10px;font-size:13px;font-weight:600">${p.nome}</td>
     <td colspan="3" style="padding:8px 10px;font-size:12px;color:var(--text-3)">Sem variantes</td>
     <td style="padding:8px 10px;font-size:13px;font-weight:600">${fmt(p.preco_venda)}</td>
-    <td style="padding:8px 10px;text-align:center">�</td>
+    <td style="padding:8px 10px;text-align:center">—</td>
     <td style="padding:8px 10px">
       <div style="display:flex;gap:4px">
         <button onclick="_editProdId='${p.id}';navigate('cadastrar-produto')" style="width:28px;height:28px;border:1px solid var(--border-2);border-radius:4px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2)"><i data-lucide="square-pen" style="width:13px;height:13px"></i></button>
@@ -1575,7 +1575,7 @@ function renderTabelaProdutosFallback(prods) {
     </td>
   </tr>`).join('');
   wrap.innerHTML = `<div class="table-wrap"><table class="data-table">
-    <thead><tr><th style="width:36px"><input type="checkbox"></th><th>SKU</th><th>C�digo</th><th>Descri��o</th><th colspan="3"></th><th>Vlr Venda UN</th><th>Qtde</th><th>A��o</th></tr></thead>
+    <thead><tr><th style="width:36px"><input type="checkbox"></th><th>SKU</th><th>Código</th><th>Descrição</th><th colspan="3"></th><th>Vlr Venda UN</th><th>Qtde</th><th>Ação</th></tr></thead>
     <tbody>${rows||'<tr><td colspan="10" style="text-align:center;color:var(--text-2);padding:32px">Nenhum produto</td></tr>'}</tbody>
   </table></div>`;
   lucide.createIcons();
@@ -1590,7 +1590,7 @@ async function deleteProduto(id) {
   carregarTabelaProdutos({});
 }
 
-// ===== CADASTRO PRODUTO � P�GINA COMPLETA =====
+// ===== CADASTRO PRODUTO à PÁGINA COMPLETA =====
 let _editProdId = null;
 let _cadProdId  = null;  // produto sendo editado/criado
 
@@ -1633,22 +1633,22 @@ async function renderCadastrarProduto() {
 
     <!-- LEGENDA LATERAL -->
     <div style="width:180px;flex-shrink:0;background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;position:sticky;top:0">
-      <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Status da varia��o</div>
+      <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Status da variação</div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <span style="width:16px;height:16px;border-radius:3px;background:#86efac;flex-shrink:0"></span>
         <span style="font-size:12px">Em cadastro</span>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <span style="width:16px;height:16px;border-radius:3px;background:#93c5fd;flex-shrink:0"></span>
-        <span style="font-size:12px">Em edi��o</span>
+        <span style="font-size:12px">Em edição</span>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         <span style="width:16px;height:16px;border-radius:3px;background:#fb923c;flex-shrink:0"></span>
-        <span style="font-size:12px">�ltima varia��o cadastrada</span>
+        <span style="font-size:12px">última variação cadastrada</span>
       </div>
     </div>
 
-    <!-- FORMUL�RIO PRINCIPAL -->
+    <!-- FORMULÁRIO PRINCIPAL -->
     <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:14px">
 
       <!-- DADOS GERAIS -->
@@ -1657,10 +1657,10 @@ async function renderCadastrarProduto() {
           <span style="font-size:13px;font-weight:700;color:#2e7d32">Dados gerais produto</span>
         </div>
         <div style="padding:18px 20px;display:flex;flex-direction:column;gap:14px">
-          <!-- Linha 1: Cole��o + Fornecedor + Marca -->
+          <!-- Linha 1: Coleção + Fornecedor + Marca -->
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
             <div class="form-group">
-              <label style="color:#d97706">Informar a cole��o</label>
+              <label style="color:#d97706">Informar a coleção</label>
               <select id="cp-colecao"><option value="">Selecione</option>${opts(cols,'id','nome',prod.colecao_id)}</select>
             </div>
             <div class="form-group">
@@ -1673,17 +1673,17 @@ async function renderCadastrarProduto() {
               <datalist id="marcas-list">${marcasUnicas.map(m=>`<option value="${m}">`).join('')}</datalist>
             </div>
           </div>
-          <!-- Linha 2: C�digo Ref + G�nero + Categoria -->
+          <!-- Linha 2: Código Ref + Gênero + Categoria -->
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
             <div class="form-group">
-              <label style="color:#d97706">C�digo produto (Refer�ncia)</label>
+              <label style="color:#d97706">Código produto (Referência)</label>
               <div style="display:flex;gap:0">
                 <input id="cp-codigo" value="${prod.codigo||''}" style="flex:1;border-radius:var(--radius) 0 0 var(--radius)">
-                <button onclick="gerarCodProd()" style="padding:8px 10px;background:#2563eb;color:white;border-radius:0 var(--radius) var(--radius) 0;font-size:11px;font-weight:600;white-space:nowrap;font-family:inherit">Gerar C�d. Prod</button>
+                <button onclick="gerarCodProd()" style="padding:8px 10px;background:#2563eb;color:white;border-radius:0 var(--radius) var(--radius) 0;font-size:11px;font-weight:600;white-space:nowrap;font-family:inherit">Gerar Cód. Prod</button>
               </div>
             </div>
             <div class="form-group">
-              <label>G�nero</label>
+              <label>Gênero</label>
               <select id="cp-genero">
                 <option value="">Selecione</option>
                 <option value="F" ${prod.genero==='F'?'selected':''}>Feminino</option>
@@ -1697,41 +1697,41 @@ async function renderCadastrarProduto() {
               <select id="cp-categoria"><option value="">Selecione</option>${opts(cats,'id','nome',prod.categoria_id)}</select>
             </div>
           </div>
-          <!-- Linha 3: NCM + Descri��o NCM -->
+          <!-- Linha 3: NCM + Descrição NCM -->
           <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px">
             <div class="form-group">
-              <label style="color:#d97706">C�digo NCM</label>
+              <label style="color:#d97706">Código NCM</label>
               <div style="display:flex;gap:0">
                 <input id="cp-ncm" value="${prod.ncm||''}" placeholder="00000000" style="flex:1;border-radius:var(--radius) 0 0 var(--radius)">
-                <button onclick="gerarNCMPadrao()" style="padding:8px 10px;background:#2563eb;color:white;border-radius:0 var(--radius) var(--radius) 0;font-size:11px;font-weight:600;white-space:nowrap;font-family:inherit">Gerar NCM padr�o</button>
+                <button onclick="gerarNCMPadrao()" style="padding:8px 10px;background:#2563eb;color:white;border-radius:0 var(--radius) var(--radius) 0;font-size:11px;font-weight:600;white-space:nowrap;font-family:inherit">Gerar NCM padrão</button>
               </div>
             </div>
             <div class="form-group">
-              <label>Descri��o NCM</label>
+              <label>Descrição NCM</label>
               <div style="display:flex;gap:0">
-                <input id="cp-ncm-desc" value="${prod.ncm_descricao||''}" placeholder="Descri��o..." style="flex:1;border-radius:var(--radius) 0 0 var(--radius)">
+                <input id="cp-ncm-desc" value="${prod.ncm_descricao||''}" placeholder="Descrição..." style="flex:1;border-radius:var(--radius) 0 0 var(--radius)">
                 <button onclick="buscarNCM()" style="padding:8px 11px;background:#e2e8f0;border-radius:0 var(--radius) var(--radius) 0;display:flex;align-items:center;color:var(--text-2)"><i data-lucide="search" style="width:14px;height:14px"></i></button>
               </div>
             </div>
           </div>
-          <!-- Linha 4: Descri��o produto (SKU + Nome) -->
+          <!-- Linha 4: Descrição produto (SKU + Nome) -->
           <div style="display:grid;grid-template-columns:160px 1fr;gap:12px">
             <div class="form-group">
               <label>SKU</label>
               <input id="cp-sku" value="${prod.sku||''}" placeholder="SKU">
             </div>
             <div class="form-group">
-              <label style="color:#d97706">Descri��o produto *</label>
-              <input id="cp-nome" value="${prod.nome||''}" placeholder="Nome/descri��o do produto">
+              <label style="color:#d97706">Descrição produto *</label>
+              <input id="cp-nome" value="${prod.nome||''}" placeholder="Nome/descrição do produto">
             </div>
           </div>
         </div>
       </div>
 
-      <!-- DADOS DA VARIA��O -->
+      <!-- DADOS DA VARIAÇÃO -->
       <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
         <div style="background:#e8f5e9;padding:11px 20px;border-bottom:1px solid #c8e6c9">
-          <span style="font-size:13px;font-weight:700;color:#2e7d32">Dados da varia��o</span>
+          <span style="font-size:13px;font-weight:700;color:#2e7d32">Dados da variação</span>
         </div>
         <div style="padding:18px 20px;display:flex;flex-direction:column;gap:14px">
           <!-- Linha 1: Grade + Cor + Custo + Margem + Valor venda -->
@@ -1767,20 +1767,20 @@ async function renderCadastrarProduto() {
           <!-- Linha 2: EAN + EAN Lido + Tamanho + Qtde -->
           <div style="display:grid;grid-template-columns:1fr 1fr 120px 120px;gap:12px">
             <div class="form-group">
-              <label style="color:#d97706">C�digo de barras (EAN)</label>
+              <label style="color:#d97706">Código de barras (EAN)</label>
               <div style="display:flex;gap:0">
-                <input id="cp-ean" placeholder="C�digo EAN" style="flex:1;border-radius:var(--radius) 0 0 var(--radius)">
-                <button onclick="gerarEAN()" style="padding:8px 10px;background:#2563eb;color:white;border-radius:0 var(--radius) var(--radius) 0;font-size:11px;font-weight:600;white-space:nowrap;font-family:inherit">Gerar C�d. EAN</button>
+                <input id="cp-ean" placeholder="Código EAN" style="flex:1;border-radius:var(--radius) 0 0 var(--radius)">
+                <button onclick="gerarEAN()" style="padding:8px 10px;background:#2563eb;color:white;border-radius:0 var(--radius) var(--radius) 0;font-size:11px;font-weight:600;white-space:nowrap;font-family:inherit">Gerar Cód. EAN</button>
               </div>
             </div>
             <div class="form-group">
-              <label>C�digo de barras (EAN) - Lido</label>
+              <label>Código de barras (EAN) - Lido</label>
               <input id="cp-ean-lido" placeholder="Leitura do leitor de barras">
             </div>
             <div class="form-group">
               <label>Tamanho / Grade</label>
               <select id="cp-tamanho">
-                <option value="">�</option>
+                <option value="">—</option>
               </select>
             </div>
             <div class="form-group">
@@ -1791,27 +1791,27 @@ async function renderCadastrarProduto() {
         </div>
       </div>
 
-      <!-- VARIANTES J� CADASTRADAS -->
+      <!-- VARIANTES Já CADASTRADAS -->
       <div id="cp-variantes-lista" style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;${variantesExistentes.length?'':'display:none'}">
         <div style="background:#f1f5f9;padding:11px 20px;border-bottom:1px solid var(--border)">
-          <span style="font-size:13px;font-weight:700;color:var(--text)">Varia��es cadastradas</span>
+          <span style="font-size:13px;font-weight:700;color:var(--text)">Variações cadastradas</span>
         </div>
         <div id="cp-variantes-table">
           ${renderVariantesTable(variantesExistentes)}
         </div>
       </div>
 
-      <!-- RODAP� -->
+      <!-- RODAPÉ -->
       <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 20px;display:flex;gap:10px;align-items:center">
         <button class="btn btn-secondary" onclick="navigate('produtos')"><i data-lucide="arrow-left"></i>Voltar</button>
         <div style="flex:1"></div>
         <div style="position:relative">
           <button class="btn btn-secondary" onclick="toggleOutrasAcoes()" id="btn-outras-acoes">
-            <i data-lucide="chevron-down"></i>Outras a��es
+            <i data-lucide="chevron-down"></i>Outras ações
           </button>
           <div id="outras-acoes-menu" style="display:none;position:absolute;bottom:calc(100% + 4px);right:0;background:white;border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);min-width:180px;z-index:100;padding:4px">
             <div onclick="limparFormVariacao()" style="padding:8px 14px;font-size:13px;cursor:pointer;border-radius:6px" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background=''">
-              <i data-lucide="eraser" style="width:13px;height:13px;margin-right:6px"></i>Limpar varia��o
+              <i data-lucide="eraser" style="width:13px;height:13px;margin-right:6px"></i>Limpar variação
             </div>
             <div onclick="deleteProduto('${prodId||''}');navigate('produtos')" style="padding:8px 14px;font-size:13px;cursor:pointer;color:var(--red);border-radius:6px" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background=''">
               <i data-lucide="trash-2" style="width:13px;height:13px;margin-right:6px"></i>Excluir produto
@@ -1833,14 +1833,14 @@ async function renderCadastrarProduto() {
 function renderVariantesTable(variantes) {
   if(!variantes.length) return '';
   return `<div class="table-wrap"><table class="data-table" style="font-size:12px">
-    <thead><tr><th>Tamanho</th><th>Cor</th><th>EAN</th><th>Custo</th><th>Margem</th><th>Valor Venda</th><th>Qtde</th><th>A��o</th></tr></thead>
+    <thead><tr><th>Tamanho</th><th>Cor</th><th>EAN</th><th>Custo</th><th>Margem</th><th>Valor Venda</th><th>Qtde</th><th>Ação</th></tr></thead>
     <tbody>${variantes.map(v=>`<tr>
-      <td>${v.tamanho||'�'}</td>
-      <td style="white-space:nowrap">${v.cor_hexa?`<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${v.cor_hexa};border:1px solid rgba(0,0,0,.15);vertical-align:-2px;margin-right:4px"></span>`:''}${v.cor_descricao||'�'}</td>
-      <td style="font-family:monospace;font-size:11px">${v.ean||'�'}</td>
-      <td>${v.custo?fmt(v.custo):'�'}</td>
-      <td>${v.margem_lucro?fmtNum(v.margem_lucro)+'%':'�'}</td>
-      <td><strong>${v.preco_venda?fmt(v.preco_venda):'�'}</strong></td>
+      <td>${v.tamanho||'—'}</td>
+      <td style="white-space:nowrap">${v.cor_hexa?`<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${v.cor_hexa};border:1px solid rgba(0,0,0,.15);vertical-align:-2px;margin-right:4px"></span>`:''}${v.cor_descricao||'—'}</td>
+      <td style="font-family:monospace;font-size:11px">${v.ean||'—'}</td>
+      <td>${v.custo?fmt(v.custo):'—'}</td>
+      <td>${v.margem_lucro?fmtNum(v.margem_lucro)+'%':'—'}</td>
+      <td><strong>${v.preco_venda?fmt(v.preco_venda):'—'}</strong></td>
       <td>${v.estoque??0}</td>
       <td><button onclick="editarVariante('${v.id}')" style="width:26px;height:26px;border:1px solid var(--border-2);border-radius:4px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2)"><i data-lucide="square-pen" style="width:12px;height:12px"></i></button></td>
     </tr>`).join('')}
@@ -1854,7 +1854,7 @@ function atualizarGradeOpcoes() {
   const vals = opt ? JSON.parse(opt.getAttribute('data-vals')||'[]') : [];
   const tamSel = document.getElementById('cp-tamanho');
   if(!tamSel) return;
-  tamSel.innerHTML = `<option value="">�</option>` + vals.map(v=>`<option value="${v}">${v}</option>`).join('');
+  tamSel.innerHTML = `<option value="">—</option>` + vals.map(v=>`<option value="${v}">${v}</option>`).join('');
 }
 
 function calcMargemVariacao() {
@@ -1883,14 +1883,14 @@ function gerarCodProd() {
 
 function gerarNCMPadrao() {
   const el = document.getElementById('cp-ncm');
-  if(el) el.value = '62034200';  // NCM padr�o para confec��es
+  if(el) el.value = '62034200';  // NCM padrão para confecções
   const desc = document.getElementById('cp-ncm-desc');
-  if(desc) desc.value = 'Vestu�rio e seus acess�rios';
+  if(desc) desc.value = 'Vestuário e seus acessórios';
 }
 
 function buscarNCM() {
   const ncm = document.getElementById('cp-ncm')?.value?.trim();
-  if(!ncm) return toast('Informe o c�digo NCM para pesquisar','info');
+  if(!ncm) return toast('Informe o código NCM para pesquisar','info');
   toast('Pesquisa NCM: acesse https://www.tipi.receita.fazenda.gov.br','info');
 }
 
@@ -1931,13 +1931,13 @@ async function editarVariante(varId) {
   if(e('cp-tamanho'))   e('cp-tamanho').value = v.tamanho||'';
   _editVarianteId = varId;
   window.scrollTo({top:0, behavior:'smooth'});
-  toast('Varia��o carregada para edi��o','info');
+  toast('Variação carregada para edição','info');
 }
 let _editVarianteId = null;
 
 async function salvarDadosGerais() {
   const nome = document.getElementById('cp-nome')?.value?.trim();
-  if(!nome) return toast('Descri��o do produto obrigat�ria','error');
+  if(!nome) return toast('Descrição do produto obrigatória','error');
   const payload = {
     nome,
     sku:       document.getElementById('cp-sku')?.value||null,
@@ -1964,7 +1964,7 @@ async function salvarDadosGerais() {
 async function salvarProdutoCompleto() {
   // 1. Salvar dados gerais
   const nome = document.getElementById('cp-nome')?.value?.trim();
-  if(!nome) return toast('Descri��o do produto obrigat�ria','error');
+  if(!nome) return toast('Descrição do produto obrigatória','error');
 
   const payload = {
     nome,
@@ -1991,8 +1991,8 @@ async function salvarProdutoCompleto() {
     _cadProdId = prodId;
   }
 
-  // 2. Salvar varia��o (se preenchida)
-  const tamanho  = document.getElementById('cp-tamanho')?.value || '�nico';
+  // 2. Salvar variação (se preenchida)
+  const tamanho  = document.getElementById('cp-tamanho')?.value || 'único';
   const ean      = document.getElementById('cp-ean')?.value||'';
   const eanLido  = document.getElementById('cp-ean-lido')?.value||'';
   const corHex   = document.getElementById('cp-cor-hex')?.value||null;
@@ -2036,7 +2036,7 @@ async function salvarProdutoCompleto() {
 }
 
 // ===== FORNECEDORES =====
-// ===== FORNECEDORES � LISTA =====
+// ===== FORNECEDORES à LISTA =====
 let _editFornId = null;
 
 async function renderFornecedores() {
@@ -2057,13 +2057,13 @@ async function loadFornecedores(q='') {
         <input class="filter-input" placeholder="Buscar fornecedor..." oninput="loadFornSearch(this.value)">
       </div>
       <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>Nome / Raz�o Social</th><th>CNPJ</th><th>E-mail</th><th>Telefone</th><th>Cidade</th><th>A��es</th></tr></thead>
+        <thead><tr><th>Nome / Razão Social</th><th>CNPJ</th><th>E-mail</th><th>Telefone</th><th>Cidade</th><th>Ações</th></tr></thead>
         <tbody>${(data||[]).map(f=>`<tr>
           <td><strong>${f.razao_social}</strong>${f.nome_fantasia?`<br><small style="color:var(--text-2)">${f.nome_fantasia}</small>`:''}</td>
-          <td style="font-family:monospace;font-size:12px">${f.cnpj||f.cpf||'�'}</td>
-          <td style="font-size:12px">${f.email||'�'}</td>
-          <td>${f.telefone||f.celular||'�'}</td>
-          <td>${f.cidade||'�'}</td>
+          <td style="font-family:monospace;font-size:12px">${f.cnpj||f.cpf||'—'}</td>
+          <td style="font-size:12px">${f.email||'—'}</td>
+          <td>${f.telefone||f.celular||'—'}</td>
+          <td>${f.cidade||'—'}</td>
           <td><div class="actions">
             <button title="Editar" onclick="_editFornId='${f.id}';navigate('cadastrar-fornecedor')" style="width:28px;height:28px;border:1px solid var(--border-2);border-radius:4px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2)" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-2)'"><i data-lucide="square-pen" style="width:13px;height:13px"></i></button>
             <button title="Excluir" onclick="deleteForn('${f.id}')" style="width:28px;height:28px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--red)"><i data-lucide="trash-2" style="width:13px;height:13px"></i></button>
@@ -2084,7 +2084,7 @@ async function deleteForn(id) {
   loadFornecedores();
 }
 
-// ===== CADASTRAR FORNECEDOR � P�GINA COMPLETA =====
+// ===== CADASTRAR FORNECEDOR à PÁGINA COMPLETA =====
 async function renderCadastrarFornecedor() {
   document.getElementById('topbar-actions').innerHTML = '';
   const fornId = _editFornId || null;
@@ -2111,7 +2111,7 @@ async function renderCadastrarFornecedor() {
   const html = `
   <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
 
-    <!-- T�TULO -->
+    <!-- TÍTULO -->
     <div style="text-align:center;padding:16px 24px 0;border-bottom:1px solid var(--border)">
       <h2 style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:14px">Cadastrar Fornecedor</h2>
 
@@ -2133,7 +2133,7 @@ async function renderCadastrarFornecedor() {
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px">
         <div class="form-group">
           <label>Nome *</label>
-          <input id="fn-nome" value="${f.razao_social||''}" placeholder="Nome ou Raz�o Social">
+          <input id="fn-nome" value="${f.razao_social||''}" placeholder="Nome ou Razão Social">
         </div>
         <div class="form-group">
           <label>E-mail</label>
@@ -2145,8 +2145,8 @@ async function renderCadastrarFornecedor() {
         </div>
       </div>
       <div class="form-group" style="margin-bottom:8px">
-        <label>Observa��o</label>
-        <textarea id="fn-obs" maxlength="${obsMax}" oninput="document.getElementById('fn-obs-count').textContent=(${obsMax}-this.value.length)+' characters restantes.'" style="min-height:80px;resize:vertical" placeholder="Informa��es complementares, exemplo: nome da pessoa de contato, pontos fortes e fracos, etc">${f.observacoes||''}</textarea>
+        <label>Observação</label>
+        <textarea id="fn-obs" maxlength="${obsMax}" oninput="document.getElementById('fn-obs-count').textContent=(${obsMax}-this.value.length)+' characters restantes.'" style="min-height:80px;resize:vertical" placeholder="Informações complementares, exemplo: nome da pessoa de contato, pontos fortes e fracos, etc">${f.observacoes||''}</textarea>
         <div id="fn-obs-count" style="font-size:11px;color:var(--text-2);margin-top:3px">${obsMax-obsAtual} characters restantes.</div>
       </div>
     </div>
@@ -2159,7 +2159,7 @@ async function renderCadastrarFornecedor() {
       </div>
       <div id="fn-marcas-lista">
         ${marcas.length ? `<div class="table-wrap"><table class="data-table">
-          <thead><tr><th>Marca</th><th style="width:60px">A��o</th></tr></thead>
+          <thead><tr><th>Marca</th><th style="width:60px">Ação</th></tr></thead>
           <tbody>${marcas.map(m=>`<tr>
             <td>${m.nome}</td>
             <td><button onclick="removerMarcaForn('${m.id}')" style="width:26px;height:26px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--red)"><i data-lucide="trash-2" style="width:12px;height:12px"></i></button></td>
@@ -2176,7 +2176,7 @@ async function renderCadastrarFornecedor() {
           <input id="fn-cnpj" value="${f.cnpj||f.cpf||''}" placeholder="00.000.000/0000-00">
         </div>
         <div class="form-group">
-          <label>Inscri��o Estadual</label>
+          <label>Inscrição Estadual</label>
           <input id="fn-ie" value="${f.ie||''}">
         </div>
       </div>
@@ -2192,7 +2192,7 @@ async function renderCadastrarFornecedor() {
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:16px;margin-bottom:16px">
         <div class="form-group">
-          <label>Endere�o</label>
+          <label>Endereço</label>
           <input id="fn-endereco" value="${f.endereco||''}">
         </div>
         <div class="form-group">
@@ -2216,7 +2216,7 @@ async function renderCadastrarFornecedor() {
       </div>
     </div>
 
-    <!-- RODAP� -->
+    <!-- RODAPÉ -->
     <div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center">
       <button class="btn btn-secondary" onclick="navigate('fornecedores')"><i data-lucide="list"></i>Listar</button>
       ${fornId?`<button class="btn btn-secondary" onclick="_editFornId='${fornId}';renderCadastrarFornecedor()"><i data-lucide="edit"></i>Editar</button>`:''}
@@ -2255,7 +2255,7 @@ async function adicionarMarcaForn() {
     window._marcasTemp = window._marcasTemp||[];
     window._marcasTemp.push(nome);
     const lista = document.getElementById('fn-marcas-lista');
-    if(lista) lista.innerHTML += `<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">${nome} <span style="color:var(--text-3);font-size:11px">(ser� salvo com o fornecedor)</span></div>`;
+    if(lista) lista.innerHTML += `<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">${nome} <span style="color:var(--text-3);font-size:11px">(será salvo com o fornecedor)</span></div>`;
     document.getElementById('fn-marca-nova').value='';
     return;
   }
@@ -2287,7 +2287,7 @@ function limparFormForn() {
 
 async function salvarFornecedor(id) {
   const nome = document.getElementById('fn-nome')?.value?.trim();
-  if(!nome) return toast('Nome obrigat�rio','error');
+  if(!nome) return toast('Nome obrigatório','error');
   const payload = {
     razao_social: nome,
     email:        document.getElementById('fn-email')?.value||null,
@@ -2311,7 +2311,7 @@ async function salvarFornecedor(id) {
     const {data:nf,error} = await sb.from('fornecedores').insert(payload).select().single();
     if(error) return toast('Erro: '+error.message,'error');
     savedId = nf.id;
-    // Salvar marcas tempor�rias
+    // Salvar marcas temporárias
     if(window._marcasTemp?.length) {
       for(const nome of window._marcasTemp)
         await sb.from('fornecedor_marcas').insert({fornecedor_id:savedId, nome});
@@ -2324,7 +2324,7 @@ async function salvarFornecedor(id) {
   renderCadastrarFornecedor();
 }
 
-// ===== SIMPLE CRUD (Categorias, Grades, Cole��es, Vendedores) =====
+// ===== SIMPLE CRUD (Categorias, Grades, Coleções, Vendedores) =====
 async function renderSimpleCRUD(table, fields, title, cols, renderFn) {
   const {data} = await sb.from(table).select('*').eq('ativo',true).order('nome');
   renderFn(data||[]);
@@ -2336,8 +2336,8 @@ async function renderCategorias() {
 }
 
 async function renderColecoes() {
-  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary" onclick="openSimpleModal('colecoes','Cole��o')"><i data-lucide="plus"></i>Nova Cole��o</button>`;
-  await loadSimple('colecoes','Cole��o',['nome','temporada','ano']);
+  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary" onclick="openSimpleModal('colecoes','Coleção')"><i data-lucide="plus"></i>Nova Coleção</button>`;
+  await loadSimple('colecoes','Coleção',['nome','temporada','ano']);
 }
 
 async function renderGrades() {
@@ -2346,9 +2346,9 @@ async function renderGrades() {
   document.getElementById('content').innerHTML = `
     <div class="card">
       <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>Nome</th><th>Tipo</th><th>Valores</th><th>A��es</th></tr></thead>
+        <thead><tr><th>Nome</th><th>Tipo</th><th>Valores</th><th>Ações</th></tr></thead>
         <tbody>${(data||[]).map(g=>`<tr>
-          <td><strong>${g.nome}</strong></td><td>${g.tipo||'�'}</td>
+          <td><strong>${g.nome}</strong></td><td>${g.tipo||'—'}</td>
           <td><div style="display:flex;flex-wrap:wrap;gap:4px">${(g.valores||[]).map(v=>`<span class="badge badge-blue">${v}</span>`).join('')}</div></td>
           <td><button class="btn btn-sm btn-danger" onclick="deleteRecord('grades','${g.id}',renderGrades)"><i data-lucide="trash-2"></i></button></td>
         </tr>`).join('')}
@@ -2364,8 +2364,8 @@ function openGradeModal() {
     <div class="modal-body">
       <div class="form-grid">
         <div class="form-group"><label>Nome *</label><input id="gr-nome"></div>
-        <div class="form-group"><label>Tipo</label><select id="gr-tipo"><option value="tamanho">Tamanho</option><option value="numeracao">Numera��o</option><option value="unico">�nico</option></select></div>
-        <div class="form-group"><label>Valores (separados por v�rgula)</label><input id="gr-vals" placeholder="PP,P,M,G,GG,XGG"></div>
+        <div class="form-group"><label>Tipo</label><select id="gr-tipo"><option value="tamanho">Tamanho</option><option value="numeracao">Numeração</option><option value="unico">único</option></select></div>
+        <div class="form-group"><label>Valores (separados por vírgula)</label><input id="gr-vals" placeholder="PP,P,M,G,GG,XGG"></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -2376,7 +2376,7 @@ function openGradeModal() {
 
 async function saveGrade() {
   const nome=document.getElementById('gr-nome').value.trim();
-  if(!nome) return toast('Nome obrigat�rio','error');
+  if(!nome) return toast('Nome obrigatório','error');
   const vals=document.getElementById('gr-vals').value.split(',').map(v=>v.trim()).filter(Boolean);
   await sb.from('grades').insert({nome,tipo:document.getElementById('gr-tipo').value,valores:vals});
   closeModalDirect();toast('Grade salva');renderGrades();
@@ -2387,9 +2387,9 @@ async function loadSimple(table, label, fields) {
   document.getElementById('content').innerHTML = `
     <div class="card">
       <div class="table-wrap"><table class="data-table">
-        <thead><tr>${fields.map(f=>`<th>${f}</th>`).join('')}<th>A��es</th></tr></thead>
-        <tbody>${(data||[]).map(r=>`<tr>${fields.map(f=>`<td>${r[f]||'�'}</td>`).join('')}
-          <td><button class="btn btn-sm btn-danger" onclick="deleteRecord('${table}','${r.id}',render${label.replace('�','c').replace('�','a').replace(' ','')})"><i data-lucide="trash-2"></i></button></td>
+        <thead><tr>${fields.map(f=>`<th>${f}</th>`).join('')}<th>Ações</th></tr></thead>
+        <tbody>${(data||[]).map(r=>`<tr>${fields.map(f=>`<td>${r[f]||'—'}</td>`).join('')}
+          <td><button class="btn btn-sm btn-danger" onclick="deleteRecord('${table}','${r.id}',render${label.replace('—','c').replace('—','a').replace(' ','')})"><i data-lucide="trash-2"></i></button></td>
         </tr>`).join('')||`<tr><td colspan="${fields.length+1}" style="text-align:center;color:var(--text-2)">Nenhum registro</td></tr>`}
         </tbody>
       </table></div>
@@ -2399,7 +2399,7 @@ async function loadSimple(table, label, fields) {
 
 async function openSimpleModal(table, label) {
   const fields = {
-    categorias:[{id:'s-nome',label:'Nome',type:'text'},{id:'s-desc',label:'Descri��o',type:'text'}],
+    categorias:[{id:'s-nome',label:'Nome',type:'text'},{id:'s-desc',label:'Descrição',type:'text'}],
     colecoes:[{id:'s-nome',label:'Nome',type:'text'},{id:'s-temp',label:'Temporada',type:'text'},{id:'s-ano',label:'Ano',type:'number'}]
   };
   const flds = fields[table]||[{id:'s-nome',label:'Nome',type:'text'}];
@@ -2413,7 +2413,7 @@ async function openSimpleModal(table, label) {
 async function saveSimple(table, label) {
   const map={categorias:{nome:document.getElementById('s-nome')?.value?.trim(),descricao:document.getElementById('s-desc')?.value},colecoes:{nome:document.getElementById('s-nome')?.value?.trim(),temporada:document.getElementById('s-temp')?.value,ano:document.getElementById('s-ano')?.value||null}};
   const payload=map[table]||{nome:document.getElementById('s-nome')?.value?.trim()};
-  if(!payload.nome) return toast('Nome obrigat�rio','error');
+  if(!payload.nome) return toast('Nome obrigatório','error');
   await sb.from(table).insert(payload);
   closeModalDirect();toast(`${label} salva`);
   navigate(currentPage);
@@ -2432,9 +2432,9 @@ async function renderVendedores() {
   document.getElementById('content').innerHTML = `
     <div class="card">
       <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>Comiss�o %</th><th>Meta Mensal</th><th>A��es</th></tr></thead>
+        <thead><tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>Comissão %</th><th>Meta Mensal</th><th>Ações</th></tr></thead>
         <tbody>${(data||[]).map(v=>`<tr>
-          <td><strong>${v.nome}</strong></td><td>${v.cpf||'�'}</td><td>${v.telefone||'�'}</td>
+          <td><strong>${v.nome}</strong></td><td>${v.cpf||'—'}</td><td>${v.telefone||'—'}</td>
           <td>${fmtNum(v.comissao_percentual)}%</td><td>${fmt(v.meta_mensal)}</td>
           <td><div class="actions">
             <button class="btn btn-sm btn-secondary" onclick="openVendedorModal('${v.id}')"><i data-lucide="edit-2"></i></button>
@@ -2457,8 +2457,8 @@ async function openVendedorModal(id=null) {
         <div class="form-row"><div class="form-group"><label>Nome *</label><input id="vd-nome" value="${v.nome||''}"></div>
         <div class="form-group"><label>CPF</label><input id="vd-cpf" value="${v.cpf||''}"></div></div>
         <div class="form-row"><div class="form-group"><label>Telefone</label><input id="vd-tel" value="${v.telefone||''}"></div>
-        <div class="form-group"><label>Usu�rio</label><input id="vd-email" value="${v.email||''}"></div></div>
-        <div class="form-row"><div class="form-group"><label>Comiss�o %</label><input id="vd-com" type="number" step="0.01" value="${v.comissao_percentual||0}"></div>
+        <div class="form-group"><label>Usuário</label><input id="vd-email" value="${v.email||''}"></div></div>
+        <div class="form-row"><div class="form-group"><label>Comissão %</label><input id="vd-com" type="number" step="0.01" value="${v.comissao_percentual||0}"></div>
         <div class="form-group"><label>Meta Mensal (R$)</label><input id="vd-meta" type="number" value="${v.meta_mensal||0}"></div></div>
       </div>
     </div>
@@ -2470,7 +2470,7 @@ async function openVendedorModal(id=null) {
 
 async function saveVendedor(id) {
   const payload={nome:document.getElementById('vd-nome').value.trim(),cpf:document.getElementById('vd-cpf').value,telefone:document.getElementById('vd-tel').value,email:document.getElementById('vd-email').value,comissao_percentual:parseFloat(document.getElementById('vd-com').value||0),meta_mensal:parseFloat(document.getElementById('vd-meta').value||0)};
-  if(!payload.nome) return toast('Nome obrigat�rio','error');
+  if(!payload.nome) return toast('Nome obrigatório','error');
   if(id){await sb.from('vendedores').update(payload).eq('id',id);}else{await sb.from('vendedores').insert(payload);}
   closeModalDirect();toast('Vendedor salvo');renderVendedores();
 }

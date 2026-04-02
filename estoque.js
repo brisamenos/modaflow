@@ -5,13 +5,13 @@ async function renderImportarCSV() {
     <div class="card" style="max-width:900px;margin:0 auto">
       <div style="padding:24px 28px 0">
         <h3 style="margin:0 0 6px;font-size:17px;color:var(--text-1)"><i data-lucide="file-up" style="width:18px;height:18px;vertical-align:-3px;margin-right:6px"></i>Importar Estoque via CSV</h3>
-        <p style="margin:0 0 20px;color:var(--text-2);font-size:13.5px">Compat�vel com o formato de backup: <strong>C�d. Produto; Descri��o Produto; UN; CNPJ Fornecedor; Pre�o Custo; Pre�o Venda; NCM; C�d de Barras - EAN; Tam - Grade; Qtde; Cole��o; Marca; Categoria; Genero; Cor - Hexa; Cor - Descri��o; SKU</strong></p>
+        <p style="margin:0 0 20px;color:var(--text-2);font-size:13.5px">Compatível com o formato de backup: <strong>Cód. Produto; Descrição Produto; UN; CNPJ Fornecedor; Preço Custo; Preço Venda; NCM; Cód de Barras - EAN; Tam - Grade; Qtde; Coleção; Marca; Categoria; Genero; Cor - Hexa; Cor - Descrição; SKU</strong></p>
       </div>
       <div style="padding:0 28px 24px;border-bottom:1px solid var(--border)">
         <div style="border:2px dashed var(--border-2);border-radius:var(--radius);padding:32px;text-align:center;background:var(--bg);cursor:pointer" onclick="document.getElementById('csv-file-input').click()" id="csv-drop-zone">
           <i data-lucide="upload-cloud" style="width:40px;height:40px;color:var(--text-2);margin-bottom:10px"></i>
           <p style="margin:0 0 4px;font-size:15px;font-weight:600;color:var(--text-1)">Clique para selecionar o arquivo CSV</p>
-          <p style="margin:0;font-size:12.5px;color:var(--text-2)">Separador: ponto e v�rgula (;) � Encoding: UTF-8 ou Latin-1</p>
+          <p style="margin:0;font-size:12.5px;color:var(--text-2)">Separador: ponto e vírgula (;) à Encoding: UTF-8 ou Latin-1</p>
           <input type="file" id="csv-file-input" accept=".csv" style="display:none" onchange="previewCSV(this)">
         </div>
       </div>
@@ -50,12 +50,12 @@ async function previewCSV(input) {
 
   // Map column indices
   const col = (name)=>headers.indexOf(name);
-  const iCod=col('C�d. Produto'), iDesc=col('Descri��o Produto'), iUN=col('UN'),
-        iForn=col('CNPJ Fornecedor'), iCusto=col('Pre�o Custo'), iVenda=col('Pre�o Venda'),
-        iNCM=col('NCM'), iEAN=col('C�d de Barras - EAN'), iTam=col('Tam - Grade'),
-        iQtde=col('Qtde'), iCol=col('Cole��o'), iMarca=col('Marca'),
+  const iCod=col('Cód. Produto'), iDesc=col('Descrição Produto'), iUN=col('UN'),
+        iForn=col('CNPJ Fornecedor'), iCusto=col('Preço Custo'), iVenda=col('Preço Venda'),
+        iNCM=col('NCM'), iEAN=col('Cód de Barras - EAN'), iTam=col('Tam - Grade'),
+        iQtde=col('Qtde'), iCol=col('Coleção'), iMarca=col('Marca'),
         iCat=col('Categoria'), iGen=col('Genero'), iCorHex=col('Cor - Hexa'),
-        iCorDesc=col('Cor - Descri��o'), iSKU=col('SKU');
+        iCorDesc=col('Cor - Descrição'), iSKU=col('SKU');
 
   window._csvData = {validRows, iCod,iDesc,iUN,iForn,iCusto,iVenda,iNCM,iEAN,iTam,iQtde,iCol,iMarca,iCat,iGen,iCorHex,iCorDesc,iSKU};
 
@@ -78,21 +78,21 @@ async function previewCSV(input) {
         </div>
         <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px 20px;flex:1;min-width:140px;text-align:center">
           <div style="font-size:26px;font-weight:700;color:var(--green)">${prods.length}</div>
-          <div style="font-size:12px;color:var(--text-2)">Produtos �nicos</div>
+          <div style="font-size:12px;color:var(--text-2)">Produtos únicos</div>
         </div>
         <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px 20px;flex:1;min-width:140px;text-align:center">
           <div style="font-size:26px;font-weight:700;color:var(--yellow)">${validRows.reduce((s,r)=>s+(parseInt(r[iQtde])||0),0)}</div>
-          <div style="font-size:12px;color:var(--text-2)">Pe�as totais</div>
+          <div style="font-size:12px;color:var(--text-2)">Peças totais</div>
         </div>
       </div>
-      <div style="font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:8px">Pr�via dos primeiros 10 produtos:</div>
+      <div style="font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:8px">Prévia dos primeiros 10 produtos:</div>
       <div class="table-wrap" style="margin-bottom:20px"><table class="data-table">
-        <thead><tr><th>C�digo</th><th>Produto</th><th>Categoria</th><th>Marca</th><th>Variantes</th><th>Qtde Total</th></tr></thead>
+        <thead><tr><th>Código</th><th>Produto</th><th>Categoria</th><th>Marca</th><th>Variantes</th><th>Qtde Total</th></tr></thead>
         <tbody>${prods.slice(0,10).map(p=>`<tr>
-          <td>${p.cod||'�'}</td>
+          <td>${p.cod||'—'}</td>
           <td><strong>${p.nome}</strong></td>
-          <td>${p.cat||'�'}</td>
-          <td>${p.marca||'�'}</td>
+          <td>${p.cat||'—'}</td>
+          <td>${p.marca||'—'}</td>
           <td>${p.variants}</td>
           <td>${p.qtde}</td>
         </tr>`).join('')}
@@ -100,7 +100,7 @@ async function previewCSV(input) {
         </tbody>
       </table></div>
       <div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:var(--radius);padding:14px 16px;margin-bottom:20px;font-size:13px;color:#92400e">
-        <strong>? Aten��o:</strong> A importa��o ir� criar automaticamente categorias, cole��es, marcas e fornecedores que ainda n�o existem no sistema. Produtos com o mesmo C�digo ser�o <strong>atualizados</strong>; novos c�digos ser�o criados.
+        <strong>? Atenção:</strong> A importação irá criar automaticamente categorias, coleções, marcas e fornecedores que ainda não existem no sistema. Produtos com o mesmo Código serão <strong>atualizados</strong>; novos códigos serão criados.
       </div>
       <div id="csv-import-progress" style="display:none;margin-bottom:16px">
         <div style="font-size:13px;color:var(--text-2);margin-bottom:6px" id="csv-progress-label">Importando...</div>
@@ -150,14 +150,14 @@ async function executeImportCSV() {
       if(fornCache[k])return fornCache[k];
       let {data}=await sb.from('fornecedores').select('id').eq('cnpj',k).eq('ativo',true).limit(1);
       if(data&&data[0]){fornCache[k]=data[0].id;return data[0].id;}
-      // tenta pelo nome (quando CNPJ Fornecedor � nome em vez de CNPJ num�rico)
+      // tenta pelo nome (quando CNPJ Fornecedor à nome em vez de CNPJ numérico)
       let {data:d2}=await sb.from('fornecedores').select('id').ilike('razao_social',k).eq('ativo',true).limit(1);
       if(d2&&d2[0]){fornCache[k]=d2[0].id;return d2[0].id;}
       const {data:nd}=await sb.from('fornecedores').insert({razao_social:k,cnpj:k.replace(/\D/g,'').length>=11?k:null}).select('id').single();
       const id=nd?.id||null; fornCache[k]=id; return id;
     };
 
-    // --- Agrupar linhas por produto (c�digo+nome) ---
+    // --- Agrupar linhas por produto (código+nome) ---
     const prodMap={};
     for(const r of validRows){
       const key=(r[iCod]||'')+'^'+(r[iDesc]||'');
@@ -197,7 +197,7 @@ async function executeImportCSV() {
           genero, ativo:true
         };
 
-        // Upsert por c�digo
+        // Upsert por código
         let prodId=null;
         if(cod){
           let {data:ep}=await sb.from('produtos').select('id').eq('codigo',cod).eq('ativo',true).limit(1);
@@ -222,7 +222,7 @@ async function executeImportCSV() {
         // Inserir/atualizar variantes (produto_grades)
         if(prodId){
           for(const vr of variants){
-            const tam=(vr[iTam]||'�nico').toString().trim();
+            const tam=(vr[iTam]||'único').toString().trim();
             const ean=(vr[iEAN]||'').toString().trim();
             const qtde=parseInt(vr[iQtde])||0;
             const corHex=(vr[iCorHex]||'').toString().trim();
@@ -240,50 +240,50 @@ async function executeImportCSV() {
     document.getElementById('csv-preview').innerHTML = `
       <div style="padding:24px 0;text-align:center">
         <div style="font-size:40px;margin-bottom:12px">?</div>
-        <h3 style="margin:0 0 8px;font-size:18px;color:var(--text-1)">Importa��o conclu�da!</h3>
+        <h3 style="margin:0 0 8px;font-size:18px;color:var(--text-1)">Importação concluída!</h3>
         <p style="color:var(--text-2);margin:0 0 20px;font-size:14px">
-          <strong style="color:var(--green)">${criados} criados</strong> &nbsp;�&nbsp;
+          <strong style="color:var(--green)">${criados} criados</strong> &nbsp;—&nbsp;
           <strong style="color:var(--accent)">${atualizados} atualizados</strong>
-          ${erros>0?`&nbsp;�&nbsp; <strong style="color:var(--red)">${erros} erros</strong>`:''}
+          ${erros>0?`&nbsp;—&nbsp; <strong style="color:var(--red)">${erros} erros</strong>`:''}
         </p>
         <button class="btn btn-primary" onclick="navigate('produtos')"><i data-lucide="package"></i>Ver Produtos</button>
       </div>`;
     lucide.createIcons();
   } catch(e) {
-    toast('Erro na importa��o: '+e.message,'error');
+    toast('Erro na importação: '+e.message,'error');
     console.error(e);
     document.getElementById('csv-import-btn').disabled=false;
   }
 }
 
-// ===== VIS�O GERAL ESTOQUE =====
+// ===== VISÃO GERAL ESTOQUE =====
 let _vgeTab = 'fornecedores'; // tab ativa
 let _vgeCusto = 'gerencial';  // tipo de custo
 
 async function renderVisaoGeralEstoque() {
   document.getElementById('content').innerHTML = `
   <div style="text-align:center;margin-bottom:14px">
-    <h2 style="font-size:18px;font-weight:700">Vis�o Geral Estoque</h2>
+    <h2 style="font-size:18px;font-weight:700">Visão Geral Estoque</h2>
   </div>
   <div style="display:flex;gap:16px;align-items:flex-start">
 
     <!-- SIDEBAR -->
     <div style="width:200px;flex-shrink:0;background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px">
       <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:6px">
-        Tipo de C�lculo de Custo
+        Tipo de Cálculo de Custo
         <span title="Gerencial: usa custo cadastrado. Operacional: inclui despesas operacionais." style="width:16px;height:16px;border-radius:50%;background:var(--accent);color:white;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;cursor:default;flex-shrink:0">i</span>
       </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;margin-bottom:8px">
         <input type="radio" name="vge-custo" value="gerencial" checked onchange="_vgeCusto='gerencial';carregarDadosVGE(_vgeTab)">
-        C�lculo de Custo Gerencial
+        Cálculo de Custo Gerencial
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">
         <input type="radio" name="vge-custo" value="operacional" onchange="_vgeCusto='operacional';carregarDadosVGE(_vgeTab)">
-        C�lculo de Custo Operacional
+        Cálculo de Custo Operacional
       </label>
     </div>
 
-    <!-- CONTE�DO -->
+    <!-- CONTEÚDO -->
     <div style="flex:1;min-width:0">
 
       <!-- TABS -->
@@ -291,11 +291,11 @@ async function renderVisaoGeralEstoque() {
         ${['fornecedores','colecao','grade','categoria'].map(t=>`
           <button id="vge-tab-${t}" onclick="switchVgeTab('${t}')"
             style="padding:8px 18px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--text-2);transition:all .15s">
-            ${t==='fornecedores'?'Fornecedores':t==='colecao'?'Cole��o':t==='grade'?'Grade':'Categoria'}
+            ${t==='fornecedores'?'Fornecedores':t==='colecao'?'Coleção':t==='grade'?'Grade':'Categoria'}
           </button>`).join('')}
       </div>
 
-      <!-- GR�FICO + TABELA -->
+      <!-- GRÁFICO + TABELA -->
       <div id="vge-body">
         <div class="loading" style="padding:48px;text-align:center">Carregando...</div>
       </div>
@@ -350,11 +350,11 @@ async function carregarDadosVGE(tab) {
 
   if(tab==='fornecedores') {
     keyFn = g => g.produtos?.fornecedor_id||'sem-forn';
-    labelFn = g => g.produtos?.fornecedores?.razao_social||'Fornecedor padr�o';
+    labelFn = g => g.produtos?.fornecedores?.razao_social||'Fornecedor padrão';
     cnpjFn  = g => g.produtos?.fornecedores?.cnpj||'';
   } else if(tab==='colecao') {
     keyFn = g => g.produtos?.colecao_id||'sem-col';
-    labelFn = g => g.produtos?.colecoes?.nome||'Sem cole��o';
+    labelFn = g => g.produtos?.colecoes?.nome||'Sem coleção';
     cnpjFn  = () => '';
   } else if(tab==='grade') {
     keyFn = g => g.produtos?.grade_id||'sem-grade';
@@ -382,11 +382,11 @@ async function carregarDadosVGE(tab) {
   const entries = Object.values(map).sort((a,b)=>b.qtde-a.qtde);
   const totalQtde = entries.reduce((a,e)=>a+e.qtde,0);
 
-  // Montar dados do gr�fico de pizza (SVG)
+  // Montar dados do gráfico de pizza (SVG)
   const pieHtml = buildPieChart(entries, totalQtde);
 
   // Tabela
-  const tabLabel = tab==='fornecedores'?'Fornecedor':tab==='colecao'?'Cole��o':tab==='grade'?'Grade':'Categoria';
+  const tabLabel = tab==='fornecedores'?'Fornecedor':tab==='colecao'?'Coleção':tab==='grade'?'Grade':'Categoria';
   const showCnpj = tab==='fornecedores';
 
   const tableRows = entries.map((e,i) => {
@@ -402,7 +402,7 @@ async function carregarDadosVGE(tab) {
   }).join('');
 
   body.innerHTML = `
-    <!-- Gr�fico -->
+    <!-- Gráfico -->
     <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:14px;text-align:center">
       <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:16px">
         Estoque por ${tabLabel}
@@ -435,7 +435,7 @@ function buildPieChart(entries, total) {
   let legendItems = '';
   let startAngle = -Math.PI/2;
 
-  const top = entries.slice(0,20); // m�x 20 fatias
+  const top = entries.slice(0,20); // máx 20 fatias
 
   top.forEach((e,i) => {
     const pct = e.qtde/total;
@@ -451,7 +451,7 @@ function buildPieChart(entries, total) {
     paths += `<path d="M${CX},${CY} L${x1.toFixed(2)},${y1.toFixed(2)} A${R},${R} 0 ${large},1 ${x2.toFixed(2)},${y2.toFixed(2)} Z"
       fill="${color}" stroke="white" stroke-width="1.5" style="cursor:pointer" title="${e.label}: ${e.qtde} pcs (${(pct*100).toFixed(1)}%)"/>`;
 
-    // Label no gr�fico para fatias grandes
+    // Label no gráfico para fatias grandes
     if(pct > 0.04) {
       const midAngle = startAngle + angle/2;
       const lx = CX + (R*0.65) * Math.cos(midAngle);
@@ -477,21 +477,21 @@ function buildPieChart(entries, total) {
   </div>`;
 }
 
-// ===== VIS�O DETALHADA ESTOQUE =====
+// ===== VISÃO DETALHADA ESTOQUE =====
 let _vdTab = 'col-forn'; // tab ativa
 
 async function renderVisaoDetalhadaEstoque() {
   document.getElementById('content').innerHTML = `
   <div style="text-align:center;margin-bottom:14px">
-    <h2 style="font-size:18px;font-weight:700">Vis�o Detalhada Estoque</h2>
+    <h2 style="font-size:18px;font-weight:700">Visão Detalhada Estoque</h2>
   </div>
 
   <!-- TABS -->
   <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:16px;flex-wrap:wrap">
     ${[
-      ['col-forn',  'Cole��o por Fornecedor'],
+      ['col-forn',  'Coleção por Fornecedor'],
       ['grade-forn','Grade por Fornecedor'],
-      ['col-grade', 'Cole��o por Grade'],
+      ['col-grade', 'Coleção por Grade'],
       ['gen-cat',   'Genero por Categoria']
     ].map(([t,l])=>`
       <button id="vdt-tab-${t}" onclick="switchVdTab('${t}')"
@@ -525,7 +525,7 @@ async function carregarVisaoDetalhada(tab) {
   if(!body) return;
   body.innerHTML = '<div class="loading" style="padding:32px;text-align:center">Carregando...</div>';
 
-  // Buscar produto_grades com todos os joins necess�rios
+  // Buscar produto_grades com todos os joins necessários
   const {data:grades} = await sb.from('produto_grades')
     .select('estoque,preco_venda,custo,tamanho,produto_id,produtos!inner(nome,ativo,preco_venda,custo,genero,fornecedor_id,colecao_id,grade_id,categoria_id,fornecedores(cnpj,razao_social),colecoes(nome),grades(nome),categorias(nome))')
     .eq('produtos.ativo', true);
@@ -535,7 +535,7 @@ async function carregarVisaoDetalhada(tab) {
     lucide.createIcons(); return;
   }
 
-  // Cada tab tem: agrupamento principal (linhas de cabe�alho) e secund�rio (linhas de detalhe)
+  // Cada tab tem: agrupamento principal (linhas de cabeçalho) e secundário (linhas de detalhe)
   // Estrutura: { grupoKey: { grupoLabel, cnpj, total:{qtde,valor}, subs:{ subKey:{label,cnpj,qtde,valor} } } }
   const struct = {};
 
@@ -552,12 +552,12 @@ async function carregarVisaoDetalhada(tab) {
     let gKey, gLabel, gCnpj, sKey, sLabel, sCnpj;
 
     if(tab==='col-forn') {
-      // Agrupado por Cole��o, sub por Fornecedor
+      // Agrupado por Coleção, sub por Fornecedor
       gKey   = p.colecao_id||'sem-col';
-      gLabel = p.colecoes?.nome||'Sem cole��o';
+      gLabel = p.colecoes?.nome||'Sem coleção';
       gCnpj  = '';
       sKey   = p.fornecedor_id||'sem-forn';
-      sLabel = p.fornecedores?.razao_social||'Fornecedor padr�o';
+      sLabel = p.fornecedores?.razao_social||'Fornecedor padrão';
       sCnpj  = p.fornecedores?.cnpj||'';
     } else if(tab==='grade-forn') {
       // Agrupado por Grade, sub por Fornecedor
@@ -565,12 +565,12 @@ async function carregarVisaoDetalhada(tab) {
       gLabel = p.grades?.nome||'Sem grade';
       gCnpj  = '';
       sKey   = p.fornecedor_id||'sem-forn';
-      sLabel = p.fornecedores?.razao_social||'Fornecedor padr�o';
+      sLabel = p.fornecedores?.razao_social||'Fornecedor padrão';
       sCnpj  = p.fornecedores?.cnpj||'';
     } else if(tab==='col-grade') {
-      // Agrupado por Cole��o, sub por Grade
+      // Agrupado por Coleção, sub por Grade
       gKey   = p.colecao_id||'sem-col';
-      gLabel = p.colecoes?.nome||'Sem cole��o';
+      gLabel = p.colecoes?.nome||'Sem coleção';
       gCnpj  = '';
       sKey   = p.grade_id||'sem-grade';
       sLabel = p.grades?.nome||'Sem grade';
@@ -579,7 +579,7 @@ async function carregarVisaoDetalhada(tab) {
       // Genero por Categoria
       const genMap = {F:'Feminino',M:'Masculino',U:'Unissex',J:'Juvenil'};
       gKey   = p.genero||'sem-genero';
-      gLabel = genMap[p.genero]||'Sem g�nero';
+      gLabel = genMap[p.genero]||'Sem gênero';
       gCnpj  = '';
       sKey   = p.categoria_id||'sem-cat';
       sLabel = p.categorias?.nome||'Sem categoria';
@@ -605,7 +605,7 @@ async function carregarVisaoDetalhada(tab) {
   grupos.forEach(grupo => {
     const pctGrupo = totalGeral>0?((grupo.valor/totalGeral)*100).toFixed(0)+'%':'0%';
 
-    // Linha de cabe�alho do grupo
+    // Linha de cabeçalho do grupo
     rows += `<tr style="background:#f8fafc">
       <td colspan="${showCnpj?5:4}" style="padding:8px 12px;font-weight:700;font-size:13px;color:var(--text)">
         ${grupo.label}
@@ -660,7 +660,7 @@ let _giroSel  = 'mes';
 let _giroAno  = new Date().getFullYear();
 let _giroMes  = new Date().getMonth()+1;
 
-const MESES_PT = ['Janeiro','Fevereiro','Mar�o','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
 async function renderGiroEstoque() {
   const now = new Date();
@@ -679,26 +679,26 @@ async function renderGiroEstoque() {
         Gerar planilha Estoque
       </button>
       <button onclick="gerarPlanilhaGiro('inventario')" style="padding:10px 12px;border-radius:var(--radius);border:none;background:#16a34a;color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;width:100%;text-align:left">
-        Gerar planilha Invent�rio
+        Gerar planilha Inventário
       </button>
     </div>
 
-    <!-- CONTE�DO -->
+    <!-- CONTEÚDO -->
     <div style="flex:1;min-width:0">
 
       <!-- FILTROS -->
       <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 20px;margin-bottom:12px;display:flex;gap:24px;align-items:flex-end;flex-wrap:wrap">
         <div>
-          <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:5px">Sele��o</div>
+          <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:5px">Seleção</div>
           <select id="giro-sel" onchange="_giroSel=this.value;carregarGiro()"
             style="padding:7px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;background:white;min-width:130px">
-            <option value="mes">Por m�s</option>
+            <option value="mes">Por mês</option>
             <option value="trimestre">Por trimestre</option>
             <option value="ano">Por ano</option>
           </select>
         </div>
         <div>
-          <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:5px">Informe o Ano/M�s:</div>
+          <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:5px">Informe o Ano/Mês:</div>
           <div style="display:flex;gap:6px;align-items:center">
             <select id="giro-ano" onchange="_giroAno=parseInt(this.value);carregarGiro()"
               style="padding:7px 10px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;background:white">
@@ -717,7 +717,7 @@ async function renderGiroEstoque() {
         ${['fornecedores','categoria','genero'].map(t=>`
           <button id="giro-tab-${t}" onclick="switchGiroTab('${t}')"
             style="padding:8px 18px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--text-2);transition:all .15s">
-            ${t==='fornecedores'?'Fornecedores':t==='categoria'?'Categoria':'G�nero'}
+            ${t==='fornecedores'?'Fornecedores':t==='categoria'?'Categoria':'Gênero'}
           </button>`).join('')}
       </div>
 
@@ -767,7 +767,7 @@ async function carregarGiro() {
     fim = `${ano}-${String(mes).padStart(2,'0')}-${lastDay}`;
   }
 
-  // Buscar vendas do per�odo com joins
+  // Buscar vendas do período com joins
   const {data:itens} = await sb.from('venda_itens')
     .select('quantidade,total,preco_unitario,produto_id,produtos!inner(nome,custo,preco_venda,fornecedor_id,categoria_id,genero,fornecedores(razao_social),categorias(nome))')
     .gte('created_at', ini)
@@ -775,7 +775,7 @@ async function carregarGiro() {
 
   if(!itens||!itens.length) {
     body.innerHTML = `<div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg)">
-      <div class="empty-state" style="padding:48px"><i data-lucide="package"></i><p>Nenhuma venda no per�odo selecionado</p></div>
+      <div class="empty-state" style="padding:48px"><i data-lucide="package"></i><p>Nenhuma venda no período selecionado</p></div>
     </div>`;
     lucide.createIcons(); return;
   }
@@ -787,14 +787,14 @@ async function carregarGiro() {
     let key, label;
     if(_giroTab==='fornecedores') {
       key = p.fornecedor_id||'sem-forn';
-      label = p.fornecedores?.razao_social||'Fornecedor padr�o';
+      label = p.fornecedores?.razao_social||'Fornecedor padrão';
     } else if(_giroTab==='categoria') {
       key = p.categoria_id||'sem-cat';
       label = p.categorias?.nome||'Sem categoria';
     } else {
       const genMap={F:'Feminino',M:'Masculino',U:'Unissex',J:'Juvenil'};
       key = p.genero||'sem-gen';
-      label = genMap[p.genero]||'Sem g�nero';
+      label = genMap[p.genero]||'Sem gênero';
     }
     if(!map[key]) map[key] = { label, qtde:0, custo:0, venda:0 };
     const qtd = item.quantidade||0;
@@ -803,7 +803,7 @@ async function carregarGiro() {
     map[key].venda += parseFloat(item.total||0);
   });
 
-  const colHeader = _giroTab==='fornecedores'?'Nome Fornecedor':_giroTab==='categoria'?'Categoria':'G�nero';
+  const colHeader = _giroTab==='fornecedores'?'Nome Fornecedor':_giroTab==='categoria'?'Categoria':'Gênero';
   const entries = Object.values(map).sort((a,b)=>b.venda-a.venda);
 
   const rows = entries.map(e=>{
@@ -826,7 +826,7 @@ async function carregarGiro() {
   body.innerHTML = `
   <div style="background:white;border:1px solid var(--border);border-radius:0 0 var(--radius-lg) var(--radius-lg);overflow:hidden">
     <div style="padding:10px 14px;background:#f8fafc;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;text-align:center;color:var(--text)">
-      Sa�da Estoque - Vendas
+      Saída Estoque - Vendas
     </div>
     <div class="table-wrap"><table style="width:100%;border-collapse:collapse">
       <thead>
@@ -835,8 +835,8 @@ async function carregarGiro() {
           <th style="padding:10px 14px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Qtde Itens</th>
           <th style="padding:10px 14px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Valor Custo</th>
           <th style="padding:10px 14px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Valor Venda</th>
-          <th style="padding:10px 14px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Ticket M�dio</th>
-          <th style="padding:10px 14px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">A��o</th>
+          <th style="padding:10px 14px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Ticket Médio</th>
+          <th style="padding:10px 14px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Ação</th>
         </tr>
       </thead>
       <tbody>${rows||'<tr><td colspan="6" style="text-align:center;color:var(--text-2);padding:32px">Nenhum dado</td></tr>'}</tbody>
@@ -886,7 +886,7 @@ async function gerarPlanilhaGiro(tipo) {
     const csv = `Codigo;Produto;Tamanho;Qtde;Preco Unit;Total Venda;Custo;Fornecedor\n${rows}`;
     const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
     const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`inventario_${ano}_${mes}.csv`; a.click();
-    toast('Planilha de invent�rio gerada');
+    toast('Planilha de inventário gerada');
   }
 }
 
@@ -910,16 +910,16 @@ async function renderCurvaABC() {
   <!-- FILTROS -->
   <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 20px;margin-bottom:12px;display:flex;gap:24px;align-items:flex-end;flex-wrap:wrap">
     <div>
-      <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:5px">Sele��o</div>
+      <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:5px">Seleção</div>
       <select id="abc-sel" onchange="_abcSel=this.value;carregarCurvaABC()"
         style="padding:7px 12px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;background:white;min-width:130px">
-        <option value="mes">Por m�s</option>
+        <option value="mes">Por mês</option>
         <option value="trimestre">Por trimestre</option>
         <option value="ano">Por ano</option>
       </select>
     </div>
     <div>
-      <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:5px">Informe o Ano/M�s:</div>
+      <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:5px">Informe o Ano/Mês:</div>
       <div style="display:flex;gap:6px;align-items:center">
         <select id="abc-ano" onchange="_abcAno=parseInt(this.value);carregarCurvaABC()"
           style="padding:7px 10px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;background:white">
@@ -927,7 +927,7 @@ async function renderCurvaABC() {
         </select>
         <select id="abc-mes" onchange="_abcMes=parseInt(this.value);carregarCurvaABC()"
           style="padding:7px 10px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;background:white;min-width:110px">
-          ${['Janeiro','Fevereiro','Mar�o','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'].map((m,i)=>`<option value="${i+1}" ${i+1===_abcMes?'selected':''}>${m}</option>`).join('')}
+          ${['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'].map((m,i)=>`<option value="${i+1}" ${i+1===_abcMes?'selected':''}>${m}</option>`).join('')}
         </select>
       </div>
     </div>
@@ -986,7 +986,7 @@ async function carregarCurvaABC() {
 
   if(!itens||!itens.length) {
     body.innerHTML = `<div style="background:white;border:1px solid var(--border);border-radius:0 0 var(--radius-lg) var(--radius-lg)">
-      <div class="empty-state" style="padding:48px"><i data-lucide="bar-chart-2"></i><p>Nenhuma venda no per�odo selecionado</p></div>
+      <div class="empty-state" style="padding:48px"><i data-lucide="bar-chart-2"></i><p>Nenhuma venda no período selecionado</p></div>
     </div>`;
     lucide.createIcons(); return;
   }
@@ -998,7 +998,7 @@ async function carregarCurvaABC() {
     let key, label;
     if(_abcTab==='fornecedores') {
       key = p.fornecedor_id||'sem-forn';
-      label = p.fornecedores?.razao_social||'Fornecedor padr�o';
+      label = p.fornecedores?.razao_social||'Fornecedor padrão';
     } else {
       key = p.categoria_id||'sem-cat';
       label = p.categorias?.nome||'Sem categoria';
@@ -1026,7 +1026,7 @@ async function carregarCurvaABC() {
 
   const colHeader = _abcTab==='fornecedores'?'Nome Fornecedor':'Categoria';
 
-  // Agrupar por curva para exibi��o
+  // Agrupar por curva para exibição
   const grupos = {A:[], B:[], C:[]};
   sorted.forEach(e => grupos[e.curva].push(e));
 
@@ -1051,14 +1051,14 @@ async function carregarCurvaABC() {
 
   body.innerHTML = `
   <div style="background:white;border:1px solid var(--border);border-radius:0 0 var(--radius-lg) var(--radius-lg);overflow:hidden">
-    <!-- subt�tulo + link vis�o detalhada -->
+    <!-- subtítulo + link visão detalhada -->
     <div style="padding:12px 14px;border-bottom:1px solid var(--border);text-align:center">
       <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">
-        Curva ABC por ${_abcTab==='fornecedores'?'Fornecedor':'Categoria'} - Vis�o global
+        Curva ABC por ${_abcTab==='fornecedores'?'Fornecedor':'Categoria'} - Visão global
       </div>
       <button onclick="_abcVis='detalhada';carregarCurvaABCDetalhada()" 
         style="background:none;border:none;cursor:pointer;color:var(--accent);font-size:12px;font-weight:600;font-family:inherit;text-decoration:underline">
-        Vis�o detalhada
+        Visão detalhada
       </button>
     </div>
     <div class="table-wrap"><table style="width:100%;border-collapse:collapse">
@@ -1068,7 +1068,7 @@ async function carregarCurvaABC() {
           <th style="padding:10px 14px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Qtde Itens</th>
           <th style="padding:10px 14px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Valor Custo</th>
           <th style="padding:10px 14px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Valor Venda</th>
-          <th style="padding:10px 14px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Ticket M�dio</th>
+          <th style="padding:10px 14px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Ticket Médio</th>
         </tr>
       </thead>
       <tbody>${rows||'<tr><td colspan="5" style="text-align:center;color:var(--text-2);padding:32px">Nenhum dado</td></tr>'}</tbody>
@@ -1089,7 +1089,7 @@ async function carregarCurvaABCDetalhada() {
     .gte('created_at', ini).lte('created_at', fim+'T23:59:59');
 
   if(!itens||!itens.length) {
-    body.innerHTML = '<div class="empty-state" style="padding:48px"><p>Sem dados no per�odo</p></div>';
+    body.innerHTML = '<div class="empty-state" style="padding:48px"><p>Sem dados no período</p></div>';
     return;
   }
 
@@ -1101,8 +1101,8 @@ async function carregarCurvaABCDetalhada() {
     if(!map[key]) {
       map[key] = {
         nome: p.nome||item.produto_nome,
-        forn: p.fornecedores?.razao_social||'Fornecedor padr�o',
-        cat: p.categorias?.nome||'�',
+        forn: p.fornecedores?.razao_social||'Fornecedor padrão',
+        cat: p.categorias?.nome||'—',
         qtde:0, custo:0, venda:0
       };
     }
@@ -1138,11 +1138,11 @@ async function carregarCurvaABCDetalhada() {
   <div style="background:white;border:1px solid var(--border);border-radius:0 0 var(--radius-lg) var(--radius-lg);overflow:hidden">
     <div style="padding:12px 14px;border-bottom:1px solid var(--border);text-align:center">
       <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">
-        Curva ABC por ${_abcTab==='fornecedores'?'Fornecedor':'Categoria'} - Vis�o detalhada
+        Curva ABC por ${_abcTab==='fornecedores'?'Fornecedor':'Categoria'} - Visão detalhada
       </div>
       <button onclick="carregarCurvaABC()"
         style="background:none;border:none;cursor:pointer;color:var(--accent);font-size:12px;font-weight:600;font-family:inherit;text-decoration:underline">
-        Vis�o global
+        Visão global
       </button>
     </div>
     <div class="table-wrap"><table style="width:100%;border-collapse:collapse">
@@ -1153,7 +1153,7 @@ async function carregarCurvaABCDetalhada() {
           <th style="padding:10px 14px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Qtde</th>
           <th style="padding:10px 14px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Valor Custo</th>
           <th style="padding:10px 14px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Valor Venda</th>
-          <th style="padding:10px 14px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Ticket M�dio</th>
+          <th style="padding:10px 14px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Ticket Médio</th>
           <th style="padding:10px 14px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Curva</th>
         </tr>
       </thead>
@@ -1165,7 +1165,7 @@ async function carregarCurvaABCDetalhada() {
 
 async function renderTransferenciaLojas() {
   document.getElementById('topbar-actions').innerHTML = `
-    <button class="btn btn-primary" onclick="openTransferenciaModal()"><i data-lucide="plus"></i>Nova Transfer�ncia</button>`;
+    <button class="btn btn-primary" onclick="openTransferenciaModal()"><i data-lucide="plus"></i>Nova Transferência</button>`;
 
   const {data} = await sb.from('transferencias_estoque')
     .select('*,produto_grades(tamanho,cor_descricao,produtos(nome))')
@@ -1177,14 +1177,14 @@ async function renderTransferenciaLojas() {
         <thead><tr><th>Data</th><th>Produto</th><th>Grade</th><th>Cor</th><th>Quantidade</th><th>Origem</th><th>Destino</th><th>Status</th></tr></thead>
         <tbody>${(data||[]).map(t=>`<tr>
           <td style="font-size:12px;color:var(--text-2)">${new Date(t.created_at).toLocaleDateString('pt-BR')}</td>
-          <td><strong>${t.produto_grades?.produtos?.nome||'�'}</strong></td>
-          <td>${t.produto_grades?.tamanho||'�'}</td>
-          <td>${t.produto_grades?.cor_descricao||'�'}</td>
+          <td><strong>${t.produto_grades?.produtos?.nome||'—'}</strong></td>
+          <td>${t.produto_grades?.tamanho||'—'}</td>
+          <td>${t.produto_grades?.cor_descricao||'—'}</td>
           <td style="text-align:center;font-weight:600">${t.quantidade}</td>
           <td style="font-size:12px">${t.loja_origem||'Esta loja'}</td>
-          <td style="font-size:12px">${t.loja_destino||'�'}</td>
+          <td style="font-size:12px">${t.loja_destino||'—'}</td>
           <td><span class="badge badge-${t.status==='concluida'?'green':t.status==='cancelada'?'red':'blue'}" style="text-transform:capitalize">${t.status||'pendente'}</span></td>
-        </tr>`).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-2);padding:32px">Nenhuma transfer�ncia registrada</td></tr>'}
+        </tr>`).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-2);padding:32px">Nenhuma transferência registrada</td></tr>'}
         </tbody>
       </table></div>
     </div>`;
@@ -1197,18 +1197,18 @@ async function openTransferenciaModal() {
     .gt('estoque',0).order('produto_id').limit(200);
 
   openModal(`
-    <div class="modal-header"><h3>Nova Transfer�ncia de Estoque</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
+    <div class="modal-header"><h3>Nova Transferência de Estoque</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
     <div class="modal-body"><div class="form-grid">
-      <div class="form-group"><label>Produto / Varia��o *</label>
+      <div class="form-group"><label>Produto / Variação *</label>
         <select id="tr-grade"><option value="">Selecione</option>
-          ${(grades||[]).map(g=>`<option value="${g.id}">${g.produtos?.nome||'�'} � ${g.tamanho||'�nico'} (estoque: ${g.estoque})</option>`).join('')}
+          ${(grades||[]).map(g=>`<option value="${g.id}">${g.produtos?.nome||'—'} à ${g.tamanho||'único'} (estoque: ${g.estoque})</option>`).join('')}
         </select>
       </div>
       <div class="form-row">
         <div class="form-group"><label>Quantidade *</label><input id="tr-qtde" type="number" min="1" value="1"></div>
         <div class="form-group"><label>Loja Destino *</label><input id="tr-destino" placeholder="Nome da loja destino"></div>
       </div>
-      <div class="form-group"><label>Observa��o</label><textarea id="tr-obs"></textarea></div>
+      <div class="form-group"><label>Observação</label><textarea id="tr-obs"></textarea></div>
     </div></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModalDirect()">Cancelar</button>
@@ -1220,10 +1220,10 @@ async function salvarTransferencia() {
   const gradeId = document.getElementById('tr-grade')?.value;
   const qtde = parseInt(document.getElementById('tr-qtde')?.value||0);
   const destino = document.getElementById('tr-destino')?.value?.trim();
-  if(!gradeId||!qtde||!destino) return toast('Preencha todos os campos obrigat�rios','error');
+  if(!gradeId||!qtde||!destino) return toast('Preencha todos os campos obrigatórios','error');
 
   const {data:pg} = await sb.from('produto_grades').select('estoque').eq('id',gradeId).single();
-  if(!pg||pg.estoque<qtde) return toast('Estoque insuficiente para transfer�ncia','error');
+  if(!pg||pg.estoque<qtde) return toast('Estoque insuficiente para transferência','error');
 
   await sb.from('transferencias_estoque').insert({
     produto_grade_id:gradeId, quantidade:qtde,
@@ -1234,6 +1234,6 @@ async function salvarTransferencia() {
   await sb.from('produto_grades').update({estoque:pg.estoque-qtde}).eq('id',gradeId);
 
   closeModalDirect();
-  toast('Transfer�ncia registrada');
+  toast('Transferência registrada');
   renderTransferenciaLojas();
 }

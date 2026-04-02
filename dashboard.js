@@ -55,7 +55,7 @@ async function renderDashboard() {
   const el = document.getElementById('content');
   el.innerHTML = `
     <div class="dash-period-bar">
-      ${[['ontem','Ontem'],['hoje','Hoje'],['semana','Semana'],['mes','M�s']].map(([k,l])=>
+      ${[['ontem','Ontem'],['hoje','Hoje'],['semana','Semana'],['mes','Mês']].map(([k,l])=>
         `<button class="period-btn${dashPeriod===k?' active':''}" onclick="dashPeriod='${k}';renderDashboard()">${l}</button>`
       ).join('')}
     </div>
@@ -95,7 +95,7 @@ async function loadDashboardData() {
   const metaPct = meta > 0 ? Math.min(999, (totalVendas/meta)*100) : 0;
   const metaColor = metaPct >= 100 ? '#16a34a' : metaPct >= 70 ? '#d97706' : '#2563eb';
 
-  // Contas a receber: credi�rio saldo + contas_receber
+  // Contas a receber: crediário saldo + contas_receber
   const {data:credSaldo} = await sb.from('crediario').select('saldo_devedor').neq('status','quitado');
   const {data:contasRecData} = await sb.from('contas_receber').select('valor,origem').eq('status','aberta');
   const totalCredSaldo = (credSaldo||[]).reduce((a,c)=>a+parseFloat(c.saldo_devedor||0),0);
@@ -117,14 +117,14 @@ async function loadDashboardData() {
     return d.getDate()===today.getDate() && d.getMonth()===today.getMonth();
   });
 
-  // Novos vs antigos no m�s
+  // Novos vs antigos no mês
   const novosClientes = clientes.filter(c => c.created_at && c.created_at >= mesIni).length;
   const totalClientes = clientes.length;
   const antigosClientes = totalClientes - novosClientes;
   const novosPct = totalClientes > 0 ? Math.round((novosClientes/totalClientes)*100) : 0;
   const antigosPct = 100 - novosPct;
 
-  // Top clients no per�odo
+  // Top clients no período
   const clienteMap = {};
   vendas.forEach(v => {
     if(v.cliente_id) clienteMap[v.cliente_id]=(clienteMap[v.cliente_id]||0)+parseFloat(v.total||0);
@@ -162,7 +162,7 @@ async function loadDashboardData() {
         <div class="card-body" style="padding:12px 16px">
           <div style="font-size:26px;font-weight:800;letter-spacing:-.5px;color:var(--text);margin-bottom:2px">${prvVal(fmt(totalVendas))}</div>
           <div style="color:var(--text-2);font-size:12px">${prvVal(qtyVendas+' vendas realizadas')}</div>
-          <div style="font-size:10.5px;color:var(--text-3);margin-top:6px">De ${fmtDate(ini)} � ${fmtDate(fim)}</div>
+          <div style="font-size:10.5px;color:var(--text-3);margin-top:6px">De ${fmtDate(ini)} à ${fmtDate(fim)}</div>
         </div>
       </div>
 
@@ -170,7 +170,7 @@ async function loadDashboardData() {
       <div class="card dash-widget">
         <div class="card-header" style="padding:14px 16px">
           <h3 style="font-size:13px">Meta de vendas</h3>
-          <span style="font-size:10px;color:var(--text-2)">Fixo: Do m�s atual</span>
+          <span style="font-size:10px;color:var(--text-2)">Fixo: Do mês atual</span>
         </div>
         <div class="card-body" style="padding:12px 16px;display:flex;gap:14px;align-items:center">
           <div style="position:relative;flex-shrink:0">
@@ -180,7 +180,7 @@ async function loadDashboardData() {
             </div>
           </div>
           <div style="flex:1">
-            <div style="font-size:11px;color:var(--text-2);margin-bottom:1px">J� vendeu</div>
+            <div style="font-size:11px;color:var(--text-2);margin-bottom:1px">Já vendeu</div>
             <div style="font-weight:700;font-size:13px;margin-bottom:8px">${prvVal(fmt(totalVendas))}</div>
             <div style="font-size:11px;color:var(--text-2);margin-bottom:1px">Da meta de</div>
             <div style="font-weight:700;font-size:13px">${prvVal(fmt(meta))}</div>
@@ -214,10 +214,10 @@ async function loadDashboardData() {
           <div class="card-body" style="padding:12px 16px">
             <div class="fin-card-val" style="color:var(--green)">${prvVal(fmt(totalReceber))}</div>
             <div class="fin-sub">
-              <div class="fin-sub-item"><label>Cart�o de cr�dito:</label><span>${prvVal(fmt(totalCartao))}</span></div>
-              <div class="fin-sub-item"><label>Credi�rio:</label><span>${prvVal(fmt(totalCredSaldo))}</span></div>
+              <div class="fin-sub-item"><label>Cartão de crédito:</label><span>${prvVal(fmt(totalCartao))}</span></div>
+              <div class="fin-sub-item"><label>Crediário:</label><span>${prvVal(fmt(totalCredSaldo))}</span></div>
             </div>
-            <div style="font-size:10.5px;color:var(--text-3);margin-top:8px">De ${fmtDate(ini)} � ${fmtDate(fim)}</div>
+            <div style="font-size:10.5px;color:var(--text-3);margin-top:8px">De ${fmtDate(ini)} à ${fmtDate(fim)}</div>
           </div>
           <div style="padding:8px 16px;border-top:1px solid var(--border);text-align:right">
             <button onclick="navigate('contas-receber')" style="background:none;border:none;cursor:pointer;color:var(--accent);font-size:12px;font-weight:600;font-family:inherit">Ver mais >></button>
@@ -234,7 +234,7 @@ async function loadDashboardData() {
               <div class="fin-sub-item"><label>Fornecedores:</label><span>${prvVal(fmt(totalFornecedores))}</span></div>
               <div class="fin-sub-item"><label>Despesas da loja:</label><span>${prvVal(fmt(totalDespesasLoja))}</span></div>
             </div>
-            <div style="font-size:10.5px;color:var(--text-3);margin-top:8px">De ${fmtDate(ini)} � ${fmtDate(fim)}</div>
+            <div style="font-size:10.5px;color:var(--text-3);margin-top:8px">De ${fmtDate(ini)} à ${fmtDate(fim)}</div>
           </div>
           <div style="padding:8px 16px;border-top:1px solid var(--border);text-align:right">
             <button onclick="navigate('contas-pagar')" style="background:none;border:none;cursor:pointer;color:var(--accent);font-size:12px;font-weight:600;font-family:inherit">Ver mais >></button>
@@ -248,7 +248,7 @@ async function loadDashboardData() {
         <div class="card">
           <div class="card-header" style="padding:14px 16px">
             <h3 style="font-size:13px">Top categorias vendidas</h3>
-            <span style="font-size:10px;color:var(--text-2)">De ${fmtDate(ini)} � ${fmtDate(fim)}</span>
+            <span style="font-size:10px;color:var(--text-2)">De ${fmtDate(ini)} à ${fmtDate(fim)}</span>
           </div>
           <div id="dash-top-cat" class="card-body" style="padding:12px 16px">
             <div style="color:var(--text-3);font-size:12px;text-align:center;padding:8px">Carregando...</div>
@@ -274,7 +274,7 @@ async function loadDashboardData() {
                   </div>
                   <div style="flex:1;min-width:0">
                     <div style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.nome}</div>
-                    <div style="font-size:10.5px;color:var(--text-2)">${c.celular||'�'}</div>
+                    <div style="font-size:10.5px;color:var(--text-2)">${c.celular||'—'}</div>
                   </div>
                   ${c.celular?`<a href="https://wa.me/55${c.celular.replace(/\D/g,'')}" target="_blank" class="wap-btn">
                     <i data-lucide="message-circle" style="width:11px;height:11px"></i> Enviar
@@ -287,7 +287,7 @@ async function loadDashboardData() {
         <div class="card">
           <div class="card-header" style="padding:14px 16px">
             <h3 style="font-size:13px">Top Clientes</h3>
-            <span style="font-size:10px;color:var(--text-2)">De ${fmtDate(ini)} � ${fmtDate(fim)}</span>
+            <span style="font-size:10px;color:var(--text-2)">De ${fmtDate(ini)} à ${fmtDate(fim)}</span>
           </div>
           <div class="card-body" style="padding:6px 0">
             ${topClientesList.length ? topClientesList.map((c,i)=>`
@@ -295,7 +295,7 @@ async function loadDashboardData() {
                 <div style="width:21px;height:21px;background:${i===0?'#fbbf24':i===1?'#9ca3af':i===2?'#b45309':'var(--bg)'};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:${i<3?'white':'var(--text-2)'};flex-shrink:0">${i+1}</div>
                 <div style="flex:1;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.nome}</div>
                 <div style="font-size:12px;font-weight:700;color:var(--accent)">${prvVal(fmt(c.total))}</div>
-              </div>`).join('') : `<div class="empty-state" style="padding:20px"><i data-lucide="users"></i><p>Sem compras no per�odo</p></div>`}
+              </div>`).join('') : `<div class="empty-state" style="padding:20px"><i data-lucide="users"></i><p>Sem compras no período</p></div>`}
           </div>
         </div>
       </div>
@@ -306,7 +306,7 @@ async function loadDashboardData() {
         <div class="card referral-box">
           <div class="card-body" style="padding:16px;text-align:center">
             <div class="ref-title">Indique e Ganhe</div>
-            <div class="ref-sub">Compartilhe seu link de indica��o e acompanhe suas indica��es aqui.</div>
+            <div class="ref-sub">Compartilhe seu link de indicação e acompanhe suas indicações aqui.</div>
             ${referralLink ? `
             <div class="ref-link-row">
               <input id="ref-link-input" value="${referralLink}" readonly>
@@ -339,7 +339,7 @@ async function loadDashboardData() {
                   <circle cx="65" cy="62" r="13" fill="#e2e8f0" stroke="#94a3b8" stroke-width="2"/>
                   <polyline points="59,62 64,67 71,57" stroke="#94a3b8" stroke-width="2.5" fill="none" stroke-linecap="round"/>
                 </svg>
-                <div style="font-size:12px;color:var(--text-2)">N�o h� tarefas na agenda neste per�odo.</div>
+                <div style="font-size:12px;color:var(--text-2)">Não há tarefas na agenda neste período.</div>
               </div>` :
               agenda.map(t=>`
                 <div style="display:flex;align-items:center;gap:8px;padding:9px 16px;border-bottom:1px solid var(--border)">
@@ -353,11 +353,11 @@ async function loadDashboardData() {
           </div>
         </div>
 
-        <!-- N�mero de Clientes Novos -->
+        <!-- Número de Clientes Novos -->
         <div class="card">
           <div class="card-header" style="padding:14px 16px">
-            <h3 style="font-size:13px">N�mero de clientes novos</h3>
-            <span style="font-size:10px;color:var(--text-2)">Fixo: Do m�s atual</span>
+            <h3 style="font-size:13px">Número de clientes novos</h3>
+            <span style="font-size:10px;color:var(--text-2)">Fixo: Do mês atual</span>
           </div>
           <div class="card-body" style="padding:16px;display:flex;align-items:center;gap:16px">
             <div class="clients-donut-wrap">
@@ -379,7 +379,7 @@ async function loadDashboardData() {
                 <div class="clients-legend-num">${prvVal(totalClientes.toString())}</div>
                 <div class="clients-legend-lbl">TOTAL</div>
               </div>
-              <button onclick="navigate('clientes')" class="clients-cta">Veja uma an�lise completa dos seus clientes</button>
+              <button onclick="navigate('clientes')" class="clients-cta">Veja uma análise completa dos seus clientes</button>
             </div>
           </div>
         </div>
@@ -388,22 +388,22 @@ async function loadDashboardData() {
       <!-- Changelog -->
       <div class="card">
         <div class="card-header" style="padding:14px 20px">
-          <h3>�ltimas atualiza��es</h3>
+          <h3>últimas atualizações</h3>
           <button class="btn btn-sm btn-primary" onclick="openChangelogModal()"><i data-lucide="plus"></i>Adicionar</button>
         </div>
         ${changelog.length ? `
           <div class="table-wrap"><table class="data-table">
-            <thead><tr><th style="width:110px">Data</th><th>Atualiza��o</th><th style="width:140px"></th></tr></thead>
+            <thead><tr><th style="width:110px">Data</th><th>Atualização</th><th style="width:140px"></th></tr></thead>
             <tbody>${changelog.map(c=>`<tr>
-              <td style="color:var(--text-2);font-size:12px">${c.data_lancamento?new Date(c.data_lancamento+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'�'}</td>
+              <td style="color:var(--text-2);font-size:12px">${c.data_lancamento?new Date(c.data_lancamento+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—'}</td>
               <td style="font-size:13px">${c.descricao}</td>
               <td><a href="#" onclick="return false" class="changelog-link">Pergunte ao suporte</a></td>
             </tr>`).join('')}
             </tbody>
           </table></div>` : `
           <div class="card-body">
-            <div class="empty-state"><i data-lucide="bell"></i><p>Nenhuma atualiza��o ainda</p>
-              <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="openChangelogModal()"><i data-lucide="plus"></i>Adicionar atualiza��o</button>
+            <div class="empty-state"><i data-lucide="bell"></i><p>Nenhuma atualização ainda</p>
+              <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="openChangelogModal()"><i data-lucide="plus"></i>Adicionar atualização</button>
             </div>
           </div>`}
       </div>
@@ -424,7 +424,7 @@ async function loadDashTopCategories(ini, fim) {
       .gte('created_at',ini).lte('created_at',fim+'T23:59:59');
 
     if(!data||!data.length) {
-      el.innerHTML=`<div class="empty-state" style="padding:16px"><i data-lucide="folder"></i><p>Sem dados no per�odo</p></div>`;
+      el.innerHTML=`<div class="empty-state" style="padding:16px"><i data-lucide="folder"></i><p>Sem dados no período</p></div>`;
       lucide.createIcons(); return;
     }
     const catMap={};
@@ -442,7 +442,7 @@ async function loadDashTopCategories(ini, fim) {
     `).join('');
     lucide.createIcons();
   } catch(e){
-    el.innerHTML=`<div style="font-size:12px;color:var(--text-3);text-align:center;padding:8px">Sem dados dispon�veis</div>`;
+    el.innerHTML=`<div style="font-size:12px;color:var(--text-3);text-align:center;padding:8px">Sem dados disponíveis</div>`;
   }
 }
 
@@ -451,8 +451,8 @@ async function openAgendaModal() {
   openModal(`
     <div class="modal-header"><h3>Nova Tarefa na Agenda</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
     <div class="modal-body"><div class="form-grid">
-      <div class="form-group"><label>T�tulo *</label><input id="ag-titulo" placeholder="Ex: Ligar para fornecedor"></div>
-      <div class="form-group"><label>Descri��o</label><textarea id="ag-desc" placeholder="Detalhes da tarefa..."></textarea></div>
+      <div class="form-group"><label>Título *</label><input id="ag-titulo" placeholder="Ex: Ligar para fornecedor"></div>
+      <div class="form-group"><label>Descrição</label><textarea id="ag-desc" placeholder="Detalhes da tarefa..."></textarea></div>
       <div class="form-group"><label>Data *</label><input id="ag-data" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
     </div></div>
     <div class="modal-footer">
@@ -463,7 +463,7 @@ async function openAgendaModal() {
 
 async function saveTarefa() {
   const titulo=document.getElementById('ag-titulo').value.trim();
-  if(!titulo) return toast('T�tulo obrigat�rio','error');
+  if(!titulo) return toast('Título obrigatório','error');
   const {error}=await sb.from('agenda_tarefas').insert({
     titulo,
     descricao:document.getElementById('ag-desc').value,
@@ -478,17 +478,17 @@ async function saveTarefa() {
 
 async function concluirTarefa(id) {
   await sb.from('agenda_tarefas').update({concluida:true}).eq('id',id);
-  toast('Tarefa conclu�da!');
+  toast('Tarefa concluída!');
   loadDashboardData();
 }
 
 // ===== CHANGELOG =====
 async function openChangelogModal() {
   openModal(`
-    <div class="modal-header"><h3>Registrar Atualiza��o</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
+    <div class="modal-header"><h3>Registrar Atualização</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
     <div class="modal-body"><div class="form-grid">
-      <div class="form-group"><label>Descri��o da atualiza��o *</label><input id="cl-desc" placeholder="Ex: Nova funcionalidade: relat�rio de vendas por per�odo"></div>
-      <div class="form-group"><label>Data de lan�amento</label><input id="cl-data" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
+      <div class="form-group"><label>Descrição da atualização *</label><input id="cl-desc" placeholder="Ex: Nova funcionalidade: relatório de vendas por período"></div>
+      <div class="form-group"><label>Data de lançamento</label><input id="cl-data" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
     </div></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModalDirect()">Cancelar</button>
@@ -498,28 +498,28 @@ async function openChangelogModal() {
 
 async function saveChangelog() {
   const desc=document.getElementById('cl-desc').value.trim();
-  if(!desc) return toast('Descri��o obrigat�ria','error');
+  if(!desc) return toast('Descrição obrigatória','error');
   const {error}=await sb.from('changelog').insert({
     descricao:desc,
     data_lancamento:document.getElementById('cl-data').value
   });
   if(error) return toast('Erro: '+error.message,'error');
   closeModalDirect();
-  toast('Atualiza��o registrada');
+  toast('Atualização registrada');
   renderDashboard();
 }
 
-// ===== CONFIGURAR LINK DE INDICA��O =====
+// ===== CONFIGURAR LINK DE INDICAÇÃO =====
 async function openConfigReferralModal() {
   const {data} = await sb.from('configuracoes').select('valor').eq('chave','referral_link').maybeSingle();
   const currentVal = data?.valor || '';
   openModal(`
-    <div class="modal-header"><h3>Configurar Link de Indica��o</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
+    <div class="modal-header"><h3>Configurar Link de Indicação</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
     <div class="modal-body">
       <div class="form-group">
-        <label>Link de Indica��o</label>
+        <label>Link de Indicação</label>
         <input id="cfg-ref-link" value="${currentVal}" placeholder="https://seusite.com/indicacao/codigo">
-        <small style="color:var(--text-2);font-size:11px;margin-top:4px;display:block">Cole aqui o link de indica��o fornecido pela sua plataforma.</small>
+        <small style="color:var(--text-2);font-size:11px;margin-top:4px;display:block">Cole aqui o link de indicação fornecido pela sua plataforma.</small>
       </div>
     </div>
     <div class="modal-footer">
@@ -537,6 +537,6 @@ async function saveConfigReferral() {
     await sb.from('configuracoes').insert({chave:'referral_link', valor});
   }
   closeModalDirect();
-  toast('Link de indica��o salvo');
+  toast('Link de indicação salvo');
   loadDashboardData();
 }
