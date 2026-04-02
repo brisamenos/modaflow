@@ -1,4 +1,4 @@
-﻿// ===== NOTAS FISCAIS =====
+// ===== NOTAS FISCAIS =====
 async function renderNotasFiscais() {
   document.getElementById('topbar-actions').innerHTML=`<button class="btn btn-primary" onclick="openNFModal()"><i data-lucide="plus"></i>Digitar NF</button>`;
   const {data}=await sb.from('notas_fiscais').select('*,fornecedores(razao_social)').order('created_at',{ascending:false});
@@ -531,6 +531,62 @@ async function renderGestaoEstoque() {
       </table></div>
     </div>`;
   lucide.createIcons();
+}
+
+async function openEstoqueModal(id, nome) {
+  const {data} = await sb.from('produto_grades').select('*').eq('produto_id', id).order('tamanho');
+  
+  const linhas = (data||[]).map(g => `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:13px">\${g.tamanho} \${g.cor_descricao?'- '+g.cor_descricao:''}</div>
+        \${g.ean?\`<div style="font-size:11px;color:var(--text-2)">EAN: \${g.ean}</div>\`:\`\`}
+      </div>
+      <div style="width:100px">
+        <input type="number" id="ajuste-grade-\${g.id}" value="\${g.estoque||0}" class="form-control" style="width:100%;text-align:center">
+      </div>
+    </div>
+  `).join('');
+
+  openModal(`
+    <div class="modal-header">
+      <h3>Ajustar Estoque: \${nome}</h3>
+      <button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body" style="max-height:60vh;overflow-y:auto">
+      \${data&&data.length?linhas:'<div class="empty-state" style="padding:24px"><p>Nenhuma grade cadastrada para este produto.</p></div>'}
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModalDirect()">Cancelar</button>
+      \${data&&data.length?\`<button class="btn btn-primary" onclick="salvarEstoqueModal('\${id}')"><i data-lucide="save"></i>Salvar Ajuste</button>\`:\`\`}
+    </div>
+  `, 'modal-md');
+}
+
+async function salvarEstoqueModal(prodId) {
+  const {data} = await sb.from('produto_grades').select('id').eq('produto_id', prodId);
+  if(!data) return;
+  
+  const btn = document.querySelector('.modal-footer .btn-primary');
+  if(btn){
+    btn.innerHTML = '<i data-lucide="loader"></i>Salvando...';
+    btn.disabled = true;
+  }
+  
+  try {
+    for(const g of data) {
+      const inp = document.getElementById('ajuste-grade-'+g.id);
+      if(inp && inp.value !== '') {
+        const v = parseInt(inp.value)||0;
+        await sb.from('produto_grades').update({estoque: v}).eq('id', g.id);
+      }
+    }
+    closeModalDirect();
+    toast('Estoque ajustado');
+    renderGestaoEstoque();
+  } catch(e) {
+    toast('Erro ao ajustar estoque', 'error');
+  }
 }
 
 
