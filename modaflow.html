@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ModaFlow — Painel Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#09090f;
+  --s1:#0f0f1a;
+  --s2:#141420;
+  --s3:#1c1c2e;
+  --border:rgba(255,255,255,.06);
+  --border2:rgba(255,255,255,.1);
+  --accent:#10b981;
+  --accent-dim:rgba(16,185,129,.12);
+  --accent2:#06d6a0;
+  --red:#ef4444;
+  --red-dim:rgba(239,68,68,.12);
+  --yellow:#f59e0b;
+  --yellow-dim:rgba(245,158,11,.12);
+  --blue:#3b82f6;
+  --blue-dim:rgba(59,130,246,.12);
+  --text:#f0f0fa;
+  --text2:#8b8ba8;
+  --text3:#55556a;
+  --font:'Outfit',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+  --r:10px;
+  --r2:16px;
+  --r3:22px;
+  --shadow:0 8px 32px rgba(0,0,0,.5);
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--s3);border-radius:99px}
+
+/* ═══════════════════════════════════
+   LOGIN
+═══════════════════════════════════ */
+#screen-login{
+  width:100%;min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse 70% 50% at 50% -10%,rgba(16,185,129,.15),transparent);
+  position:relative;overflow:hidden;
+}
+#screen-login::before{
+  content:'';position:absolute;inset:0;
+  background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2310b981' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+.login-card{
+  background:var(--s1);border:1px solid var(--border2);border-radius:var(--r3);
+  padding:48px 44px;width:420px;max-width:95vw;
+  box-shadow:0 40px 100px rgba(0,0,0,.8),0 0 0 1px rgba(16,185,129,.1);
+  position:relative;animation:fadeUp .5s cubic-bezier(.16,1,.3,1);
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+.login-logo{
+  display:flex;align-items:center;gap:12px;margin-bottom:36px;
+}
+.login-logo-icon{
+  width:48px;height:48px;border-radius:14px;
+  background:linear-gradient(135deg,var(--accent),#059669);
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+  box-shadow:0 8px 24px rgba(16,185,129,.4);
+}
+.login-logo-text{font-size:22px;font-weight:900;letter-spacing:-1px}
+.login-logo-text span{color:var(--accent)}
+.login-label{display:block;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.login-input{
+  width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border2);
+  border-radius:var(--r);padding:13px 16px;color:var(--text);
+  font-family:var(--font);font-size:14px;outline:none;transition:all .2s;
+  margin-bottom:16px;
+}
+.login-input:focus{border-color:var(--accent);background:rgba(16,185,129,.04);box-shadow:0 0 0 3px rgba(16,185,129,.12)}
+.login-input::placeholder{color:var(--text3)}
+.login-btn{
+  width:100%;padding:14px;border:none;border-radius:var(--r);cursor:pointer;
+  background:linear-gradient(135deg,var(--accent),#059669);
+  color:#fff;font-family:var(--font);font-size:15px;font-weight:700;
+  transition:all .2s;box-shadow:0 4px 20px rgba(16,185,129,.4);
+  letter-spacing:.3px;
+}
+.login-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(16,185,129,.55)}
+.login-btn:active{transform:none}
+.login-err{
+  display:none;background:var(--red-dim);border:1px solid rgba(239,68,68,.2);
+  border-radius:var(--r);padding:11px 14px;font-size:13px;color:#fca5a5;margin-bottom:16px;
+}
+.login-err.on{display:block}
+
+/* ═══════════════════════════════════
+   APP LAYOUT
+═══════════════════════════════════ */
+#screen-app{display:none;flex-direction:column;min-height:100vh}
+
+/* ── TOPBAR ── */
+.topbar{
+  height:58px;background:var(--s1);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 28px;gap:20px;
+  position:sticky;top:0;z-index:100;
+}
+.topbar-logo{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:900;letter-spacing:-0.5px}
+.topbar-logo-dot{
+  width:32px;height:32px;border-radius:9px;
+  background:linear-gradient(135deg,var(--accent),#059669);
+  display:flex;align-items:center;justify-content:center;font-size:15px;
+  box-shadow:0 4px 12px rgba(16,185,129,.35);
+}
+.topbar-logo span{color:var(--accent)}
+.topbar-badge{
+  font-size:10px;font-weight:700;background:var(--accent-dim);color:var(--accent);
+  border:1px solid rgba(16,185,129,.3);padding:3px 9px;border-radius:99px;letter-spacing:.5px;
+}
+.topbar-spacer{flex:1}
+.topbar-user{
+  display:flex;align-items:center;gap:10px;padding:6px 14px;
+  border:1px solid var(--border);border-radius:var(--r);cursor:pointer;
+  transition:all .15s;font-size:13px;font-weight:600;
+}
+.topbar-user:hover{background:var(--s2);border-color:var(--border2)}
+.topbar-user-dot{
+  width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#059669);
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;
+}
+
+/* ── MAIN ── */
+.main{flex:1;padding:32px 28px;max-width:1280px;margin:0 auto;width:100%}
+
+/* ── SECTION ── */
+.section{display:none}
+.section.active{display:block}
+
+/* ── HEADER ── */
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+.page-title{font-size:24px;font-weight:800;letter-spacing:-0.5px}
+.page-subtitle{font-size:13px;color:var(--text2);margin-top:2px}
+
+/* ── STATS GRID ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-bottom:28px}
+.stat-card{
+  background:var(--s1);border:1px solid var(--border);border-radius:var(--r2);
+  padding:22px 24px;position:relative;overflow:hidden;transition:border-color .2s;
+}
+.stat-card:hover{border-color:var(--border2)}
+.stat-card::after{
+  content:'';position:absolute;top:-40px;right:-40px;
+  width:120px;height:120px;border-radius:50%;
+  background:radial-gradient(circle,var(--card-color,.05) 0%,transparent 70%);
+  pointer-events:none;
+}
+.stat-icon{
+  width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-size:20px;margin-bottom:14px;
+}
+.stat-val{font-size:32px;font-weight:900;letter-spacing:-1px;line-height:1}
+.stat-label{font-size:12px;color:var(--text2);margin-top:6px;font-weight:500}
+
+/* ── CARD ── */
+.card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden}
+.card-header{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.card-title{font-size:15px;font-weight:700}
+.card-subtitle{font-size:12px;color:var(--text2);margin-top:1px}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead tr{border-bottom:1px solid var(--border)}
+thead th{padding:12px 20px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;text-align:left;white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--border);transition:background .12s;cursor:default}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:rgba(255,255,255,.02)}
+tbody td{padding:14px 20px;font-size:13.5px;vertical-align:middle}
+
+/* ── BADGE ── */
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;letter-spacing:.3px;white-space:nowrap}
+.badge-green{background:rgba(16,185,129,.12);color:#34d399;border:1px solid rgba(16,185,129,.2)}
+.badge-red{background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+.badge-yellow{background:rgba(245,158,11,.12);color:#fbbf24;border:1px solid rgba(245,158,11,.2)}
+.badge-blue{background:rgba(59,130,246,.12);color:#60a5fa;border:1px solid rgba(59,130,246,.2)}
+.badge-gray{background:rgba(255,255,255,.05);color:var(--text2);border:1px solid var(--border)}
+.badge::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor}
+
+/* ── BUTTONS ── */
+.btn{
+  display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:var(--r);
+  border:none;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;
+  transition:all .15s;white-space:nowrap;
+}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:0 2px 12px rgba(16,185,129,.35)}
+.btn-primary:hover{background:var(--accent2);box-shadow:0 4px 20px rgba(16,185,129,.5);transform:translateY(-1px)}
+.btn-secondary{background:var(--s3);color:var(--text);border:1px solid var(--border2)}
+.btn-secondary:hover{background:rgba(255,255,255,.08);border-color:var(--border2)}
+.btn-danger{background:var(--red-dim);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+.btn-danger:hover{background:rgba(239,68,68,.2)}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:7px}
+.btn-icon{width:32px;height:32px;padding:0;border-radius:8px;justify-content:center}
+
+/* ── SEARCH ── */
+.search-bar{display:flex;gap:10px;align-items:center;margin-bottom:0}
+.search-input{
+  background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);
+  padding:9px 16px;color:var(--text);font-family:var(--font);font-size:13px;
+  outline:none;width:260px;transition:all .18s;
+}
+.search-input:focus{border-color:var(--accent);background:rgba(16,185,129,.03)}
+.search-input::placeholder{color:var(--text3)}
+
+/* ── EXPIRY BAR ── */
+.expiry-wrap{display:flex;align-items:center;gap:8px}
+.expiry-bar{flex:1;height:4px;background:var(--s3);border-radius:99px;overflow:hidden;min-width:60px}
+.expiry-fill{height:100%;border-radius:99px;transition:width .3s}
+
+/* ── MODAL ── */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);
+  backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;
+}
+.modal-overlay.open{display:flex}
+.modal{
+  background:var(--s1);border:1px solid var(--border2);border-radius:var(--r3);
+  width:540px;max-width:95vw;max-height:90vh;overflow-y:auto;
+  animation:fadeUp .3s cubic-bezier(.16,1,.3,1);
+  box-shadow:0 40px 100px rgba(0,0,0,.8);
+}
+.modal-header{padding:24px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:17px;font-weight:800;letter-spacing:-.3px}
+.modal-close{
+  width:32px;height:32px;border-radius:8px;background:var(--s3);border:none;
+  color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:16px;transition:all .15s;
+}
+.modal-close:hover{background:var(--red-dim);color:#f87171}
+.modal-body{padding:24px 28px;display:flex;flex-direction:column;gap:16px}
+.modal-footer{padding:18px 28px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+
+/* ── FORM ── */
+.f-group{display:flex;flex-direction:column;gap:7px}
+.f-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.f-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.8px}
+.f-input,.f-select{
+  background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);
+  padding:11px 14px;color:var(--text);font-family:var(--font);font-size:13.5px;
+  outline:none;transition:all .18s;width:100%;
+}
+.f-input:focus,.f-select:focus{border-color:var(--accent);background:rgba(16,185,129,.03);box-shadow:0 0 0 3px rgba(16,185,129,.1)}
+.f-input::placeholder{color:var(--text3)}
+.f-select{cursor:pointer}
+.f-select option{background:var(--s2)}
+.f-hint{font-size:11.5px;color:var(--text3)}
+
+/* ── EMPTY ── */
+.empty{padding:64px 24px;text-align:center;color:var(--text3)}
+.empty-icon{font-size:48px;margin-bottom:12px;opacity:.4}
+.empty-title{font-size:16px;font-weight:700;color:var(--text2);margin-bottom:4px}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px}
+.toast-item{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 18px;border-radius:var(--r);font-size:13.5px;font-weight:500;
+  box-shadow:var(--shadow);animation:slideIn .3s cubic-bezier(.16,1,.3,1);
+  max-width:340px;
+}
+@keyframes slideIn{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+.toast-success{background:#064e3b;border:1px solid rgba(16,185,129,.3);color:#a7f3d0}
+.toast-error{background:#450a0a;border:1px solid rgba(239,68,68,.3);color:#fca5a5}
+.toast-info{background:#1e3a5f;border:1px solid rgba(59,130,246,.3);color:#93c5fd}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:2px;background:var(--s2);border-radius:var(--r);padding:4px;margin-bottom:20px;width:fit-content}
+.tab-btn{
+  padding:7px 18px;border-radius:7px;font-size:13px;font-weight:600;
+  border:none;cursor:pointer;font-family:var(--font);color:var(--text2);
+  background:none;transition:all .15s;
+}
+.tab-btn.active{background:var(--s1);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.4)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:600px){
+  .main{padding:20px 16px}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .f-row{grid-template-columns:1fr}
+  .page-header{flex-direction:column;align-items:flex-start;gap:12px}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="screen-login">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">👗</div>
+      <div>
+        <div class="login-logo-text">Moda<span>Flow</span></div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:.5px">PAINEL ADMIN</div>
+      </div>
+    </div>
+    <div class="login-err" id="login-err"></div>
+    <label class="login-label">E-mail admin</label>
+    <input class="login-input" id="lg-email" type="email" placeholder="admin@modaflow.com" autocomplete="username">
+    <label class="login-label">Senha</label>
+    <input class="login-input" id="lg-senha" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Entrar no painel →</button>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="screen-app">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-logo">
+      <div class="topbar-logo-dot">👗</div>
+      Moda<span style="color:var(--accent)">Flow</span>
+    </div>
+    <span class="topbar-badge">ADMIN</span>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-user" onclick="doLogout()">
+      <div class="topbar-user-dot" id="adm-inicial">A</div>
+      <div>
+        <div style="font-size:12px;font-weight:700" id="adm-nome">Admin</div>
+        <div style="font-size:10px;color:var(--text3)">Sair →</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ── DASHBOARD ── -->
+    <div id="sec-dashboard" class="section active">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div class="page-subtitle">Visão geral do ModaFlow</div>
+        </div>
+        <button class="btn btn-primary" onclick="abrirCriarGestor()">＋ Novo gestor</button>
+      </div>
+
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card" style="--card-color:rgba(16,185,129,.08)">
+          <div class="stat-icon" style="background:var(--accent-dim)">👥</div>
+          <div class="stat-val" id="st-total" style="color:var(--accent)">—</div>
+          <div class="stat-label">Gestores cadastrados</div>
+        </div>
+        <div class="stat-card" style="--card-color:rgba(16,185,129,.08)">
+          <div class="stat-icon" style="background:rgba(16,185,129,.1)">✅</div>
+          <div class="stat-val" id="st-ativos" style="color:#34d399">—</div>
+          <div class="stat-label">Ativos</div>
+        </div>
+        <div class="stat-card" style="--card-color:rgba(245,158,11,.08)">
+          <div class="stat-icon" style="background:var(--yellow-dim)">⏳</div>
+          <div class="stat-val" id="st-vencendo" style="color:var(--yellow)">—</div>
+          <div class="stat-label">Vencem em 7 dias</div>
+        </div>
+        <div class="stat-card" style="--card-color:rgba(239,68,68,.08)">
+          <div class="stat-icon" style="background:var(--red-dim)">🚫</div>
+          <div class="stat-val" id="st-inativos" style="color:#f87171">—</div>
+          <div class="stat-label">Bloqueados / Vencidos</div>
+        </div>
+      </div>
+
+      <!-- Lista recente -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Gestores recentes</div>
+            <div class="card-subtitle">Últimos cadastrados</div>
+          </div>
+          <div style="flex:1"></div>
+          <button class="btn btn-secondary btn-sm" onclick="navTo('gestores')">Ver todos →</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Gestor</th><th>E-mail</th><th>Status</th><th>Vencimento</th><th>Ações</th>
+            </tr></thead>
+            <tbody id="dash-table"><tr><td colspan="5" class="empty">Carregando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── GESTORES ── -->
+    <div id="sec-gestores" class="section">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Gestores</div>
+          <div class="page-subtitle">Gerenciar contas e acessos</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <input class="search-input" placeholder="🔍  Buscar gestor..." oninput="filtrarGestores(this.value)" id="busca-gestor">
+          <button class="btn btn-primary" onclick="abrirCriarGestor()">＋ Novo gestor</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Gestor / Slug</th><th>E-mail</th><th>Status</th><th>Vencimento</th><th>Cadastro</th><th>Ações</th>
+            </tr></thead>
+            <tbody id="gestores-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══ MODAL — CRIAR/EDITAR GESTOR ═══ -->
+<div class="modal-overlay" id="modal-gestor" onclick="if(event.target===this)fecharModal('modal-gestor')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-gestor-title">Novo Gestor</div>
+      <button class="modal-close" onclick="fecharModal('modal-gestor')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="g-id">
+      <div class="f-row">
+        <div class="f-group">
+          <label class="f-label">Nome completo *</label>
+          <input class="f-input" id="g-nome" placeholder="Nome do gestor">
+        </div>
+        <div class="f-group">
+          <label class="f-label">Slug (URL) *</label>
+          <input class="f-input" id="g-slug" placeholder="minha-loja" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9-]/g,'-')">
+          <span class="f-hint">Identificador único: letras, números e hífens</span>
+        </div>
+      </div>
+      <div class="f-group">
+        <label class="f-label">E-mail de acesso *</label>
+        <input class="f-input" id="g-email" type="email" placeholder="gestor@loja.com">
+      </div>
+      <div class="f-row">
+        <div class="f-group">
+          <label class="f-label" id="g-senha-label">Senha *</label>
+          <input class="f-input" id="g-senha" type="password" placeholder="Mínimo 6 caracteres">
+          <span class="f-hint" id="g-senha-hint"></span>
+        </div>
+        <div class="f-group">
+          <label class="f-label">Vencimento do sistema</label>
+          <input class="f-input" id="g-expiry" type="date">
+          <span class="f-hint">Deixe em branco para sem vencimento</span>
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-group">
+          <label class="f-label">Plano</label>
+          <select class="f-select" id="g-plano">
+            <option value="basico">Básico</option>
+            <option value="profissional">Profissional</option>
+            <option value="premium">Premium</option>
+          </select>
+        </div>
+        <div class="f-group">
+          <label class="f-label">Status</label>
+          <select class="f-select" id="g-ativo">
+            <option value="1">Ativo</option>
+            <option value="0">Bloqueado</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal('modal-gestor')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarGestor()">💾 Salvar gestor</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL — RENOVAR VENCIMENTO ═══ -->
+<div class="modal-overlay" id="modal-renovar" onclick="if(event.target===this)fecharModal('modal-renovar')">
+  <div class="modal" style="width:420px">
+    <div class="modal-header">
+      <div class="modal-title">⏳ Renovar vencimento</div>
+      <button class="modal-close" onclick="fecharModal('modal-renovar')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="renovar-info" style="background:var(--s2);border-radius:var(--r);padding:14px 16px;font-size:13px;color:var(--text2);margin-bottom:4px"></div>
+      <div class="f-group">
+        <label class="f-label">Nova data de vencimento</label>
+        <input class="f-input" id="renovar-data" type="date">
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-secondary btn-sm" onclick="addDias(30)">+30 dias</button>
+        <button class="btn btn-secondary btn-sm" onclick="addDias(60)">+60 dias</button>
+        <button class="btn btn-secondary btn-sm" onclick="addDias(90)">+90 dias</button>
+        <button class="btn btn-secondary btn-sm" onclick="addDias(365)">+1 ano</button>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('renovar-data').value=''">Sem limite</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal('modal-renovar')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarRenovar()">✅ Confirmar renovação</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL — RESET SENHA ═══ -->
+<div class="modal-overlay" id="modal-senha" onclick="if(event.target===this)fecharModal('modal-senha')">
+  <div class="modal" style="width:400px">
+    <div class="modal-header">
+      <div class="modal-title">🔑 Redefinir senha</div>
+      <button class="modal-close" onclick="fecharModal('modal-senha')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="senha-info" style="font-size:13px;color:var(--text2);background:var(--s2);border-radius:var(--r);padding:12px 14px"></div>
+      <div class="f-group">
+        <label class="f-label">Nova senha</label>
+        <input class="f-input" id="nova-senha" type="password" placeholder="Mínimo 6 caracteres">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal('modal-senha')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarSenha()">🔑 Alterar senha</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+let _token = null;
+let _gestores = [];
+let _renovarId = null;
+let _senhaId = null;
+
+// ═══════════════════════════════════════════════════════
+//  AUTH
+// ═══════════════════════════════════════════════════════
+async function sha256(msg) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function adminHeader() {
+  return { 'Content-Type':'application/json', 'Authorization': 'Bearer '+_token };
+}
+
+async function doLogin() {
+  const email = document.getElementById('lg-email').value.trim();
+  const senha = document.getElementById('lg-senha').value;
+  const err = document.getElementById('login-err');
+  err.classList.remove('on');
+  if (!email || !senha) { err.textContent='Preencha e-mail e senha'; err.classList.add('on'); return; }
+
+  const hash = await sha256(senha);
+  const r = await fetch('/api/admin/login', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json' },
+    body: JSON.stringify({ email, senha_hash: hash })
+  });
+  const d = await r.json();
+  if (!r.ok) { err.textContent = d.message || 'Credenciais inválidas'; err.classList.add('on'); return; }
+
+  _token = d.token;
+  localStorage.setItem('mf_admin_token', _token);
+  document.getElementById('adm-nome').textContent = d.nome || email;
+  document.getElementById('adm-inicial').textContent = (d.nome||email).charAt(0).toUpperCase();
+  document.getElementById('screen-login').style.display = 'none';
+  document.getElementById('screen-app').style.display = 'flex';
+  document.getElementById('screen-app').style.flexDirection = 'column';
+  await carregarTudo();
+}
+
+function doLogout() {
+  if (!confirm('Sair do painel admin?')) return;
+  localStorage.removeItem('mf_admin_token');
+  _token = null;
+  document.getElementById('screen-app').style.display = 'none';
+  document.getElementById('screen-login').style.display = 'flex';
+}
+
+async function checkSavedSession() {
+  const t = localStorage.getItem('mf_admin_token');
+  if (!t) return;
+  const r = await fetch('/api/admin/me', { headers: { 'Authorization': 'Bearer '+t } }).catch(()=>null);
+  if (!r || !r.ok) { localStorage.removeItem('mf_admin_token'); return; }
+  const d = await r.json();
+  _token = t;
+  document.getElementById('adm-nome').textContent = d.nome || 'Admin';
+  document.getElementById('adm-inicial').textContent = (d.nome||'A').charAt(0).toUpperCase();
+  document.getElementById('screen-login').style.display = 'none';
+  document.getElementById('screen-app').style.display = 'flex';
+  document.getElementById('screen-app').style.flexDirection = 'column';
+  await carregarTudo();
+}
+
+// ═══════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════
+function navTo(sec) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec-'+sec)?.classList.add('active');
+  if (sec === 'gestores') renderGestoresTable(_gestores);
+}
+
+// ═══════════════════════════════════════════════════════
+//  CARREGAR DADOS
+// ═══════════════════════════════════════════════════════
+async function carregarTudo() {
+  const r = await fetch('/api/admin/gestores', { headers: adminHeader() });
+  if (!r.ok) return;
+  _gestores = await r.json();
+  atualizarStats();
+  renderDashTable();
+  renderGestoresTable(_gestores);
+}
+
+function atualizarStats() {
+  const agora = new Date();
+  const em7 = new Date(agora); em7.setDate(em7.getDate()+7);
+  let ativos=0, vencendo=0, inativos=0;
+  for (const g of _gestores) {
+    const exp = g.expires_at ? new Date(g.expires_at) : null;
+    const ativo = g.ativo && (!exp || exp > agora);
+    if (!g.ativo || (exp && exp <= agora)) inativos++;
+    else if (exp && exp <= em7) vencendo++;
+    else ativos++;
+  }
+  document.getElementById('st-total').textContent = _gestores.length;
+  document.getElementById('st-ativos').textContent = ativos;
+  document.getElementById('st-vencendo').textContent = vencendo;
+  document.getElementById('st-inativos').textContent = inativos;
+}
+
+// ═══════════════════════════════════════════════════════
+//  RENDER TABLES
+// ═══════════════════════════════════════════════════════
+function statusGestor(g) {
+  const agora = new Date();
+  const exp = g.expires_at ? new Date(g.expires_at) : null;
+  if (!g.ativo) return { label:'Bloqueado', cls:'badge-red' };
+  if (exp && exp <= agora) return { label:'Vencido', cls:'badge-red' };
+  const em7 = new Date(agora); em7.setDate(em7.getDate()+7);
+  if (exp && exp <= em7) return { label:'Vence em breve', cls:'badge-yellow' };
+  return { label:'Ativo', cls:'badge-green' };
+}
+
+function fmtDate(d) {
+  if (!d) return '<span style="color:var(--text3)">Sem limite</span>';
+  const dt = new Date(d+'T00:00:00');
+  const agora = new Date();
+  const diff = Math.ceil((dt-agora)/86400000);
+  const fmt = dt.toLocaleDateString('pt-BR');
+  if (diff < 0) return `<span style="color:#f87171">${fmt} <small>(vencido há ${Math.abs(diff)}d)</small></span>`;
+  if (diff <= 7) return `<span style="color:#fbbf24">${fmt} <small>(${diff}d)</small></span>`;
+  return `<span style="color:var(--text2)">${fmt} <small style="color:var(--text3)">(${diff}d)</small></span>`;
+}
+
+function rowActions(g) {
+  return `
+    <div style="display:flex;gap:6px;align-items:center">
+      <button class="btn btn-secondary btn-sm" title="Editar" onclick="abrirEditarGestor('${g.id}')">✏️</button>
+      <button class="btn btn-secondary btn-sm" title="Renovar vencimento" onclick="abrirRenovar('${g.id}')">⏳</button>
+      <button class="btn btn-secondary btn-sm" title="Redefinir senha" onclick="abrirSenha('${g.id}')">🔑</button>
+      <button class="btn btn-sm ${g.ativo?'btn-danger':'btn-secondary'}" title="${g.ativo?'Bloquear':'Ativar'}" onclick="toggleAtivo('${g.id}',${g.ativo})">
+        ${g.ativo?'🚫':'✅'}
+      </button>
+    </div>`;
+}
+
+function renderRows(gestores) {
+  if (!gestores.length) return `<tr><td colspan="6"><div class="empty"><div class="empty-icon">👥</div><div class="empty-title">Nenhum gestor cadastrado</div></div></td></tr>`;
+  return gestores.map(g => {
+    const s = statusGestor(g);
+    const dt = g.created_at ? new Date(g.created_at).toLocaleDateString('pt-BR') : '—';
+    return `<tr>
+      <td>
+        <div style="font-weight:700;font-size:14px">${g.nome}</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:2px">${g.slug}</div>
+      </td>
+      <td style="font-size:12.5px;color:var(--text2)">${g.email}</td>
+      <td><span class="badge ${s.cls}">${s.label}</span></td>
+      <td>${fmtDate(g.expires_at)}</td>
+      <td style="font-size:12px;color:var(--text3)">${dt}</td>
+      <td>${rowActions(g)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderDashTable() {
+  document.getElementById('dash-table').innerHTML = renderRows(_gestores.slice(0,6));
+}
+
+function renderGestoresTable(gestores) {
+  document.getElementById('gestores-table').innerHTML = renderRows(gestores);
+}
+
+function filtrarGestores(q) {
+  q = q.toLowerCase();
+  const filtrados = _gestores.filter(g =>
+    g.nome.toLowerCase().includes(q) ||
+    g.email.toLowerCase().includes(q) ||
+    g.slug.toLowerCase().includes(q)
+  );
+  renderGestoresTable(filtrados);
+}
+
+// ═══════════════════════════════════════════════════════
+//  MODAL — CRIAR / EDITAR GESTOR
+// ═══════════════════════════════════════════════════════
+function abrirCriarGestor() {
+  document.getElementById('g-id').value = '';
+  document.getElementById('g-nome').value = '';
+  document.getElementById('g-slug').value = '';
+  document.getElementById('g-email').value = '';
+  document.getElementById('g-senha').value = '';
+  document.getElementById('g-expiry').value = '';
+  document.getElementById('g-plano').value = 'basico';
+  document.getElementById('g-ativo').value = '1';
+  document.getElementById('modal-gestor-title').textContent = 'Novo Gestor';
+  document.getElementById('g-senha-label').textContent = 'Senha *';
+  document.getElementById('g-senha-hint').textContent = '';
+  document.getElementById('modal-gestor').classList.add('open');
+  setTimeout(()=>document.getElementById('g-nome').focus(), 100);
+}
+
+function abrirEditarGestor(id) {
+  const g = _gestores.find(x=>x.id==id);
+  if (!g) return;
+  document.getElementById('g-id').value = g.id;
+  document.getElementById('g-nome').value = g.nome;
+  document.getElementById('g-slug').value = g.slug;
+  document.getElementById('g-email').value = g.email;
+  document.getElementById('g-senha').value = '';
+  document.getElementById('g-expiry').value = g.expires_at || '';
+  document.getElementById('g-plano').value = g.plano || 'basico';
+  document.getElementById('g-ativo').value = g.ativo ? '1' : '0';
+  document.getElementById('modal-gestor-title').textContent = 'Editar Gestor — '+g.nome;
+  document.getElementById('g-senha-label').textContent = 'Nova senha';
+  document.getElementById('g-senha-hint').textContent = 'Deixe em branco para não alterar';
+  document.getElementById('modal-gestor').classList.add('open');
+}
+
+async function salvarGestor() {
+  const id = document.getElementById('g-id').value;
+  const nome = document.getElementById('g-nome').value.trim();
+  const slug = document.getElementById('g-slug').value.trim();
+  const email = document.getElementById('g-email').value.trim();
+  const senha = document.getElementById('g-senha').value;
+  const expiry = document.getElementById('g-expiry').value;
+  const plano = document.getElementById('g-plano').value;
+  const ativo = document.getElementById('g-ativo').value === '1';
+
+  if (!nome || !slug || !email) return toast('Preencha os campos obrigatórios','error');
+  if (!id && !senha) return toast('Informe uma senha para o novo gestor','error');
+  if (senha && senha.length < 6) return toast('Senha deve ter mínimo 6 caracteres','error');
+
+  const payload = { nome, slug, email, plano, ativo, expires_at: expiry || null };
+  if (senha) payload.senha_hash = await sha256(senha);
+
+  const url = id ? `/api/admin/gestores/${id}` : '/api/admin/gestores';
+  const method = id ? 'PATCH' : 'POST';
+
+  const r = await fetch(url, { method, headers: adminHeader(), body: JSON.stringify(payload) });
+  const d = await r.json();
+  if (!r.ok) return toast(d.message || 'Erro ao salvar','error');
+
+  fecharModal('modal-gestor');
+  toast(id ? 'Gestor atualizado!' : 'Gestor criado com sucesso!');
+  await carregarTudo();
+}
+
+// ═══════════════════════════════════════════════════════
+//  MODAL — RENOVAR VENCIMENTO
+// ═══════════════════════════════════════════════════════
+function abrirRenovar(id) {
+  _renovarId = id;
+  const g = _gestores.find(x=>x.id==id);
+  if (!g) return;
+  const exp = g.expires_at ? new Date(g.expires_at+'T00:00:00').toLocaleDateString('pt-BR') : 'Sem limite';
+  document.getElementById('renovar-info').innerHTML = `<strong>${g.nome}</strong><br>Vencimento atual: <strong>${exp}</strong>`;
+  document.getElementById('renovar-data').value = g.expires_at || '';
+  document.getElementById('modal-renovar').classList.add('open');
+}
+
+function addDias(dias) {
+  const base = document.getElementById('renovar-data').value;
+  const dt = base ? new Date(base+'T00:00:00') : new Date();
+  dt.setDate(dt.getDate()+dias);
+  document.getElementById('renovar-data').value = dt.toISOString().split('T')[0];
+}
+
+async function confirmarRenovar() {
+  const data = document.getElementById('renovar-data').value || null;
+  const r = await fetch(`/api/admin/gestores/${_renovarId}`, {
+    method:'PATCH', headers: adminHeader(),
+    body: JSON.stringify({ expires_at: data })
+  });
+  if (!r.ok) return toast('Erro ao renovar','error');
+  fecharModal('modal-renovar');
+  toast('Vencimento atualizado!');
+  await carregarTudo();
+}
+
+// ═══════════════════════════════════════════════════════
+//  MODAL — SENHA
+// ═══════════════════════════════════════════════════════
+function abrirSenha(id) {
+  _senhaId = id;
+  const g = _gestores.find(x=>x.id==id);
+  if (!g) return;
+  document.getElementById('senha-info').innerHTML = `Redefinir senha de <strong>${g.nome}</strong> (${g.email})`;
+  document.getElementById('nova-senha').value = '';
+  document.getElementById('modal-senha').classList.add('open');
+  setTimeout(()=>document.getElementById('nova-senha').focus(),100);
+}
+
+async function confirmarSenha() {
+  const senha = document.getElementById('nova-senha').value;
+  if (!senha || senha.length < 6) return toast('Mínimo 6 caracteres','error');
+  const hash = await sha256(senha);
+  const r = await fetch(`/api/admin/gestores/${_senhaId}`, {
+    method:'PATCH', headers: adminHeader(),
+    body: JSON.stringify({ senha_hash: hash })
+  });
+  if (!r.ok) return toast('Erro ao alterar senha','error');
+  fecharModal('modal-senha');
+  toast('Senha alterada com sucesso!');
+}
+
+// ═══════════════════════════════════════════════════════
+//  TOGGLE ATIVO
+// ═══════════════════════════════════════════════════════
+async function toggleAtivo(id, atual) {
+  const acao = atual ? 'bloquear' : 'ativar';
+  if (!confirm(`Deseja ${acao} este gestor?`)) return;
+  const r = await fetch(`/api/admin/gestores/${id}`, {
+    method:'PATCH', headers: adminHeader(),
+    body: JSON.stringify({ ativo: !atual })
+  });
+  if (!r.ok) return toast('Erro ao atualizar','error');
+  toast(`Gestor ${atual?'bloqueado':'ativado'}!`);
+  await carregarTudo();
+}
+
+// ═══════════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════════
+function fecharModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function toast(msg, type='success') {
+  const el = document.createElement('div');
+  el.className = `toast-item toast-${type}`;
+  el.textContent = type==='success'?'✅ '+msg : type==='error'?'❌ '+msg : 'ℹ️ '+msg;
+  document.getElementById('toast').appendChild(el);
+  setTimeout(()=>el.remove(), 3500);
+}
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+checkSavedSession();
+</script>
+</body>
+</html>
