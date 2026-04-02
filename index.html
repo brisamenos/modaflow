@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StoreOS — Gestão de Loja</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-orbs">
+    <div class="auth-orb"></div>
+    <div class="auth-orb"></div>
+    <div class="auth-orb"></div>
+  </div>
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-icon"><i data-lucide="shopping-bag"></i></div>
+      <h1>StoreOS</h1>
+      <p>Sistema de Gestão de Loja</p>
+    </div>
+    <div class="auth-field">
+      <label>Usuário</label>
+      <input type="text" id="auth-email" placeholder="admin" onkeydown="if(event.key==='Enter')login()">
+    </div>
+    <div class="auth-field">
+      <label>Senha</label>
+      <input type="password" id="auth-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
+    </div>
+    <button class="auth-btn" onclick="login()">Entrar no Sistema</button>
+  </div>
+</div>
+
+<!-- APP LAYOUT -->
+<div id="app">
+  <div class="layout">
+    <!-- TOP NAV -->
+    <header class="topnav">
+      <div class="topnav-inner">
+        <!-- Brand -->
+        <div class="topnav-brand">
+          <div class="topnav-brand-logo"><i data-lucide="shopping-bag"></i></div>
+          <div class="topnav-brand-text">
+            <h2>StoreOS</h2>
+            <span>Gestão de Loja</span>
+          </div>
+        </div>
+
+        <!-- Nav groups -->
+        <nav class="nav-groups">
+          <button class="nav-dash-btn" id="nav-dash" onclick="navigate('dashboard')">
+            <i data-lucide="layout-dashboard"></i> Dashboard
+          </button>
+
+          <!-- Vendas -->
+          <div class="nav-group" id="ng-vendas">
+            <button class="nav-group-btn" onclick="toggleNG('ng-vendas')">
+              <i data-lucide="trending-up"></i> Vendas <i data-lucide="chevron-down" class="chev"></i>
+            </button>
+            <div class="nav-dropdown">
+              <div class="nav-dropdown-section">Vendas</div>
+              <div class="nav-dd-item" onclick="navigate('bag');closeNGs()"><i data-lucide="shopping-bag"></i> BAG — Pré-venda</div>
+              <div class="nav-dd-item" onclick="navigate('painel-vendas');closeNGs()"><i data-lucide="bar-chart-2"></i> Painel de Vendas</div>
+              <div class="nav-dd-item" onclick="navigate('relacao-vendas');closeNGs()"><i data-lucide="list"></i> Relação de Vendas</div>
+              <div class="nav-dd-item" onclick="navigate('consulta-vendas');closeNGs()"><i data-lucide="search"></i> Consulta Vendas</div>
+              <div class="nav-dd-item" onclick="navigate('trocas');closeNGs()"><i data-lucide="repeat"></i> Devolução / Troca</div>
+            </div>
+          </div>
+
+          <!-- Crediário -->
+          <div class="nav-group" id="ng-crediario">
+            <button class="nav-group-btn" onclick="toggleNG('ng-crediario')">
+              <i data-lucide="credit-card"></i> Crediário <i data-lucide="chevron-down" class="chev"></i>
+            </button>
+            <div class="nav-dropdown">
+              <div class="nav-dropdown-section">Crediário</div>
+              <div class="nav-dd-item" onclick="navigate('crediario');closeNGs()"><i data-lucide="credit-card"></i> Gestão Crediário</div>
+              <div class="nav-dd-item" onclick="navigate('contas-receber');closeNGs()"><i data-lucide="receipt"></i> Contas a Receber</div>
+            </div>
+          </div>
+
+          <!-- Vendedores -->
+          <div class="nav-group" id="ng-vendedores">
+            <button class="nav-group-btn" onclick="toggleNG('ng-vendedores')">
+              <i data-lucide="users"></i> Vendedores <i data-lucide="chevron-down" class="chev"></i>
+            </button>
+            <div class="nav-dropdown">
+              <div class="nav-dropdown-section">Vendedores</div>
+              <div class="nav-dd-item" onclick="navigate('comissoes');closeNGs()"><i data-lucide="award"></i> Comissões</div>
+              <div class="nav-dd-item" onclick="navigate('metas');closeNGs()"><i data-lucide="target"></i> Metas de Vendas</div>
+              <div class="nav-dd-item" onclick="navigate('vendedores');closeNGs()"><i data-lucide="users"></i> Vendedores</div>
+            </div>
+          </div>
+
+          <!-- Compras -->
+          <div class="nav-group" id="ng-compras">
+            <button class="nav-group-btn" onclick="toggleNG('ng-compras')">
+              <i data-lucide="package"></i> Compras <i data-lucide="chevron-down" class="chev"></i>
+            </button>
+            <div class="nav-dropdown">
+              <div class="nav-dropdown-section">Compras</div>
+              <div class="nav-dd-item" onclick="navigate('notas-fiscais');closeNGs()"><i data-lucide="file-text"></i> Nota Fiscal</div>
+              <div class="nav-dd-item" onclick="navigate('duplicatas');closeNGs()"><i data-lucide="credit-card"></i> Efetuar Pagamento</div>
+
+              <!-- Gestão Estoque com submenu -->
+              <div class="nav-dd-item-sub">
+                <div class="nav-dd-item" style="cursor:default"><i data-lucide="boxes"></i> Gestão Estoque</div>
+                <div class="nav-submenu">
+                  <div class="nav-dd-item" onclick="navigate('cadastrar-produto');closeNGs()"><i data-lucide="package-plus"></i> Cadastrar Produto</div>
+                  <div class="nav-dd-item" onclick="navigate('conferencia-estoque');closeNGs()"><i data-lucide="clipboard-check"></i> Conferência</div>
+                  <div class="nav-dd-item" onclick="navigate('visao-geral-estoque');closeNGs()"><i data-lucide="layout-dashboard"></i> Visão Geral</div>
+                  <div class="nav-dd-item" onclick="navigate('visao-detalhada-estoque');closeNGs()"><i data-lucide="list"></i> Visão Detalhada</div>
+                  <div class="nav-dd-item" onclick="navigate('giro-estoque');closeNGs()"><i data-lucide="refresh-cw"></i> Giro Estoque</div>
+                  <div class="nav-dd-item" onclick="navigate('curva-abc');closeNGs()"><i data-lucide="bar-chart-2"></i> Curva ABC</div>
+                  <div class="nav-dd-item" onclick="navigate('produtos');closeNGs()"><i data-lucide="tag"></i> Listar Produtos</div>
+                  <div class="nav-dd-item" onclick="navigate('transferencia-lojas');closeNGs()"><i data-lucide="arrow-left-right"></i> Transferência entre Lojas</div>
+                </div>
+              </div>
+
+              <div class="nav-dd-item" onclick="navigate('gestao-estoque');closeNGs()"><i data-lucide="settings-2"></i> Gestão Compras</div>
+              <div class="nav-dd-item" onclick="navigate('cadastrar-fornecedor');closeNGs()"><i data-lucide="truck"></i> Cadastrar Fornecedor</div>
+              <div class="nav-dd-item" onclick="navigate('parametros-estoque');closeNGs()"><i data-lucide="sliders-horizontal"></i> Parâmetros estoque</div>
+              <div class="nav-dd-item" onclick="navigate('colecoes');closeNGs()"><i data-lucide="layers"></i> Cadastrar Coleção</div>
+              <div class="nav-dd-item" onclick="navigate('grades');closeNGs()"><i data-lucide="grid-3x3"></i> Cadastrar Grade</div>
+              <div class="nav-dd-item" onclick="navigate('categorias');closeNGs()"><i data-lucide="folder-plus"></i> Cadastrar Categoria</div>
+              <div class="nav-dd-item" onclick="toast('Em breve','info')"><i data-lucide="search"></i> Pesquisar NCM</div>
+            </div>
+          </div>
+
+          <!-- Cadastros -->
+          <div class="nav-group" id="ng-cadastros">
+            <button class="nav-group-btn" onclick="toggleNG('ng-cadastros')">
+              <i data-lucide="users"></i> Clientes <i data-lucide="chevron-down" class="chev"></i>
+            </button>
+            <div class="nav-dropdown">
+              <div class="nav-dropdown-section">Clientes</div>
+              <div class="nav-dd-item" onclick="navigate('cadastrar-cliente');closeNGs()"><i data-lucide="user-plus"></i> Cadastrar cliente</div>
+              <div class="nav-dd-item" onclick="navigate('clientes');closeNGs()"><i data-lucide="list"></i> Listar clientes</div>
+              <div class="nav-dd-item" onclick="navigate('historico-clientes');closeNGs()"><i data-lucide="clock"></i> Histórico de clientes</div>
+              <div class="nav-dd-item" onclick="navigate('painel-clientes');closeNGs()"><i data-lucide="bar-chart-2"></i> Painel de clientes</div>
+              <div class="nav-dd-item" onclick="navigate('como-conheceu');closeNGs()"><i data-lucide="heart"></i> Como nos conheceu</div>
+              <div class="nav-dd-item" onclick="navigate('importar-clientes');closeNGs()"><i data-lucide="file-up"></i> Importar clientes</div>
+              <div class="nav-dd-item" onclick="navigate('agenda');closeNGs()"><i data-lucide="calendar"></i> Agenda</div>
+              <div class="nav-dd-item-sub">
+                <div class="nav-dd-item" style="cursor:default"><i data-lucide="megaphone"></i> Marketing</div>
+                <div class="nav-submenu">
+                  <div class="nav-dd-item" onclick="toast('Em breve','info');closeNGs()"><i data-lucide="send"></i> Enviar campanha</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cadastros internos -->
+          <div class="nav-group" id="ng-cadastros-internos" style="display:none">
+            <div class="nav-dropdown">
+              <div class="nav-dd-item" onclick="navigate('categorias');closeNGs()"><i data-lucide="folder"></i> Categorias</div>
+              <div class="nav-dd-item" onclick="navigate('colecoes');closeNGs()"><i data-lucide="layers"></i> Coleções</div>
+              <div class="nav-dd-item" onclick="navigate('grades');closeNGs()"><i data-lucide="grid"></i> Grades</div>
+            </div>
+          </div>
+
+          <!-- Financeiro -->
+          <div class="nav-group" id="ng-financeiro">
+            <button class="nav-group-btn" onclick="toggleNG('ng-financeiro')">
+              <i data-lucide="landmark"></i> Financeiro <i data-lucide="chevron-down" class="chev"></i>
+            </button>
+            <div class="nav-dropdown">
+              <div class="nav-dropdown-section">Financeiro</div>
+              <div class="nav-dd-item" onclick="navigate('caixa');closeNGs()"><i data-lucide="landmark"></i> Caixa Diário</div>
+              <div class="nav-dd-item" onclick="navigate('painel-financeiro');closeNGs()"><i data-lucide="trending-up"></i> Painel Financeiro</div>
+              <div class="nav-dd-item" onclick="navigate('despesas');closeNGs()"><i data-lucide="minus-circle"></i> Despesas</div>
+              <div class="nav-dd-item" onclick="navigate('contas-pagar');closeNGs()"><i data-lucide="calendar-clock"></i> Contas a Pagar</div>
+              <div class="nav-dd-item" onclick="navigate('contas-bancarias');closeNGs()"><i data-lucide="building-2"></i> Contas Bancárias</div>
+              <div class="nav-dd-item" onclick="navigate('fluxo-caixa');closeNGs()"><i data-lucide="arrow-left-right"></i> Fluxo de Caixa</div>
+              <div class="nav-dd-item" onclick="navigate('dre');closeNGs()"><i data-lucide="pie-chart"></i> Resultado — DRE</div>
+            </div>
+          </div>
+
+          <!-- PDV destacado -->
+          <button class="btn-pdv-nav" id="nav-pdv" onclick="navigate('pdv')">
+            <i data-lucide="shopping-cart"></i> Registrar Venda
+          </button>
+        </nav>
+
+        <!-- User -->
+        <div class="topnav-right">
+          <div class="topnav-avatar"><span id="topnav-initial">A</span></div>
+          <div class="topnav-uinfo">
+            <span class="topnav-uname" id="sidebar-user-name">Usuário</span>
+            <span class="topnav-urole">Administrador</span>
+          </div>
+          <button class="btn-nav-logout" onclick="logout()" title="Sair"><i data-lucide="log-out" style="width:15px;height:15px"></i></button>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN -->
+    <main class="main">
+      <div class="pagebar">
+        <h1 id="page-title">Dashboard</h1>
+        <div class="pagebar-actions" id="topbar-actions"></div>
+      </div>
+      <div class="content" id="content"></div>
+    </main>
+  </div>
+</div>
+
+<!-- MODAL GLOBAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal-container"></div>
+</div>
+
+<!-- TAMANHO MODAL -->
+<div class="modal-overlay" id="size-modal-overlay" onclick="closeSizeModal(event)">
+  <div class="modal modal-sm" id="size-modal-container"></div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script src="api.js"></script>
+<script src="core.js"></script>
+<script src="effects.js"></script>
+<script src="dashboard.js"></script>
+<script src="pdv.js"></script>
+<script src="cadastros.js"></script>
+<script src="vendas.js"></script>
+<script src="crediario.js"></script>
+<script src="compras.js"></script>
+<script src="financeiro.js"></script>
+<script src="estoque.js"></script>
+</body>
+</html>
+
