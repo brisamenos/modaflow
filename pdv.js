@@ -1,5 +1,20 @@
 let pdvCaixaAberto = false;
 let pdvFundoValor = 0;
+
+try {
+  const _dtFundo = new Date().toLocaleDateString('pt-BR');
+  const _storedFundo = localStorage.getItem('storeos_fundo_caixa');
+  if (_storedFundo) {
+    const _parsed = JSON.parse(_storedFundo);
+    if (_parsed.data === _dtFundo) {
+      pdvCaixaAberto = true;
+      pdvFundoValor = _parsed.valor;
+    } else {
+      localStorage.removeItem('storeos_fundo_caixa');
+    }
+  }
+} catch(e) {}
+
 let pdvTab = 'itens';
 let pdvPayments = [];
 
@@ -127,8 +142,8 @@ async function renderPDV() {
             <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;flex:1;min-width:0;">
               <label style="color:#e74c3c;font-weight:900;font-size:13px;">Informe o Produto</label>
               <div class="pdv-prod-input-wrap">
-                 <input type="text" id="pdv-prod-input" style="flex:1;padding:10px 14px;border:1px solid #3498db;border-radius:6px;font-size:15px;font-weight:700;outline:none;min-width:0;box-sizing:border-box;" placeholder="Digite o nome..." onkeypress="if(event.key==='Enter')openProdutoPDVModal()">
-                 <i data-lucide="search" style="width:24px;height:24px;color:#3498db;cursor:pointer;flex-shrink:0;" onclick="openProdutoPDVModal()"></i>
+                 <input type="text" id="pdv-prod-input" style="flex:1;padding:10px 14px;border:1px solid #3498db;border-radius:6px;font-size:15px;font-weight:700;outline:none;min-width:0;box-sizing:border-box;" placeholder="Bipe/Digite o Cód. Barras..." onkeypress="if(event.key==='Enter')handleProdInput()">
+                 <i data-lucide="search" style="width:24px;height:24px;color:#3498db;cursor:pointer;flex-shrink:0;" onclick="handleProdInput()"></i>
               </div>
             </div>
           </div>
@@ -277,6 +292,14 @@ function confirmarFundoPDV() {
   if(!v) return toast('Informe o fundo de caixa para continuar', 'error');
   pdvCaixaAberto = true;
   pdvFundoValor = parseFloat(v) || 0;
+  
+  try {
+    localStorage.setItem('storeos_fundo_caixa', JSON.stringify({
+      data: new Date().toLocaleDateString('pt-BR'),
+      valor: pdvFundoValor
+    }));
+  } catch(e) {}
+  
   toast('O Fundo de Caixa foi cadastrado corretamente! Obrigado.');
   renderPDV();
 }
@@ -505,9 +528,31 @@ function openClientePDVModal() {
   lucide.createIcons();
 }
 
-async function openProdutoPDVModal() {
-  const term = document.getElementById('pdv-prod-input').value;
-  const {data} = await sb.from('produtos').select('id,codigo,nome,preco_venda,grade_id,grades(valores)').eq('ativo',true).ilike('nome',`%${term}%`);
+async function handleProdInput() {
+  const term = document.getElementById('pdv-prod-input')?.value?.trim() || '';
+  if(!term) return openProdutoPDVModal('');
+  
+  const {data} = await sb.from('produtos').select('id,codigo,nome,preco_venda,grade_id,grades(valores)').eq('ativo',true).eq('codigo', term);
+  if(data && data.length === 1) {
+    let vals = data[0].grades?.valores;
+    let gradesArr = typeof vals === 'string' ? JSON.parse(vals) : (vals || []);
+    if(gradesArr.length > 1) {
+      openProdutoPDVModal(term);
+    } else {
+      addModalItemToCart(data[0].id, data[0].nome, data[0].preco_venda, data[0].codigo);
+    }
+  } else {
+    openProdutoPDVModal(term);
+  }
+}
+
+async function openProdutoPDVModal(initialTerm) {
+  const term = typeof initialTerm === 'string' ? initialTerm : (document.getElementById('pdv-prod-input').value || '');
+  const isNumeric = term && /^\d+$/.test(term);
+  const eanValue = isNumeric ? term : '';
+  const descValue = !isNumeric ? term : '';
+
+  const {data} = await sb.from('produtos').select('id,codigo,nome,preco_venda,grade_id,grades(valores)').eq('ativo',true).or(`codigo.ilike.%${term}%,nome.ilike.%${term}%`).limit(50);
   
   openModal(`
     <div class="modal-header" style="border-bottom:none;padding-bottom:0;">
@@ -519,17 +564,17 @@ async function openProdutoPDVModal() {
       <div style="display:flex;justify-content:center;gap:16px;margin-bottom:16px;align-items:flex-end;">
         <div style="display:flex;flex-direction:column;gap:4px;">
            <label style="color:#e74c3c;font-weight:900;font-size:12px;text-align:center;">Código de barras (EAN)</label>
-           <input type="text" style="padding:6px;border:1px solid #3498db;border-radius:4px;width:140px;outline:none;background:#f0f8ff;">
+           <input type="text" id="modal-ean-input" value="${eanValue}" style="padding:6px;border:1px solid #3498db;border-radius:4px;width:140px;outline:none;background:#f0f8ff;" onkeypress="if(event.key==='Enter')searchModalProdutos()">
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;">
            <label style="color:#e74c3c;font-weight:900;font-size:12px;text-align:center;">Código produto</label>
-           <input type="text" style="padding:6px;border:1px solid #bdc3c7;border-radius:4px;width:100px;outline:none;">
+           <input type="text" id="modal-cod-input" style="padding:6px;border:1px solid #bdc3c7;border-radius:4px;width:100px;outline:none;" onkeypress="if(event.key==='Enter')searchModalProdutos()">
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;">
            <label style="color:#e74c3c;font-weight:900;font-size:12px;text-align:center;">Descrição produto</label>
-           <input type="text" value="${term}" style="padding:6px;border:1px solid #bdc3c7;border-radius:4px;width:240px;outline:none;">
+           <input type="text" id="modal-desc-input" value="${descValue}" style="padding:6px;border:1px solid #bdc3c7;border-radius:4px;width:240px;outline:none;" onkeypress="if(event.key==='Enter')searchModalProdutos()">
         </div>
-        <button onclick="toast('Buscando...')" style="background:#2ecc71;color:#fff;border:none;border-radius:4px;padding:8px 16px;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 2px 4px rgba(46,204,113,0.2);margin-bottom:2px;">Buscar</button>
+        <button onclick="searchModalProdutos()" style="background:#2ecc71;color:#fff;border:none;border-radius:4px;padding:8px 16px;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 2px 4px rgba(46,204,113,0.2);margin-bottom:2px;">Buscar</button>
       </div>
       
       <div style="border:1px solid #e1e8ed;max-height:350px;overflow-y:auto;border-radius:6px;">
@@ -545,27 +590,58 @@ async function openProdutoPDVModal() {
               <th style="padding:10px 8px;font-weight:900;color:#2c3e50;">Ação</th>
             </tr>
           </thead>
-          <tbody>
-            ${(data||[]).map(p=>`
-              <tr style="border-bottom:1px solid #f1f2f6;background:#fff;">
-                <td style="padding:10px 8px;font-weight:700;">CENTRAL</td>
-                <td style="padding:10px 8px;font-weight:700;">${p.codigo||'-'}</td>
-                <td style="padding:10px 8px;color:#7f8c8d;text-align:left;font-weight:800;">${p.nome}</td>
-                <td style="padding:10px 8px;font-weight:700;">${p.grades?.valores?.[0]||'Único'}</td>
-                <td style="padding:10px 8px;font-weight:800;">${fmt(p.preco_venda)}</td>
-                <td style="padding:10px 8px;font-weight:700;">10,0</td>
-                <td style="padding:10px 8px;">
-                   <button onclick="addModalItemToCart('${p.id}', '${p.nome.replace(/'/g,"\\'")}', ${p.preco_venda}, '${p.codigo||''}');closeModalDirect();" style="width:26px;height:26px;border-radius:50%;background:#2ecc71;border:none;color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 4px rgba(46,204,113,0.3);"><i data-lucide="check" style="width:14px;"></i></button>
-                </td>
-              </tr>
-            `).join('')}
-            ${!data?.length ? `<tr><td colspan="7" style="padding:20px;font-weight:700;">Nenhum produto encontrado na busca.</td></tr>` : ''}
+          <tbody id="modal-produtos-tbody">
+            ${renderModalProdRows(data)}
           </tbody>
         </table>
       </div>
-
     </div>
   `, 'modal-lg');
+  lucide.createIcons();
+}
+
+function renderModalProdRows(data) {
+  if(!data || !data.length) return '<tr><td colspan="7" style="padding:20px;font-weight:700;">Nenhum produto encontrado na busca.</td></tr>';
+  return data.map(p=>`
+    <tr style="border-bottom:1px solid #f1f2f6;background:#fff;">
+      <td style="padding:10px 8px;font-weight:700;">CENTRAL</td>
+      <td style="padding:10px 8px;font-weight:700;">${p.codigo||'-'}</td>
+      <td style="padding:10px 8px;color:#7f8c8d;text-align:left;font-weight:800;">${p.nome}</td>
+      <td style="padding:10px 8px;font-weight:700;">${p.grades?.valores?.[0]||'Único'}</td>
+      <td style="padding:10px 8px;font-weight:800;">${fmt(p.preco_venda)}</td>
+      <td style="padding:10px 8px;font-weight:700;">10,0</td>
+      <td style="padding:10px 8px;">
+         <button onclick="addModalItemToCart('${p.id}', '${p.nome.replace(/'/g,"\\'")}', ${p.preco_venda}, '${p.codigo||''}');closeModalDirect();" style="width:26px;height:26px;border-radius:50%;background:#2ecc71;border:none;color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 4px rgba(46,204,113,0.3);"><i data-lucide="check" style="width:14px;"></i></button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function searchModalProdutos() {
+  const ean = document.getElementById('modal-ean-input')?.value?.trim() || '';
+  const cod = document.getElementById('modal-cod-input')?.value?.trim() || '';
+  const desc = document.getElementById('modal-desc-input')?.value?.trim() || '';
+  
+  const tbody = document.getElementById('modal-produtos-tbody');
+  if(!tbody) return;
+
+  if(!ean && !cod && !desc) {
+     const {data} = await sb.from('produtos').select('id,codigo,nome,preco_venda,grade_id,grades(valores)').eq('ativo',true).limit(50);
+     tbody.innerHTML = renderModalProdRows(data);
+     lucide.createIcons();
+     return;
+  }
+  
+  tbody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;font-weight:700;">Buscando...</td></tr>';
+  
+  let q = sb.from('produtos').select('id,codigo,nome,preco_venda,grade_id,grades(valores)').eq('ativo',true);
+  
+  if(ean) q = q.ilike('codigo', `%${ean}%`);
+  if(cod) q = q.ilike('codigo', `%${cod}%`);
+  if(desc) q = q.ilike('nome', `%${desc}%`);
+  
+  const {data} = await q.limit(50);
+  tbody.innerHTML = renderModalProdRows(data);
   lucide.createIcons();
 }
 
