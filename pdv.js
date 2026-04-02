@@ -102,12 +102,22 @@ async function renderPDV() {
              <label style="display:block;color:#2c3e50;font-weight:900;font-size:12px;margin-bottom:8px;">Cliente</label>
              <div class="pdv-client-row" style="display:flex;align-items:center;gap:8px;">
               <button onclick="openClientePDVModal()" style="background:#5cb85c;color:#fff;border:none;border-radius:4px;padding:8px 14px;font-weight:800;font-size:12px;cursor:pointer;white-space:nowrap;">Incluir Cliente</button>
-              <input type="text" id="pdv-client-phone" placeholder="Número Celular" style="padding:8px 12px;border:1px solid #ccc;border-radius:4px;outline:none;font-size:13px;width:140px;background:#fff;box-sizing:border-box;">
-              <input type="text" id="pdv-client-name" placeholder="Nome abreviado ou completo" style="padding:8px 12px;border:1px solid #ccc;border-radius:4px;outline:none;font-size:13px;flex:1;background:#fff;min-width:0;box-sizing:border-box;" onkeypress="if(event.key==='Enter')searchClientePDV()">
+              
+              <div style="position:relative;width:140px;flex-shrink:0;">
+                <input type="text" id="pdv-client-phone" placeholder="Número Celular" style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:4px;outline:none;font-size:13px;background:#fff;box-sizing:border-box;" oninput="filterClientesPDV(this.value, 'phone')" autocomplete="off">
+                <div id="pdv-client-dd-phone" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #bdc3c7;border-radius:4px;max-height:200px;overflow-y:auto;z-index:999;box-shadow:0 4px 6px rgba(0,0,0,0.1);"></div>
+              </div>
+
+              <div style="position:relative;flex:1;min-width:0;">
+                <input type="text" id="pdv-client-name" placeholder="Nome abreviado ou completo" style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:4px;outline:none;font-size:13px;background:#fff;box-sizing:border-box;" oninput="filterClientesPDV(this.value, 'name')" autocomplete="off">
+                <div id="pdv-client-dd-name" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #bdc3c7;border-radius:4px;max-height:200px;overflow-y:auto;z-index:999;box-shadow:0 4px 6px rgba(0,0,0,0.1);"></div>
+              </div>
+              
               <select id="pdv-client" onchange="cartClient=this.value" style="display:none;">
                 <option value="">Consumidor final</option>
               </select>
-              <button onclick="searchClientePDV()" style="background:#fff;border:1px solid #ccc;border-radius:4px;padding:8px 12px;cursor:pointer;flex-shrink:0;"><i data-lucide="search" style="width:16px;"></i></button>
+              <!-- Hidden search button to replace old functionality layout if needed -->
+              <button onclick="searchClientePDV()" style="display:none;"><i data-lucide="search" style="width:16px;"></i></button>
             </div></div>
           </div>
         </div>
@@ -308,6 +318,69 @@ async function loadAllProducts() {
   const {data} = await sb.from('produtos').select('id,codigo,nome,preco_venda,grade_id,grades(valores)').eq('ativo',true).order('nome');
   renderProductsGrid(data||[]);
 }
+
+function filterClientesPDV(val, type) {
+  const dd = document.getElementById(type === 'name' ? 'pdv-client-dd-name' : 'pdv-client-dd-phone');
+  const otherDd = document.getElementById(type === 'name' ? 'pdv-client-dd-phone' : 'pdv-client-dd-name');
+  if(otherDd) otherDd.style.display = 'none';
+
+  if(!val.trim()) { dd.style.display = 'none'; return; }
+  
+  const term = val.toLowerCase();
+  const matches = (window._pdvClientes || []).filter(c => {
+     if(type === 'name') {
+       return (c.nome && c.nome.toLowerCase().includes(term)) || 
+              (c.nome_abreviado && c.nome_abreviado.toLowerCase().includes(term));
+     } else {
+       return c.celular && c.celular.replace(/\D/g,'').includes(val.replace(/\D/g,''));
+     }
+  });
+
+  const exactStart = matches.filter(c => type === 'name' && c.nome && c.nome.toLowerCase().startsWith(term));
+  const rest = matches.filter(c => !exactStart.includes(c));
+  const sorted = [...exactStart, ...rest].slice(0, 15);
+  
+  if(!sorted.length) {
+    dd.innerHTML = '<div style="padding:8px 12px;font-size:12px;color:#7f8c8d;text-align:center;">Não encontrado</div>';
+  } else {
+    dd.innerHTML = sorted.map(c => `
+      <div onclick="selectClientePDV('${c.id}', '${(c.nome_abreviado||c.nome).replace(/'/g,"\\'")}', '${c.celular||''}')" 
+           style="padding:8px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid #f1f2f6;color:#2c3e50;font-weight:600;text-align:left;"
+           onmouseover="this.style.background='#f0f8ff'" onmouseout="this.style.background='transparent'">
+        ${c.nome_abreviado||c.nome} ${c.celular ? `<span style="color:#7f8c8d;font-size:11px;margin-left:6px">${c.celular}</span>` : ''}
+      </div>
+    `).join('');
+  }
+  dd.style.display = 'block';
+}
+
+function selectClientePDV(id, nome, celular) {
+  cartClient = id;
+  const cs = document.getElementById('pdv-client');
+  if(cs) { cs.innerHTML = `<option value="${id}">${nome}</option>`; cs.value = id; }
+  
+  const nInp = document.getElementById('pdv-client-name');
+  if(nInp) nInp.value = nome;
+  
+  const pInp = document.getElementById('pdv-client-phone');
+  if(pInp) pInp.value = celular;
+  
+  const dn = document.getElementById('pdv-client-dd-name');
+  if(dn) dn.style.display = 'none';
+  const dp = document.getElementById('pdv-client-dd-phone');
+  if(dp) dp.style.display = 'none';
+}
+
+function searchClientePDV() {}
+
+// Global click handler to close dropdowns
+document.addEventListener('click', (e) => {
+  const dn = document.getElementById('pdv-client-dd-name');
+  const dp = document.getElementById('pdv-client-dd-phone');
+  if(dn && dn.style.display === 'block' && !e.target.closest('#pdv-client-name') && e.target !== dn) dn.style.display = 'none';
+  if(dp && dp.style.display === 'block' && !e.target.closest('#pdv-client-phone') && e.target !== dp) dp.style.display = 'none';
+});
+
 
 async function searchProducts(q) {
   if(!q.trim()){loadAllProducts();return;}
