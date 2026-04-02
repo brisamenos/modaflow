@@ -110,6 +110,8 @@ function aplicarMigracoes(tdb) {
   sc(`CREATE TABLE IF NOT EXISTS contas_receber (id INTEGER PRIMARY KEY AUTOINCREMENT, cliente_id INTEGER, descricao TEXT, valor REAL, vencimento DATE, data_pagamento DATE, data_recebimento DATE, status TEXT DEFAULT 'aberta', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
   sc(`CREATE TABLE IF NOT EXISTS crediario (id INTEGER PRIMARY KEY AUTOINCREMENT, venda_id INTEGER, cliente_id INTEGER, total REAL NOT NULL, saldo_devedor REAL DEFAULT 0, num_parcelas INTEGER DEFAULT 1, parcelas_pagas INTEGER DEFAULT 0, valor_parcela REAL DEFAULT 0, status TEXT DEFAULT 'aberto', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
   sc(`CREATE TABLE IF NOT EXISTS crediario_parcelas (id INTEGER PRIMARY KEY AUTOINCREMENT, crediario_id INTEGER, numero_parcela INTEGER DEFAULT 1, valor REAL NOT NULL, valor_pago REAL, vencimento DATE NOT NULL, data_pagamento DATE, status TEXT DEFAULT 'pendente', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS conferencias_estoque (id INTEGER PRIMARY KEY AUTOINCREMENT, status TEXT DEFAULT 'aberta', total_lido INTEGER DEFAULT 0, data_fim TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS conferencia_itens (id INTEGER PRIMARY KEY AUTOINCREMENT, conferencia_id INTEGER, produto_grade_id INTEGER, ean TEXT, produto_nome TEXT, quantidade INTEGER DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
   ac('clientes','nome_abreviado','TEXT'); ac('clientes','cpf','TEXT'); ac('clientes','instagram','TEXT');
   ac('clientes','sexo','TEXT'); ac('clientes','data_nascimento','DATE'); ac('clientes','observacoes','TEXT');
   ac('clientes','logradouro','TEXT'); ac('clientes','numero','TEXT'); ac('clientes','bairro','TEXT');
