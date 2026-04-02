@@ -1,8 +1,6 @@
 -- ==============================================
 -- STOREOS - DATABASE SCHEMA (PostgreSQL / MySQL)
 -- ==============================================
--- Este modelo relacional foi deduzido automaticamente com base nas 
--- mais de 240 operações do frontend refatorado.
 
 CREATE TABLE categorias (
     id SERIAL PRIMARY KEY,
@@ -25,30 +23,35 @@ CREATE TABLE grades (
 
 CREATE TABLE clientes (
     id SERIAL PRIMARY KEY,
-    nome VARCHAR(255) NOT NULL,
-    nome_abreviado VARCHAR(255),
-    documento VARCHAR(50),      -- CPF/CNPJ (legacy)
-    cpf VARCHAR(50),
+    codigo_externo VARCHAR(50),          -- col 1: ID do sistema de origem
+    nome VARCHAR(255) NOT NULL,          -- col 3
+    nome_abreviado VARCHAR(255),         -- col 4
+    celular VARCHAR(20),                 -- col 5
+    sexo VARCHAR(5),                     -- col 6
+    dia_nascimento INT,                  -- col 7 (CSV salva dia separado)
+    mes_nascimento INT,                  -- col 8 (CSV salva mês separado)
+    data_nascimento DATE,                -- data completa quando disponível
+    email VARCHAR(255),                  -- col 9
+    instagram VARCHAR(255),              -- col 10
+    ativo BOOLEAN DEFAULT TRUE,          -- col 11: S=true / N=false
+    cpf VARCHAR(50),                     -- col 13
+    cep VARCHAR(20),                     -- col 14
+    logradouro VARCHAR(255),             -- col 15
+    numero VARCHAR(50),                  -- col 16
+    complemento VARCHAR(255),            -- col 17
+    bairro VARCHAR(255),                 -- col 18
+    estado VARCHAR(5),                   -- col 19
+    cidade VARCHAR(255),                 -- col 20
+    -- campos adicionais não presentes no CSV mas usados pelo sistema
+    nome_abreviado_2 VARCHAR(255),
+    documento VARCHAR(50),
     rg VARCHAR(50),
     ie VARCHAR(50),
-    celular VARCHAR(20),
-    email VARCHAR(255),
-    instagram VARCHAR(255),
-    sexo VARCHAR(5),
     como_conheceu VARCHAR(255),
-    data_nascimento DATE,
-    observacoes TEXT,
     tipo_pessoa VARCHAR(10) DEFAULT 'PF',
-    endereco TEXT,               -- legacy
-    logradouro VARCHAR(255),
-    numero VARCHAR(50),
-    complemento VARCHAR(255),
-    bairro VARCHAR(255),
-    cep VARCHAR(20),
-    estado VARCHAR(5),
-    cidade VARCHAR(255),
-    origem VARCHAR(100),        -- Como conheceu (legacy)
-    ativo BOOLEAN DEFAULT TRUE,
+    origem VARCHAR(100),
+    observacoes TEXT,
+    endereco TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -113,16 +116,22 @@ CREATE TABLE fornecedores (
 
 CREATE TABLE produtos (
     id SERIAL PRIMARY KEY,
-    codigo VARCHAR(100) UNIQUE,
-    nome VARCHAR(255) NOT NULL,
+    codigo VARCHAR(100) UNIQUE,          -- Cód. Produto
+    nome VARCHAR(255) NOT NULL,          -- Descrição Produto
     descricao TEXT,
-    preco_custo DECIMAL(10,2) DEFAULT 0.00,
-    preco_venda DECIMAL(10,2) DEFAULT 0.00,
+    preco_custo DECIMAL(10,2) DEFAULT 0.00,   -- Preço Custo
+    preco_venda DECIMAL(10,2) DEFAULT 0.00,   -- Preço Venda
     categoria_id INT REFERENCES categorias(id),
     colecao_id INT REFERENCES colecoes(id),
     fornecedor_id INT REFERENCES fornecedores(id),
+    fornecedor_cnpj VARCHAR(50),         -- CNPJ Fornecedor (raw do CSV para mapeamento)
     grade_id INT REFERENCES grades(id),
     estoque_minimo INT DEFAULT 0,
+    sku TEXT,                            -- SKU
+    marca TEXT,                          -- Marca
+    genero TEXT,                         -- Genero: F, M, U, J
+    unidade TEXT DEFAULT 'UN',           -- UN
+    ncm TEXT,                            -- NCM
     ativo BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -130,10 +139,13 @@ CREATE TABLE produtos (
 CREATE TABLE produto_grades (
     id SERIAL PRIMARY KEY,
     produto_id INT REFERENCES produtos(id) ON DELETE CASCADE,
-    tamanho VARCHAR(50) NOT NULL,
-    estoque INT DEFAULT 0,
+    tamanho VARCHAR(50) NOT NULL,        -- Tam - Grade
+    estoque INT DEFAULT 0,               -- Qtde
+    ean TEXT,                            -- Cód. de Barras EAN
+    cor_hexa TEXT,                       -- Cor - Hexa
+    cor_descricao TEXT,                  -- Cor - Descrição
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(produto_id, tamanho)
+    UNIQUE(produto_id, tamanho, ean)     -- EAN único por variante
 );
 
 CREATE TABLE vendas (
@@ -143,8 +155,8 @@ CREATE TABLE vendas (
     vendedor_id INT REFERENCES vendedores(id),
     total DECIMAL(10,2) NOT NULL,
     desconto DECIMAL(10,2) DEFAULT 0.00,
-    forma_pagamento VARCHAR(50), -- dinheiro, pix, credito, debito, crediario
-    status VARCHAR(50) DEFAULT 'concluida', -- concluida, cancelada
+    forma_pagamento VARCHAR(50),
+    status VARCHAR(50) DEFAULT 'concluida',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -169,7 +181,7 @@ CREATE TABLE crediario (
     num_parcelas INT DEFAULT 1,
     parcelas_pagas INT DEFAULT 0,
     valor_parcela DECIMAL(10,2) DEFAULT 0.00,
-    status VARCHAR(50) DEFAULT 'aberto', -- aberto, quitado, atrasado
+    status VARCHAR(50) DEFAULT 'aberto',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -181,14 +193,14 @@ CREATE TABLE crediario_parcelas (
     valor_pago DECIMAL(10,2),
     vencimento DATE NOT NULL,
     data_pagamento DATE NULL,
-    status VARCHAR(50) DEFAULT 'pendente', -- pendente, pago, atrasado
+    status VARCHAR(50) DEFAULT 'pendente',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE caixas (
     id SERIAL PRIMARY KEY,
     saldo_inicial DECIMAL(10,2) DEFAULT 0.00,
-    status VARCHAR(50) DEFAULT 'aberto', -- aberto, fechado
+    status VARCHAR(50) DEFAULT 'aberto',
     data_fechamento TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -196,7 +208,7 @@ CREATE TABLE caixas (
 CREATE TABLE movimentos_caixa (
     id SERIAL PRIMARY KEY,
     caixa_id INT REFERENCES caixas(id),
-    tipo VARCHAR(50), -- suprimento, sangria, venda
+    tipo VARCHAR(50),
     descricao VARCHAR(255),
     valor DECIMAL(10,2) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -205,7 +217,7 @@ CREATE TABLE movimentos_caixa (
 CREATE TABLE classificacoes (
     id SERIAL PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
-    tipo VARCHAR(50) -- despesa, receita
+    tipo VARCHAR(50)
 );
 
 CREATE TABLE despesas (
@@ -216,7 +228,7 @@ CREATE TABLE despesas (
     data_competencia DATE,
     vencimento DATE,
     data_pagamento DATE NULL,
-    status VARCHAR(50) DEFAULT 'aberta', -- aberta, pago
+    status VARCHAR(50) DEFAULT 'aberta',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -227,7 +239,7 @@ CREATE TABLE contas_pagar (
     valor DECIMAL(10,2) NOT NULL,
     vencimento DATE,
     data_pagamento DATE NULL,
-    status VARCHAR(50) DEFAULT 'aberta', -- aberta, pago
+    status VARCHAR(50) DEFAULT 'aberta',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -246,7 +258,7 @@ CREATE TABLE duplicatas (
     nota_id INT REFERENCES notas_fiscais(id) ON DELETE CASCADE,
     valor DECIMAL(10,2) NOT NULL,
     vencimento DATE NOT NULL,
-    status VARCHAR(50) DEFAULT 'pendente', -- pendente, pago
+    status VARCHAR(50) DEFAULT 'pendente',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -266,7 +278,7 @@ CREATE TABLE bags (
     vendedor_id INT REFERENCES vendedores(id),
     total DECIMAL(10,2) NOT NULL,
     data_retorno DATE NULL,
-    status VARCHAR(50) DEFAULT 'aberta', -- aberta, efetivada, devolvida
+    status VARCHAR(50) DEFAULT 'aberta',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -288,7 +300,7 @@ CREATE TABLE trocas (
     cliente_id INT REFERENCES clientes(id),
     produto_id INT REFERENCES produtos(id),
     motivo TEXT,
-    status VARCHAR(50) DEFAULT 'pendente', -- pendente, concluida
+    status VARCHAR(50) DEFAULT 'pendente',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
