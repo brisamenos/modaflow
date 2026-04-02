@@ -144,6 +144,10 @@ safeAddCol('produtos','genero','TEXT');
 safeAddCol('produtos','cor','TEXT');
 safeAddCol('produtos','imagem_url','TEXT');
 safeAddCol('produtos','unidade','TEXT');
+safeAddCol('produtos','custo','REAL');
+safeAddCol('produtos','margem_lucro','REAL');
+// Sincronizar preco_custo -> custo para registros legados
+try { db.exec(`UPDATE produtos SET custo = preco_custo WHERE (custo IS NULL OR custo = 0) AND preco_custo IS NOT NULL AND preco_custo != 0`); } catch(e) {}
 
 // produto_grades — CRÍTICO: sem essas colunas as variações não salvam
 safeAddCol('produto_grades','ean','TEXT');
