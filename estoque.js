@@ -624,8 +624,8 @@ async function carregarVisaoDetalhada(tab) {
     const pctGrupo = totalGeral>0?((grupo.valor/totalGeral)*100).toFixed(0)+'%':'0%';
 
     // Linha de cabeçalho do grupo
-    rows += `<tr style="background:#f8fafc">
-      <td colspan="${showCnpj?5:4}" style="padding:8px 12px;font-weight:700;font-size:13px;color:var(--text)">
+    rows += `<tr>
+      <td colspan="${showCnpj?5:4}" style="padding:14px 10px 6px 10px;font-weight:900;font-size:12.5px;color:#2c3e50;text-transform:uppercase;border:1px solid #ecf0f1;border-bottom:none;background:#fff;text-align:left;">
         ${grupo.label}
       </td>
     </tr>`;
@@ -634,39 +634,39 @@ async function carregarVisaoDetalhada(tab) {
     const subs = Object.values(grupo.subs).sort((a,b)=>b.valor-a.valor);
     subs.forEach(sub => {
       const pctSub = grupo.valor>0?((sub.valor/grupo.valor)*100).toFixed(0)+'%':'0%';
-      rows += `<tr>
-        ${showCnpj?`<td style="padding:7px 12px;font-family:monospace;font-size:11px;color:var(--text-2)">${sub.cnpj||''}</td>`:''}
-        <td style="padding:7px 12px;padding-left:${showCnpj?12:24}px;font-size:13px">${sub.label}</td>
-        <td style="padding:7px 12px;text-align:center;font-size:13px">${sub.qtde}</td>
-        <td style="padding:7px 12px;text-align:right;font-size:13px">${fmtNum(sub.valor)}</td>
-        <td style="padding:7px 12px;text-align:right;font-size:13px;color:var(--text-2)">${pctSub}</td>
+      rows += `<tr style="background:#fff;">
+        ${showCnpj?`<td style="padding:8px 10px;text-align:left;font-size:11.5px;color:#7f8c8d;border:1px solid #ecf0f1;font-weight:600;">${sub.cnpj||''}</td>`:''}
+        <td style="padding:8px 10px;text-align:center;font-size:11.5px;color:#7f8c8d;border:1px solid #ecf0f1;font-weight:700;text-transform:uppercase;">${sub.label}</td>
+        <td style="padding:8px 10px;text-align:center;font-size:11.5px;color:#7f8c8d;border:1px solid #ecf0f1;font-weight:600;">${sub.qtde}</td>
+        <td style="padding:8px 10px;text-align:center;font-size:11.5px;color:#7f8c8d;border:1px solid #ecf0f1;font-weight:600;">${fmtNum(sub.valor)}</td>
+        <td style="padding:8px 10px;text-align:center;font-size:11.5px;color:#7f8c8d;border:1px solid #ecf0f1;font-weight:600;">${pctSub}</td>
       </tr>`;
     });
 
     // Linha de subtotal
-    rows += `<tr style="border-top:1px solid var(--border-2)">
-      ${showCnpj?'<td></td>':''}
-      <td style="padding:7px 12px;text-align:right;font-size:12px;color:var(--text-2);font-style:italic">Subtotal (R$):</td>
-      <td style="padding:7px 12px;text-align:center;font-weight:700;font-size:13px">${grupo.qtde}</td>
-      <td style="padding:7px 12px;text-align:right;font-weight:700;font-size:13px">${fmtNum(grupo.valor)}</td>
-      <td style="padding:7px 12px;text-align:right;font-weight:700;font-size:13px;color:var(--text-2)">${pctGrupo}</td>
+    rows += `<tr style="background:#fff;border-top:1px solid #bdc3c7;">
+      ${showCnpj?'<td style="border:1px solid #ecf0f1;border-right:none;"></td>':''}
+      <td style="padding:10px;text-align:right;font-size:11.5px;color:#2c3e50;font-weight:900;border:1px solid #ecf0f1;border-left:none;">Subtotal (R$):</td>
+      <td style="padding:10px;text-align:center;font-weight:900;font-size:12.5px;color:#2c3e50;border:1px solid #ecf0f1;">${grupo.qtde}</td>
+      <td style="padding:10px;text-align:center;font-weight:900;font-size:12.5px;color:#2c3e50;border:1px solid #ecf0f1;">${fmtNum(grupo.valor)}</td>
+      <td style="padding:10px;text-align:center;font-weight:900;font-size:12.5px;color:#2c3e50;border:1px solid #ecf0f1;">${pctGrupo}</td>
     </tr>
-    <tr><td colspan="${showCnpj?5:4}" style="height:6px;background:#f1f5f9"></td></tr>`;
+    <tr style="height:20px;background:transparent;border:none;"><td colspan="${showCnpj?5:4}" style="border:none;"></td></tr>`;
   });
 
   body.innerHTML = `
-  <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
-    <div class="table-wrap"><table style="width:100%;border-collapse:collapse">
+  <div style="background:transparent;border:none;border-radius:0;overflow:hidden">
+    <div class="table-wrap" style="box-shadow:none;"><table style="width:100%;border-collapse:collapse;background:transparent;">
       <thead>
-        <tr style="background:#f8fafc;border-bottom:2px solid var(--border)">
-          ${showCnpj?'<th style="padding:10px 12px;text-align:left;font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;min-width:130px">CNPJ</th>':''}
-          <th style="padding:10px 12px;text-align:left;font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">${subHeader}</th>
-          <th style="padding:10px 12px;text-align:center;font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Qtde</th>
-          <th style="padding:10px 12px;text-align:right;font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Valor</th>
-          <th style="padding:10px 12px;text-align:right;font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Percentual</th>
+        <tr style="background:#f9fafb;">
+          ${showCnpj?'<th style="padding:12px;text-align:center;font-size:12px;font-weight:800;color:#2c3e50;border:1px solid #ecf0f1;">CNPJ</th>':''}
+          <th style="padding:12px;text-align:center;font-size:12px;font-weight:800;color:#2c3e50;border:1px solid #ecf0f1;">${subHeader}</th>
+          <th style="padding:12px;text-align:center;font-size:12px;font-weight:800;color:#2c3e50;border:1px solid #ecf0f1;">Qtde</th>
+          <th style="padding:12px;text-align:center;font-size:12px;font-weight:800;color:#2c3e50;border:1px solid #ecf0f1;">Valor</th>
+          <th style="padding:12px;text-align:center;font-size:12px;font-weight:800;color:#2c3e50;border:1px solid #ecf0f1;">Percentual</th>
         </tr>
       </thead>
-      <tbody>${rows||'<tr><td colspan="5" style="text-align:center;color:var(--text-2);padding:32px">Nenhum dado</td></tr>'}</tbody>
+      <tbody>${rows||'<tr><td colspan="5" style="text-align:center;color:#7f8c8d;padding:32px;border:1px solid #ecf0f1;background:#fff;">Nenhum dado</td></tr>'}</tbody>
     </table></div>
   </div>`;
   lucide.createIcons();
