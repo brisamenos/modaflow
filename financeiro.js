@@ -19,10 +19,10 @@ async function renderCaixa() {
   const totalVendas = vendas.reduce((sum, v) => sum + parseFloat(v.total||0), 0);
   const detalhe = { cartao: {qtd:0, val:0}, pix: {qtd:0, val:0}, dinheiro: {qtd:0, val:0}, crediario: {qtd:0, val:0} };
   vendas.forEach(v => {
-    let fp = v.forma_pagamento || '';
+    let fp = (v.forma_pagamento || '').toLowerCase();
     let val = parseFloat(v.total||0);
-    if(fp.includes('cartao')) { detalhe.cartao.qtd++; detalhe.cartao.val += val; }
-    else if(fp.includes('pix') || fp.includes('transferencia')) { detalhe.pix.qtd++; detalhe.pix.val += val; }
+    if(fp.includes('cart')) { detalhe.cartao.qtd++; detalhe.cartao.val += val; }
+    else if(fp.includes('pix') || fp.includes('transfer')) { detalhe.pix.qtd++; detalhe.pix.val += val; }
     else if(fp.includes('dinheiro')) { detalhe.dinheiro.qtd++; detalhe.dinheiro.val += val; }
     else { detalhe.crediario.qtd++; detalhe.crediario.val += val; }
   });
@@ -534,6 +534,22 @@ async function deleteDespesa(id){if(!confirm('Excluir?'))return;await sb.from('d
 async function renderContasPagar() {
   document.getElementById('topbar-actions').innerHTML = ''; // Limpa topbar, controle movido pra tela
   
+  const now = new Date();
+  const m = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const hoje = now.toISOString().split('T')[0];
+
+  // Buscar dados reais do banco
+  const [{data:despesas},{data:contas}] = await Promise.all([
+    sb.from('despesas').select('valor,status,vencimento').gte('vencimento', m+'-01').lte('vencimento', m+'-31'),
+    sb.from('contas_pagar').select('valor,status,vencimento').gte('vencimento', m+'-01').lte('vencimento', m+'-31')
+  ]);
+
+  const todos = [...(despesas||[]), ...(contas||[])];
+  const totalMes = todos.reduce((a,d) => a + parseFloat(d.valor||0), 0);
+  const vencem = todos.filter(d => d.vencimento === hoje && (d.status==='aberta'||d.status==='pendente')).reduce((a,d)=>a+parseFloat(d.valor||0),0);
+  const atrasadas = todos.filter(d => d.vencimento < hoje && (d.status==='aberta'||d.status==='pendente')).reduce((a,d)=>a+parseFloat(d.valor||0),0);
+  const pagas = todos.filter(d => d.status==='pago'||d.status==='paga').reduce((a,d)=>a+parseFloat(d.valor||0),0);
+
   document.getElementById('content').innerHTML = `
     <div style="font-family:var(--font-sans);padding-bottom:50px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
@@ -552,19 +568,19 @@ async function renderContasPagar() {
       <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:20px;margin-bottom:24px;">
         <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,0.02);border:1px solid #f1f2f6;border-left:4px solid #3498db;">
           <div style="color:#7f8c8d;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Total no Mês</div>
-          <div style="color:#2c3e50;font-size:28px;font-weight:900;">R$ 0,00</div>
+          <div style="color:#2c3e50;font-size:28px;font-weight:900;">${fmt(totalMes)}</div>
         </div>
         <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,0.02);border:1px solid #f1f2f6;border-left:4px solid #e67e22;">
           <div style="color:#e67e22;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Vencem Hoje</div>
-          <div style="color:#2c3e50;font-size:28px;font-weight:900;">R$ 0,00</div>
+          <div style="color:#2c3e50;font-size:28px;font-weight:900;">${fmt(vencem)}</div>
         </div>
         <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,0.02);border:1px solid #f1f2f6;border-left:4px solid #e74c3c;">
           <div style="color:#e74c3c;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Atrasadas</div>
-          <div style="color:#2c3e50;font-size:28px;font-weight:900;">R$ 0,00</div>
+          <div style="color:#2c3e50;font-size:28px;font-weight:900;">${fmt(atrasadas)}</div>
         </div>
         <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,0.02);border:1px solid #f1f2f6;border-left:4px solid #2ecc71;">
           <div style="color:#2ecc71;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Pagas no Mês</div>
-          <div style="color:#2c3e50;font-size:28px;font-weight:900;">R$ 0,00</div>
+          <div style="color:#2c3e50;font-size:28px;font-weight:900;">${fmt(pagas)}</div>
         </div>
       </div>
 

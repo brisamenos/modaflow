@@ -154,6 +154,8 @@ function aplicarMigracoes(tdb) {
   ac('bags','numero_bag','INTEGER'); ac('bags','observacoes','TEXT');
   ac('classificacoes','visao_contabil','TEXT');
   ac('classificacoes','created_at','TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
+  ac('contas_receber','data_recebimento','DATE');
+  ac('despesas','ciclo_pagamento','TEXT DEFAULT \'Unico\'');
   try { tdb.exec(`UPDATE categorias SET ativo=1 WHERE ativo IS NULL`); } catch(e){}
   try { tdb.exec(`UPDATE colecoes SET ativo=1 WHERE ativo IS NULL`); } catch(e){}
   try { tdb.exec(`UPDATE grades SET ativo=1 WHERE ativo IS NULL`); } catch(e){}
@@ -163,6 +165,11 @@ function aplicarMigracoes(tdb) {
   try { tdb.exec(`UPDATE produtos SET preco_venda=0 WHERE preco_venda IS NULL`); } catch(e){}
   // Auto-numerar bags existentes sem numero_bag
   try { tdb.exec(`UPDATE bags SET numero_bag=id WHERE numero_bag IS NULL`); } catch(e){}
+  // Ativar fornecedores importados via CSV que ficaram com ativo=NULL
+  try { tdb.exec(`UPDATE fornecedores SET ativo=1 WHERE ativo IS NULL`); } catch(e){}
+  // Ativar categorias e coleções criadas pelo import sem ativo
+  try { tdb.exec(`UPDATE categorias SET ativo=1 WHERE ativo IS NULL`); } catch(e){}
+  try { tdb.exec(`UPDATE colecoes SET ativo=1 WHERE ativo IS NULL`); } catch(e){}
   // Sincronizar dia_nascimento e mes_nascimento a partir de data_nascimento para clientes antigos
   // (resolve o caso de clientes importados antes das colunas existirem)
   try {
@@ -353,7 +360,9 @@ function parseSelect(selectStr) {
 }
 
 function coerceBool(v) {
-  if (v === 'true') return 1; if (v === 'false') return 0; return v;
+  if (v === 'true') return 1; if (v === 'false') return 0;
+  if (v === '1') return 1; if (v === '0') return 0;
+  return v;
 }
 
 function buildWhere(query) {
