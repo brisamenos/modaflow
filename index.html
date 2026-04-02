@@ -188,6 +188,11 @@
           </button>
         </nav>
 
+        <!-- Hamburguer mobile -->
+        <button class="nav-hamburger" id="nav-hamburger" onclick="openMobileDrawer()">
+          <i data-lucide="menu"></i>
+        </button>
+
         <!-- User -->
         <div class="topnav-right">
           <div class="topnav-avatar"><span id="topnav-initial">A</span></div>
@@ -498,6 +503,105 @@
     </div>
   </div>
 </div>
+
+<!-- MOBILE DRAWER -->
+<div class="mobile-drawer" id="mobile-drawer">
+  <div class="mobile-drawer-overlay" onclick="closeMobileDrawer()"></div>
+  <div class="mobile-drawer-panel">
+    <div class="mobile-drawer-header">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="topnav-brand-logo"><i data-lucide="shopping-bag"></i></div>
+        <div>
+          <div style="color:white;font-size:14px;font-weight:800;letter-spacing:-.4px">StoreOS</div>
+          <div style="color:rgba(255,255,255,.25);font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase">Gestão de Loja</div>
+        </div>
+      </div>
+      <button class="mobile-drawer-close" onclick="closeMobileDrawer()"><i data-lucide="x"></i></button>
+    </div>
+    <nav class="mobile-drawer-nav">
+      <div class="mobile-nav-item highlight" onclick="navigate('pdv');closeMobileDrawer()">
+        <i data-lucide="shopping-cart"></i> Registrar Venda
+      </div>
+      <div class="mobile-nav-section">Início</div>
+      <div class="mobile-nav-item" onclick="navigate('dashboard');closeMobileDrawer()"><i data-lucide="layout-dashboard"></i> Dashboard</div>
+      <div class="mobile-nav-section">Vendas</div>
+      <div class="mobile-nav-item" onclick="navigate('bag');closeMobileDrawer()"><i data-lucide="shopping-bag"></i> BAG — Pré-venda</div>
+      <div class="mobile-nav-item" onclick="navigate('relacao-vendas');closeMobileDrawer()"><i data-lucide="list"></i> Relação de Vendas</div>
+      <div class="mobile-nav-item" onclick="navigate('painel-vendas');closeMobileDrawer()"><i data-lucide="bar-chart-2"></i> Painel de Vendas</div>
+      <div class="mobile-nav-item" onclick="navigate('consulta-vendas');closeMobileDrawer()"><i data-lucide="search"></i> Consulta Vendas</div>
+      <div class="mobile-nav-item" onclick="navigate('trocas');closeMobileDrawer()"><i data-lucide="repeat"></i> Devoluções / Trocas</div>
+      <div class="mobile-nav-section">Crediário</div>
+      <div class="mobile-nav-item" onclick="navigate('crediario');closeMobileDrawer()"><i data-lucide="credit-card"></i> Gestão Crediário</div>
+      <div class="mobile-nav-item" onclick="navigate('contas-receber');closeMobileDrawer()"><i data-lucide="receipt"></i> Contas a Receber</div>
+      <div class="mobile-nav-section">Vendedores</div>
+      <div class="mobile-nav-item" onclick="navigate('comissoes');closeMobileDrawer()"><i data-lucide="award"></i> Comissões</div>
+      <div class="mobile-nav-item" onclick="navigate('metas');closeMobileDrawer()"><i data-lucide="target"></i> Metas de Vendas</div>
+      <div class="mobile-nav-item" onclick="navigate('vendedores');closeMobileDrawer()"><i data-lucide="users"></i> Vendedores</div>
+      <div class="mobile-nav-section">Clientes</div>
+      <div class="mobile-nav-item" onclick="navigate('cadastrar-cliente');closeMobileDrawer()"><i data-lucide="user-plus"></i> Cadastrar Cliente</div>
+      <div class="mobile-nav-item" onclick="navigate('clientes');closeMobileDrawer()"><i data-lucide="users"></i> Listar Clientes</div>
+      <div class="mobile-nav-item" onclick="navigate('historico-clientes');closeMobileDrawer()"><i data-lucide="clock"></i> Histórico de Clientes</div>
+      <div class="mobile-nav-item" onclick="navigate('painel-clientes');closeMobileDrawer()"><i data-lucide="bar-chart-2"></i> Painel de Clientes</div>
+      <div class="mobile-nav-item" onclick="navigate('como-conheceu');closeMobileDrawer()"><i data-lucide="heart"></i> Como nos Conheceu</div>
+      <div class="mobile-nav-section">Estoque</div>
+      <div class="mobile-nav-item" onclick="navigate('visao-geral-estoque');closeMobileDrawer()"><i data-lucide="layout-dashboard"></i> Visão Geral</div>
+      <div class="mobile-nav-item" onclick="navigate('cadastrar-produto');closeMobileDrawer()"><i data-lucide="package-plus"></i> Cadastrar Produto</div>
+      <div class="mobile-nav-item" onclick="navigate('conferencia-estoque');closeMobileDrawer()"><i data-lucide="clipboard-check"></i> Conferência</div>
+      <div class="mobile-nav-item" onclick="navigate('visao-detalhada-estoque');closeMobileDrawer()"><i data-lucide="list"></i> Visão Detalhada</div>
+      <div class="mobile-nav-item" onclick="navigate('giro-estoque');closeMobileDrawer()"><i data-lucide="refresh-cw"></i> Giro de Estoque</div>
+      <div class="mobile-nav-item" onclick="navigate('curva-abc');closeMobileDrawer()"><i data-lucide="bar-chart-2"></i> Curva ABC</div>
+      <div class="mobile-nav-item" onclick="navigate('notas-fiscais');closeMobileDrawer()"><i data-lucide="file-text"></i> Notas Fiscais</div>
+      <div class="mobile-nav-item" onclick="navigate('gestao-estoque');closeMobileDrawer()"><i data-lucide="settings-2"></i> Gestão Compras</div>
+      <div class="mobile-nav-item" onclick="navigate('cadastrar-fornecedor');closeMobileDrawer()"><i data-lucide="truck"></i> Cadastrar Fornecedor</div>
+      <div class="mobile-nav-section">Financeiro</div>
+      <div class="mobile-nav-item" onclick="navigate('caixa');closeMobileDrawer()"><i data-lucide="landmark"></i> Caixa Diário</div>
+      <div class="mobile-nav-item" onclick="navigate('painel-financeiro');closeMobileDrawer()"><i data-lucide="trending-up"></i> Painel Financeiro</div>
+      <div class="mobile-nav-item" onclick="navigate('despesas');closeMobileDrawer()"><i data-lucide="minus-circle"></i> Despesas</div>
+      <div class="mobile-nav-item" onclick="navigate('contas-pagar');closeMobileDrawer()"><i data-lucide="calendar-clock"></i> Contas a Pagar</div>
+      <div class="mobile-nav-item" onclick="navigate('contas-bancarias');closeMobileDrawer()"><i data-lucide="building-2"></i> Contas Bancárias</div>
+      <div class="mobile-nav-item" onclick="navigate('fluxo-caixa');closeMobileDrawer()"><i data-lucide="arrow-left-right"></i> Fluxo de Caixa</div>
+      <div class="mobile-nav-item" onclick="navigate('dre');closeMobileDrawer()"><i data-lucide="pie-chart"></i> Resultado — DRE</div>
+      <div class="mobile-nav-section">Conta</div>
+      <div class="mobile-nav-item" onclick="logout()" style="color:rgba(239,68,68,.7)"><i data-lucide="log-out"></i> Sair</div>
+    </nav>
+  </div>
+</div>
+
+<!-- BOTTOM NAV (mobile) -->
+<nav class="bottom-nav" id="bottom-nav">
+  <div class="bottom-nav-inner">
+    <button class="bottom-nav-item" onclick="navigate('dashboard')">
+      <i data-lucide="layout-dashboard"></i>
+      <span>Início</span>
+    </button>
+    <button class="bottom-nav-item" onclick="navigate('relacao-vendas')">
+      <i data-lucide="trending-up"></i>
+      <span>Vendas</span>
+    </button>
+    <button class="bottom-nav-item pdv-btn" onclick="navigate('pdv')">
+      <i data-lucide="shopping-cart"></i>
+      <span>PDV</span>
+    </button>
+    <button class="bottom-nav-item" onclick="navigate('caixa')">
+      <i data-lucide="landmark"></i>
+      <span>Caixa</span>
+    </button>
+    <button class="bottom-nav-item" onclick="openMobileDrawer()">
+      <i data-lucide="menu"></i>
+      <span>Menu</span>
+    </button>
+  </div>
+</nav>
+
+<script>
+function openMobileDrawer() {
+  document.getElementById('mobile-drawer').classList.add('open');
+  lucide.createIcons();
+}
+function closeMobileDrawer() {
+  document.getElementById('mobile-drawer').classList.remove('open');
+}
+</script>
 
 <script src="api.js"></script>
 <script src="whatsapp.js"></script>
