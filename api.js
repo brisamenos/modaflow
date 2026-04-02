@@ -160,8 +160,18 @@ class SupabaseQueryBuilder {
       }
 
       let returnData = json;
-      if (this._single) returnData = (json && json.length > 0) ? json[0] : null;
-      if (this._maybeSingle) returnData = (json && json.length > 0) ? json[0] : null;
+      
+      // Handle single/maybeSingle: server may return array OR single object
+      if (this._single || this._maybeSingle) {
+        if (Array.isArray(json)) {
+          returnData = json.length > 0 ? json[0] : null;
+        } else if (json && typeof json === 'object' && json.id !== undefined) {
+          // Server returned a single object directly (e.g. from POST)
+          returnData = json;
+        } else {
+          returnData = null;
+        }
+      }
 
       return { data: returnData, error: null };
     } catch (err) {
