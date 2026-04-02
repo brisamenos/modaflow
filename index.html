@@ -8,6 +8,11 @@
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <link rel="stylesheet" href="style.css">
 
+<!-- Configurações do PWA (Android / iOS app) -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3b82f6">
+<link rel="apple-touch-icon" href="icon-192.png">
+
 </head>
 <body>
 
@@ -623,5 +628,16 @@
 <script src="financeiro.js"></script>
 <script src="estoque.js"></script>
 <script>checkSession();</script>
+<!-- Registrar PWA Service Worker -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('ModaFlow PWA instalado!', reg))
+        .catch(err => console.log('Falha no SW', err));
+    });
+  }
+</script>
+
 </body>
 </html>
