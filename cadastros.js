@@ -1,4 +1,4 @@
-﻿// ===== GENERIC CRUD HELPER =====
+// ===== GENERIC CRUD HELPER =====
 function renderCRUDPage(opts) {
   const { title, addBtn, content } = opts;
   const ta = document.getElementById('topbar-actions');
@@ -23,7 +23,7 @@ async function loadClientes(filtros={}) {
   const el = document.getElementById('content');
 
   let q = sb.from('clientes')
-    .select('id,nome,nome_abreviado,celular,email,cpf,data_nascimento,created_at,ativo,ultima_compra')
+    .select('id,nome,nome_abreviado,celular,email,cpf,dia_nascimento,mes_nascimento,created_at,ativo,ultima_compra')
     .eq('ativo',true).order('created_at',{ascending:false});
 
   if(filtros.nome)    q = q.ilike('nome',`%${filtros.nome}%`);
@@ -36,9 +36,8 @@ async function loadClientes(filtros={}) {
     const dataCad = c.created_at?new Date(c.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
     const ultCompra = c.ultima_compra?new Date(c.ultima_compra+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
     let niverFmt = '—';
-    if(c.data_nascimento) {
-      const d = new Date(c.data_nascimento+'T00:00:00');
-      niverFmt = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+    if(c.dia_nascimento && c.mes_nascimento) {
+      niverFmt = `${String(c.dia_nascimento).padStart(2,'0')}/${String(c.mes_nascimento).padStart(2,'0')}`;
     }
     return `<tr>
       <td style="padding:8px 10px;text-align:center"><span style="font-size:16px">??</span></td>
@@ -146,7 +145,10 @@ async function renderCadastrarCliente() {
 
   // Parse aniversário
   let aniDia='', aniMes='';
-  if(cli.data_nascimento) {
+  if(cli.dia_nascimento) aniDia = cli.dia_nascimento;
+  if(cli.mes_nascimento) aniMes = cli.mes_nascimento;
+  // fallback: parse data_nascimento se campos separados não existirem
+  if(!aniDia && !aniMes && cli.data_nascimento) {
     const d = new Date(cli.data_nascimento+'T00:00:00');
     aniDia = d.getDate(); aniMes = d.getMonth()+1;
   }
@@ -524,6 +526,8 @@ async function salvarClienteCompleto() {
     instagram:     document.getElementById('cl2-insta')?.value||null,
     sexo:          document.querySelector('input[name="cl2-sexo"]:checked')?.value||null,
     como_conheceu: document.getElementById('cl2-como')?.value||null,
+    dia_nascimento: dia||null,
+    mes_nascimento: mes||null,
     data_nascimento: dataNasc,
     observacoes:   document.getElementById('cl2-obs')?.value||null,
     tipo_pessoa:   document.getElementById('cl2-tipo')?.value||'PF',
@@ -907,19 +911,23 @@ async function executarImportacaoClientes() {
       // Data de cadastro
       const dataCad = parseDateBR(r[1]);
 
-      // Aniversário: guardar como data fictícia ano 2000
+      // Aniversário: guardar dia e mês separados + data fictícia ano 2000
       let dataNasc = null;
       const dia = parseInt(r[6]||0), mes = parseInt(r[7]||0);
       if(dia>0 && mes>0) dataNasc = `2000-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
 
       const payload = {
+        codigo_externo: (r[0]||'').trim()||null,
         nome,
         nome_abreviado: (r[3]||'').trim()||null,
         celular: celular||null,
         sexo: (r[5]||'').trim()||null,
+        dia_nascimento: dia>0?dia:null,
+        mes_nascimento: mes>0?mes:null,
         data_nascimento: dataNasc,
         email: (r[8]||'').trim()||null,
         instagram: (r[9]||'').trim()||null,
+        ativo: (r[10]||'S').trim().toUpperCase() !== 'N',
         cpf: (r[12]||'').replace(/\D/g,'')||null,
         cep: (r[13]||'').trim()||null,
         logradouro: (r[14]||'').trim()||null,
@@ -927,8 +935,7 @@ async function executarImportacaoClientes() {
         complemento: (r[16]||'').trim()||null,
         bairro: (r[17]||'').trim()||null,
         estado: (r[18]||'').trim()||null,
-        cidade: (r[19]||'').trim()||null,
-        ativo: true
+        cidade: (r[19]||'').trim()||null
       };
 
       if(celular) {
