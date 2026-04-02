@@ -2,7 +2,11 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#08122a">
 <title>ModaFlow — Gestão de Loja</title>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
@@ -532,21 +536,48 @@
   <div class="mobile-menu-item" onclick="navigate('crediario');closeMobileMenu()"><i data-lucide="credit-card"></i> Gestão Crediário</div>
   <div class="mobile-menu-item" onclick="navigate('contas-receber');closeMobileMenu()"><i data-lucide="receipt"></i> Contas a Receber</div>
 
+  <div class="mobile-menu-section">Vendedores</div>
+  <div class="mobile-menu-item" onclick="navigate('vendedores');closeMobileMenu()"><i data-lucide="users"></i> Vendedores</div>
+  <div class="mobile-menu-item" onclick="navigate('comissoes');closeMobileMenu()"><i data-lucide="award"></i> Comissões</div>
+  <div class="mobile-menu-item" onclick="navigate('metas');closeMobileMenu()"><i data-lucide="target"></i> Metas de Vendas</div>
+
+  <div class="mobile-menu-section">Compras</div>
+  <div class="mobile-menu-item" onclick="navigate('notas-fiscais');closeMobileMenu()"><i data-lucide="file-text"></i> Nota Fiscal</div>
+  <div class="mobile-menu-item" onclick="navigate('duplicatas');closeMobileMenu()"><i data-lucide="credit-card"></i> Efetuar Pagamento</div>
+
   <div class="mobile-menu-section">Estoque</div>
   <div class="mobile-menu-item" onclick="navigate('visao-geral-estoque');closeMobileMenu()"><i data-lucide="layout-dashboard"></i> Visão Geral</div>
+  <div class="mobile-menu-item" onclick="navigate('visao-detalhada-estoque');closeMobileMenu()"><i data-lucide="list"></i> Visão Detalhada</div>
   <div class="mobile-menu-item" onclick="navigate('cadastrar-produto');closeMobileMenu()"><i data-lucide="package-plus"></i> Cadastrar Produto</div>
   <div class="mobile-menu-item" onclick="navigate('produtos');closeMobileMenu()"><i data-lucide="tag"></i> Listar Produtos</div>
+  <div class="mobile-menu-item" onclick="navigate('conferencia-estoque');closeMobileMenu()"><i data-lucide="clipboard-check"></i> Conferência</div>
+  <div class="mobile-menu-item" onclick="navigate('giro-estoque');closeMobileMenu()"><i data-lucide="refresh-cw"></i> Giro Estoque</div>
+  <div class="mobile-menu-item" onclick="navigate('curva-abc');closeMobileMenu()"><i data-lucide="bar-chart-2"></i> Curva ABC</div>
+  <div class="mobile-menu-item" onclick="navigate('transferencia-lojas');closeMobileMenu()"><i data-lucide="arrow-left-right"></i> Transferência entre Lojas</div>
   <div class="mobile-menu-item" onclick="navigate('importar-csv');closeMobileMenu()"><i data-lucide="file-up"></i> Importar Estoque CSV</div>
+  <div class="mobile-menu-item" onclick="navigate('fornecedores');closeMobileMenu()"><i data-lucide="truck"></i> Fornecedores</div>
+  <div class="mobile-menu-item" onclick="navigate('cadastrar-fornecedor');closeMobileMenu()"><i data-lucide="truck"></i> Cadastrar Fornecedor</div>
 
   <div class="mobile-menu-section">Clientes</div>
   <div class="mobile-menu-item" onclick="navigate('cadastrar-cliente');closeMobileMenu()"><i data-lucide="user-plus"></i> Cadastrar Cliente</div>
   <div class="mobile-menu-item" onclick="navigate('clientes');closeMobileMenu()"><i data-lucide="users"></i> Listar Clientes</div>
+  <div class="mobile-menu-item" onclick="navigate('historico-clientes');closeMobileMenu()"><i data-lucide="clock"></i> Histórico de Clientes</div>
   <div class="mobile-menu-item" onclick="navigate('painel-clientes');closeMobileMenu()"><i data-lucide="bar-chart-2"></i> Painel de Clientes</div>
+  <div class="mobile-menu-item" onclick="navigate('como-conheceu');closeMobileMenu()"><i data-lucide="heart"></i> Como nos Conheceu</div>
+  <div class="mobile-menu-item" onclick="navigate('importar-clientes');closeMobileMenu()"><i data-lucide="file-up"></i> Importar Clientes</div>
+  <div class="mobile-menu-item" onclick="navigate('categorias');closeMobileMenu()"><i data-lucide="folder-plus"></i> Categorias</div>
+  <div class="mobile-menu-item" onclick="navigate('colecoes');closeMobileMenu()"><i data-lucide="layers"></i> Coleções</div>
+  <div class="mobile-menu-item" onclick="navigate('grades');closeMobileMenu()"><i data-lucide="grid-3x3"></i> Grades</div>
 
   <div class="mobile-menu-section">Financeiro</div>
   <div class="mobile-menu-item" onclick="navigate('caixa');closeMobileMenu()"><i data-lucide="landmark"></i> Caixa Diário</div>
   <div class="mobile-menu-item" onclick="navigate('painel-financeiro');closeMobileMenu()"><i data-lucide="trending-up"></i> Painel Financeiro</div>
+  <div class="mobile-menu-item" onclick="navigate('caixa-mensal');closeMobileMenu()"><i data-lucide="calendar-days"></i> Caixa Mensal</div>
   <div class="mobile-menu-item" onclick="navigate('despesas');closeMobileMenu()"><i data-lucide="minus-circle"></i> Despesas</div>
+  <div class="mobile-menu-item" onclick="navigate('painel-despesas');closeMobileMenu()"><i data-lucide="pie-chart"></i> Painel de Despesas</div>
+  <div class="mobile-menu-item" onclick="navigate('contas-pagar');closeMobileMenu()"><i data-lucide="calendar-clock"></i> Contas a Pagar</div>
+  <div class="mobile-menu-item" onclick="navigate('fluxo-caixa');closeMobileMenu()"><i data-lucide="arrow-left-right"></i> Fluxo de Caixa</div>
+  <div class="mobile-menu-item" onclick="navigate('dre');closeMobileMenu()"><i data-lucide="pie-chart"></i> Resultado — DRE</div>
 
   <div class="mobile-menu-section">Conta</div>
   <div class="mobile-menu-item" onclick="logout()"><i data-lucide="log-out"></i> Sair do Sistema</div>
