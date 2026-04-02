@@ -224,17 +224,17 @@
 <!-- TOAST -->
 <div id="toast"></div>
 
-<!-- WHATSAPP WIDGET FLUTUANTE -->
+<!-- WHATSAPP WIDGET ROBÔ -->
 <style>
 #wa-fab {
   position:fixed; bottom:28px; right:28px; z-index:9000;
   width:54px; height:54px; border-radius:50%;
-  background:linear-gradient(135deg,#25d366,#128c7e);
+  background:linear-gradient(135deg,#6366f1,#4f46e5);
   color:white; display:flex; align-items:center; justify-content:center;
-  cursor:pointer; box-shadow:0 4px 20px rgba(37,211,102,.45);
+  cursor:pointer; box-shadow:0 4px 20px rgba(99,102,241,.45);
   transition:transform .2s,box-shadow .2s;
 }
-#wa-fab:hover { transform:scale(1.08); box-shadow:0 6px 28px rgba(37,211,102,.55); }
+#wa-fab:hover { transform:scale(1.08); box-shadow:0 6px 28px rgba(99,102,241,.6); }
 #wa-fab-dot {
   position:absolute; top:3px; right:3px;
   width:11px; height:11px; border-radius:50%;
@@ -247,17 +247,27 @@
 
 .wa-window {
   position:fixed; bottom:92px; right:28px; z-index:8999;
-  width:340px; height:540px; border-radius:16px;
-  background:white; box-shadow:0 12px 48px rgba(0,0,0,.18);
+  width:350px; border-radius:16px;
+  background:#fff; box-shadow:0 12px 48px rgba(0,0,0,.18);
   display:none; flex-direction:column; overflow:hidden;
+  max-height:calc(100vh - 120px);
 }
 .wa-window.open { display:flex; }
 .wa-header {
-  background:linear-gradient(135deg,#25d366,#128c7e);
-  color:white; padding:14px 16px;
+  background:linear-gradient(135deg,#6366f1,#4f46e5);
+  color:white; padding:13px 16px;
   font-size:14px; font-weight:700;
   display:flex; align-items:center; gap:8px; flex-shrink:0;
 }
+.wa-tabs {
+  display:flex; border-bottom:1px solid #e2e8f0; background:#f8fafc; flex-shrink:0;
+}
+.wa-tab {
+  flex:1; padding:10px 8px; text-align:center; font-size:12px; font-weight:600;
+  color:#64748b; cursor:pointer; border-bottom:2px solid transparent;
+  transition:color .15s,border-color .15s;
+}
+.wa-tab.active { color:#6366f1; border-bottom-color:#6366f1; background:#fff; }
 .wa-chat-item {
   display:flex; align-items:center; gap:10px;
   padding:11px 14px; cursor:pointer; border-bottom:1px solid #f1f5f9;
@@ -266,7 +276,7 @@
 .wa-chat-item:hover { background:#f8fafc; }
 .wa-avatar {
   width:38px; height:38px; border-radius:50%;
-  background:linear-gradient(135deg,#25d366,#128c7e);
+  background:linear-gradient(135deg,#6366f1,#4f46e5);
   color:white; display:flex; align-items:center;
   justify-content:center; font-size:15px; font-weight:700; flex-shrink:0;
 }
@@ -274,27 +284,35 @@
 .wa-preview { font-size:11.5px; color:#64748b; }
 .wa-empty { text-align:center; color:#94a3b8; font-size:12px; padding:32px 16px; }
 .wa-bubble { max-width:82%; padding:8px 12px; border-radius:12px; font-size:13px; line-height:1.45; word-break:break-word; }
-.wa-me  { background:#dcf8c6; align-self:flex-end;  border-bottom-right-radius:3px; }
+.wa-me  { background:#e0e7ff; align-self:flex-end;  border-bottom-right-radius:3px; }
 .wa-you { background:white;   align-self:flex-start; border-bottom-left-radius:3px; box-shadow:0 1px 2px rgba(0,0,0,.08); }
 
 /* connect screen */
 .wa-connect-body {
   flex:1; display:flex; flex-direction:column;
   align-items:center; justify-content:center;
-  padding:24px; gap:16px; text-align:center;
+  padding:28px 24px; gap:14px; text-align:center;
 }
 .wa-robot-icon {
-  width:72px; height:72px; border-radius:50%;
-  background:linear-gradient(135deg,#f0fdf4,#dcfce7);
-  border:2px solid #bbf7d0;
+  width:80px; height:80px; border-radius:50%;
+  background:linear-gradient(135deg,#eef2ff,#e0e7ff);
+  border:2px solid #c7d2fe;
   display:flex; align-items:center; justify-content:center;
 }
+.wa-name-input {
+  width:100%; padding:11px 14px; border-radius:10px;
+  border:1.5px solid #e2e8f0; font-size:13.5px; font-family:inherit;
+  outline:none; background:#f8fafc; color:#0f172a;
+  transition:border-color .15s;
+  box-sizing:border-box;
+}
+.wa-name-input:focus { border-color:#6366f1; background:#fff; }
 #wa-connect-btn {
-  background:linear-gradient(135deg,#25d366,#128c7e);
+  background:linear-gradient(135deg,#6366f1,#4f46e5);
   color:white; border:none; padding:12px 28px;
   border-radius:24px; font-size:13.5px; font-weight:700; font-family:inherit;
   cursor:pointer; display:flex; align-items:center; gap:8px;
-  box-shadow:0 3px 14px rgba(37,211,102,.35);
+  box-shadow:0 3px 14px rgba(99,102,241,.35);
   transition:opacity .2s,transform .15s;
 }
 #wa-connect-btn:hover:not(:disabled) { opacity:.9; transform:translateY(-1px); }
@@ -306,15 +324,55 @@
   overflow:hidden; display:flex; align-items:center; justify-content:center;
 }
 .wa-qr-box img { width:100%; height:100%; object-fit:contain; }
+
+/* automações tab */
+.wa-auto-body { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:14px; }
+.wa-auto-section { background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px; }
+.wa-auto-section h5 { margin:0 0 10px; font-size:12.5px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:.5px; }
+.wa-toggle-row { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.wa-toggle-label { font-size:13px; color:#0f172a; font-weight:500; }
+.wa-toggle { position:relative; width:40px; height:22px; flex-shrink:0; }
+.wa-toggle input { opacity:0; width:0; height:0; }
+.wa-toggle-slider {
+  position:absolute; inset:0; background:#cbd5e1; border-radius:22px;
+  cursor:pointer; transition:background .2s;
+}
+.wa-toggle-slider:before {
+  content:''; position:absolute; left:3px; top:3px;
+  width:16px; height:16px; border-radius:50%; background:white;
+  transition:transform .2s; box-shadow:0 1px 3px rgba(0,0,0,.2);
+}
+.wa-toggle input:checked + .wa-toggle-slider { background:#6366f1; }
+.wa-toggle input:checked + .wa-toggle-slider:before { transform:translateX(18px); }
+.wa-auto-textarea {
+  width:100%; min-height:80px; padding:10px 12px; border-radius:8px;
+  border:1.5px solid #e2e8f0; font-size:12.5px; font-family:inherit;
+  outline:none; resize:vertical; background:#fff; color:#0f172a;
+  box-sizing:border-box; line-height:1.5;
+  transition:border-color .15s;
+}
+.wa-auto-textarea:focus { border-color:#6366f1; }
+.wa-auto-save-btn {
+  background:#6366f1; color:white; border:none; padding:9px 18px;
+  border-radius:8px; font-size:12.5px; font-weight:700; font-family:inherit;
+  cursor:pointer; width:100%; transition:opacity .15s;
+}
+.wa-auto-save-btn:hover { opacity:.88; }
+.wa-aniv-log { font-size:11.5px; color:#64748b; line-height:1.7; }
+.wa-aniv-log strong { color:#6366f1; }
 </style>
 
-<div id="wa-fab" onclick="toggleWaFloating()" title="WhatsApp">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:26px;height:26px">
-    <rect x="3" y="4" width="18" height="12" rx="3"/>
-    <circle cx="8.5" cy="9.5" r="1.3" fill="currentColor" stroke="none"/>
-    <circle cx="12"  cy="9.5" r="1.3" fill="currentColor" stroke="none"/>
-    <circle cx="15.5" cy="9.5" r="1.3" fill="currentColor" stroke="none"/>
-    <path d="M7 16l-3 4h16l-3-4"/>
+<!-- FAB robô -->
+<div id="wa-fab" onclick="toggleWaFloating()" title="WhatsApp Bot">
+  <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:28px;height:28px">
+    <rect x="5" y="10" width="22" height="15" rx="4" fill="white" opacity=".95"/>
+    <circle cx="11.5" cy="17" r="2.2" fill="#6366f1"/>
+    <circle cx="20.5" cy="17" r="2.2" fill="#6366f1"/>
+    <rect x="12" y="22" width="8" height="1.8" rx=".9" fill="#a5b4fc"/>
+    <rect x="14.5" y="6" width="3" height="5" rx="1.5" fill="white" opacity=".9"/>
+    <circle cx="16" cy="5.5" r="1.5" fill="white" opacity=".9"/>
+    <rect x="1" y="14" width="4" height="6" rx="2" fill="white" opacity=".75"/>
+    <rect x="27" y="14" width="4" height="6" rx="2" fill="white" opacity=".75"/>
   </svg>
   <span id="wa-fab-dot"></span>
 </div>
@@ -324,56 +382,107 @@
   <!-- TELA 1: Conectar -->
   <div id="wa-pair-screen" style="display:none;flex-direction:column;height:100%">
     <div class="wa-header">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px"><rect x="3" y="4" width="18" height="12" rx="3"/><circle cx="8.5" cy="9.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="9.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="9.5" r="1.2" fill="currentColor" stroke="none"/><path d="M7 16l-3 4h16l-3-4"/></svg>
-      WhatsApp — StoreOS
+      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:18px;height:18px"><rect x="5" y="10" width="22" height="15" rx="4" fill="white" opacity=".95"/><circle cx="11.5" cy="17" r="2.2" fill="#6366f1"/><circle cx="20.5" cy="17" r="2.2" fill="#6366f1"/><rect x="14.5" y="6" width="3" height="5" rx="1.5" fill="white" opacity=".9"/><circle cx="16" cy="5.5" r="1.5" fill="white" opacity=".9"/><rect x="1" y="14" width="4" height="6" rx="2" fill="white" opacity=".75"/><rect x="27" y="14" width="4" height="6" rx="2" fill="white" opacity=".75"/></svg>
+      Robô WhatsApp
     </div>
     <div class="wa-connect-body">
       <div class="wa-robot-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:36px;height:36px">
-          <rect x="3" y="4" width="18" height="12" rx="3"/>
-          <circle cx="8.5" cy="9.5" r="1.3" fill="#16a34a" stroke="none"/>
-          <circle cx="12"  cy="9.5" r="1.3" fill="#16a34a" stroke="none"/>
-          <circle cx="15.5" cy="9.5" r="1.3" fill="#16a34a" stroke="none"/>
-          <path d="M7 16l-3 4h16l-3-4"/>
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:44px;height:44px">
+          <rect x="5" y="10" width="22" height="15" rx="4" fill="#6366f1" opacity=".15"/>
+          <rect x="5" y="10" width="22" height="15" rx="4" stroke="#6366f1" stroke-width="1.8"/>
+          <circle cx="11.5" cy="17" r="2.2" fill="#6366f1"/>
+          <circle cx="20.5" cy="17" r="2.2" fill="#6366f1"/>
+          <rect x="12" y="22" width="8" height="1.8" rx=".9" fill="#6366f1" opacity=".6"/>
+          <rect x="14.5" y="6" width="3" height="5" rx="1.5" fill="#6366f1" opacity=".7"/>
+          <circle cx="16" cy="5.5" r="1.5" fill="#6366f1"/>
+          <rect x="1" y="14" width="4" height="6" rx="2" fill="#6366f1" opacity=".5"/>
+          <rect x="27" y="14" width="4" height="6" rx="2" fill="#6366f1" opacity=".5"/>
         </svg>
       </div>
       <div>
-        <div style="font-size:14.5px;font-weight:700;color:#0f172a;margin-bottom:5px">WhatsApp Desconectado</div>
-        <div id="wa-connect-status">Crie a instância e escaneie o QR Code</div>
+        <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:4px">Conectar ao WhatsApp</div>
+        <div style="font-size:12px;color:#94a3b8">Configure e escaneie o QR Code</div>
+      </div>
+
+      <div style="width:100%">
+        <div style="font-size:11.5px;font-weight:600;color:#64748b;margin-bottom:6px;text-align:left">Nome (sem espaço)</div>
+        <input id="wa-instance-input" class="wa-name-input" type="text" placeholder="Ex: MinhaLoja" oninput="this.value=this.value.replace(/\s/g,'')">
       </div>
 
       <button id="wa-connect-btn" onclick="waManualConnect()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1.3" fill="currentColor" stroke="none"/></svg>
-        Criar Instância e Conectar
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1.3" fill="currentColor" stroke="none"/></svg>
+        Conectar
       </button>
+      <div id="wa-connect-status"></div>
 
       <div class="wa-qr-box" id="wa-qr-box" style="display:none">
         <img id="wa-qr-img" src="" alt="QR Code" />
       </div>
-      <div id="wa-qr-hint" style="display:none;font-size:11px;color:#94a3b8;line-height:1.5">
+      <div id="wa-qr-hint" style="display:none;font-size:11px;color:#94a3b8;line-height:1.6">
         Abra o WhatsApp &rsaquo; Dispositivos conectados<br>&rsaquo; Conectar um dispositivo
       </div>
     </div>
   </div>
 
-  <!-- TELA 2: Conversas -->
-  <div id="wa-main-screen" style="display:none;flex-direction:column;height:100%">
+  <!-- TELA 2: Principal (Conversas + Automações) -->
+  <div id="wa-main-screen" style="display:none;flex-direction:column;height:100%;min-height:480px">
     <div class="wa-header" style="justify-content:space-between">
-      <span>Conversas</span>
-      <div style="display:flex;gap:5px">
-        <button onclick="waStartNewChat()" title="Nova conversa" style="background:rgba(255,255,255,.2);border:none;color:white;width:28px;height:28px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:14px;height:14px"><path d="M12 5v14M5 12h14"/></svg>
-        </button>
-        <button onclick="waLogout()" title="Desconectar" style="background:rgba(255,255,255,.2);border:none;color:white;width:28px;height:28px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <div style="display:flex;align-items:center;gap:7px">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:17px;height:17px"><rect x="5" y="10" width="22" height="15" rx="4" fill="white" opacity=".95"/><circle cx="11.5" cy="17" r="2.2" fill="#6366f1"/><circle cx="20.5" cy="17" r="2.2" fill="#6366f1"/><rect x="14.5" y="6" width="3" height="5" rx="1.5" fill="white" opacity=".9"/><circle cx="16" cy="5.5" r="1.5" fill="white" opacity=".9"/><rect x="1" y="14" width="4" height="6" rx="2" fill="white" opacity=".75"/><rect x="27" y="14" width="4" height="6" rx="2" fill="white" opacity=".75"/></svg>
+        <span id="wa-header-instance" style="font-size:13px"></span>
+      </div>
+      <button onclick="waLogout()" title="Desconectar" style="background:rgba(255,255,255,.2);border:none;color:white;width:28px;height:28px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+
+    <!-- tabs -->
+    <div class="wa-tabs">
+      <div class="wa-tab active" id="wa-tab-chats" onclick="waSwitchTab('chats')">💬 Conversas</div>
+      <div class="wa-tab" id="wa-tab-auto" onclick="waSwitchTab('auto')">🤖 Automações</div>
+    </div>
+
+    <!-- aba conversas -->
+    <div id="wa-tab-chats-panel" style="flex:1;overflow-y:auto;display:flex;flex-direction:column">
+      <div style="padding:8px 12px;border-bottom:1px solid #f1f5f9">
+        <button onclick="waStartNewChat()" style="width:100%;background:#eef2ff;color:#6366f1;border:none;border-radius:8px;padding:8px;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:13px;height:13px"><path d="M12 5v14M5 12h14"/></svg> Nova conversa
         </button>
       </div>
+      <div id="wa-chat-list" style="flex:1;overflow-y:auto"></div>
     </div>
-    <div id="wa-chat-list" class="wa-list" style="flex:1;overflow-y:auto"></div>
+
+    <!-- aba automações -->
+    <div id="wa-tab-auto-panel" style="display:none;flex:1;overflow-y:auto">
+      <div class="wa-auto-body">
+
+        <div class="wa-auto-section">
+          <h5>🎂 Felicitações de Aniversário</h5>
+          <div class="wa-toggle-row" style="margin-bottom:12px">
+            <span class="wa-toggle-label">Envio automático ativo</span>
+            <label class="wa-toggle">
+              <input type="checkbox" id="wa-aniv-toggle" onchange="waSaveAutoConfig()">
+              <span class="wa-toggle-slider"></span>
+            </label>
+          </div>
+          <div style="font-size:11.5px;color:#64748b;margin-bottom:6px">Mensagem (use <strong>{nome}</strong> para o nome do cliente)</div>
+          <textarea id="wa-aniv-msg" class="wa-auto-textarea" oninput="waSaveAutoConfig()">Olá {nome}! 🎉 A equipe da nossa loja deseja um feliz aniversário! Que seu dia seja muito especial. 🎂</textarea>
+          <div style="font-size:11.5px;color:#64748b;margin:10px 0 6px">Horário de envio</div>
+          <input type="time" id="wa-aniv-time" value="09:00" oninput="waSaveAutoConfig()" style="padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:#fff">
+          <button class="wa-auto-save-btn" style="margin-top:12px" onclick="waRunBirthdayCheck(true)">▶ Verificar e Enviar Agora</button>
+        </div>
+
+        <div class="wa-auto-section">
+          <h5>📋 Último Envio</h5>
+          <div id="wa-aniv-log" class="wa-aniv-log">Nenhum envio registrado.</div>
+        </div>
+
+      </div>
+    </div>
   </div>
 
   <!-- TELA 3: Mensagens -->
-  <div id="wa-message-screen" style="display:none;flex-direction:column;height:100%">
+  <div id="wa-message-screen" style="display:none;flex-direction:column;height:100%;min-height:480px">
     <div class="wa-header">
       <button onclick="waBackToList()" style="background:none;border:none;color:white;cursor:pointer;display:flex;align-items:center;padding:0">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg>
@@ -383,7 +492,7 @@
     <div id="wa-messages-container" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;background:#efeae2"></div>
     <div style="padding:10px;background:#f0f2f5;display:flex;gap:8px;align-items:center;border-top:1px solid #d1d7db;flex-shrink:0">
       <input type="text" id="wa-input-text" placeholder="Digite uma mensagem..." style="flex:1;padding:10px 14px;border-radius:24px;border:none;font-size:13.5px;outline:none;font-family:inherit" />
-      <button onclick="waSendMessageAction()" style="background:#25d366;color:white;border:none;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
+      <button onclick="waSendMessageAction()" style="background:#6366f1;color:white;border:none;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;margin-left:2px"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
       </button>
     </div>
