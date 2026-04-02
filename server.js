@@ -127,7 +127,7 @@ function buildWhere(query) {
   let clauses = [];
   let params = [];
   for (let [key, val] of Object.entries(query)) {
-    if (['select', 'order', 'limit'].includes(key)) continue;
+    if (['select', 'order', 'limit', 'or'].includes(key)) continue;
     if (typeof val === 'string') {
       if (val.startsWith('eq.')) { clauses.push(`"${key}" = ?`); params.push(val.slice(3)); }
       else if (val.startsWith('neq.')) { clauses.push(`"${key}" != ?`); params.push(val.slice(4)); }
@@ -140,9 +140,38 @@ function buildWhere(query) {
         clauses.push(`"${key}" LIKE ?`); 
         params.push(val.slice(prefix).replace(/\*/g, '%')); 
       }
+      else if (val.startsWith('in.(')) {
+        let list = val.slice(4, -1).split(',').map(v => v.trim());
+        clauses.push(`"${key}" IN (${list.map(() => '?').join(',')})`);
+        params.push(...list);
+      }
       else { clauses.push(`"${key}" = ?`); params.push(val); }
     }
   }
+  
+  // Handle OR filter: "nome.ilike.%q%,celular.ilike.%q%"
+  if (query.or) {
+    let orParts = query.or.split(',');
+    let orClauses = [];
+    for (let part of orParts) {
+      let dotIdx = part.indexOf('.');
+      if (dotIdx === -1) continue;
+      let col = part.slice(0, dotIdx);
+      let rest = part.slice(dotIdx + 1);
+      if (rest.startsWith('ilike.') || rest.startsWith('like.')) {
+        let prefix = rest.startsWith('ilike.') ? 6 : 5;
+        orClauses.push(`"${col}" LIKE ?`);
+        params.push(rest.slice(prefix).replace(/\*/g, '%'));
+      } else if (rest.startsWith('eq.')) {
+        orClauses.push(`"${col}" = ?`);
+        params.push(rest.slice(3));
+      }
+    }
+    if (orClauses.length > 0) {
+      clauses.push(`(${orClauses.join(' OR ')})`);
+    }
+  }
+
   return { 
     where: clauses.length ? 'WHERE ' + clauses.join(' AND ') : '', 
     params 

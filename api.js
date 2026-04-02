@@ -91,6 +91,11 @@ class SupabaseQueryBuilder {
     return this;
   }
 
+  or(filterStr) {
+    this._params.append('or', filterStr);
+    return this;
+  }
+
   order(column, options = { ascending: true }) {
     const dir = options.ascending === false ? 'desc' : 'asc';
     this._params.append('order', `${column}.${dir}`);
