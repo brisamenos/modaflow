@@ -1,4 +1,4 @@
-﻿// ===== CONFIG =====
+// ===== CONFIG =====
 
 // ===== STATE =====
 let currentPage = 'dashboard';
@@ -191,7 +191,7 @@ function badgeStatus(status) {
 }
 
 // ===== INIT =====
-checkSession();
+// checkSession() é chamado no index.html após todos os scripts carregarem
 
 // Stubs adicionados via patch — injetados no final
 // As funções principais já estão no bundle principal.
