@@ -254,6 +254,14 @@ function parseSelect(selectStr) {
 // =============================================
 // buildWhere: suporta eq, neq, gt, gte, lt, lte, ilike, like, in, not, or
 // =============================================
+
+// Converte strings 'true'/'false' para 1/0 (SQLite armazena booleanos como inteiros)
+function coerceBool(v) {
+  if (v === 'true')  return 1;
+  if (v === 'false') return 0;
+  return v;
+}
+
 function buildWhere(query) {
   const clauses = [];
   const params = [];
@@ -273,10 +281,10 @@ function buildWhere(query) {
           const list = rest.slice(4, -1).split(',').map(v => v.trim()).filter(Boolean);
           if (list.length) {
             clauses.push(`"${key}" NOT IN (${list.map(() => '?').join(',')})`);
-            params.push(...list);
+            params.push(...list.map(coerceBool));
           }
         }
-        else if (rest.startsWith('eq.'))  { clauses.push(`"${key}" != ?`); params.push(rest.slice(3)); }
+        else if (rest.startsWith('eq.'))  { clauses.push(`"${key}" != ?`); params.push(coerceBool(rest.slice(3))); }
         else if (rest.startsWith('ilike.') || rest.startsWith('like.')) {
           const p = rest.startsWith('ilike.') ? 6 : 5;
           clauses.push(`"${key}" NOT LIKE ?`);
@@ -285,12 +293,12 @@ function buildWhere(query) {
         continue;
       }
 
-      if (val.startsWith('eq.'))         { clauses.push(`"${key}" = ?`);    params.push(val.slice(3)); }
-      else if (val.startsWith('neq.'))   { clauses.push(`"${key}" != ?`);   params.push(val.slice(4)); }
-      else if (val.startsWith('gt.'))    { clauses.push(`"${key}" > ?`);    params.push(val.slice(3)); }
-      else if (val.startsWith('gte.'))   { clauses.push(`"${key}" >= ?`);   params.push(val.slice(4)); }
-      else if (val.startsWith('lt.'))    { clauses.push(`"${key}" < ?`);    params.push(val.slice(3)); }
-      else if (val.startsWith('lte.'))   { clauses.push(`"${key}" <= ?`);   params.push(val.slice(4)); }
+      if (val.startsWith('eq.'))         { clauses.push(`"${key}" = ?`);    params.push(coerceBool(val.slice(3))); }
+      else if (val.startsWith('neq.'))   { clauses.push(`"${key}" != ?`);   params.push(coerceBool(val.slice(4))); }
+      else if (val.startsWith('gt.'))    { clauses.push(`"${key}" > ?`);    params.push(coerceBool(val.slice(3))); }
+      else if (val.startsWith('gte.'))   { clauses.push(`"${key}" >= ?`);   params.push(coerceBool(val.slice(4))); }
+      else if (val.startsWith('lt.'))    { clauses.push(`"${key}" < ?`);    params.push(coerceBool(val.slice(3))); }
+      else if (val.startsWith('lte.'))   { clauses.push(`"${key}" <= ?`);   params.push(coerceBool(val.slice(4))); }
       else if (val.startsWith('ilike.') || val.startsWith('like.')) {
         const p = val.startsWith('ilike.') ? 6 : 5;
         clauses.push(`"${key}" LIKE ?`);
@@ -300,12 +308,12 @@ function buildWhere(query) {
         const list = val.slice(4, -1).split(',').map(v => v.trim()).filter(Boolean);
         if (list.length) {
           clauses.push(`"${key}" IN (${list.map(() => '?').join(',')})`);
-          params.push(...list);
+          params.push(...list.map(coerceBool));
         }
       }
       else if (val === 'is.null')        { clauses.push(`"${key}" IS NULL`); }
       else if (val === 'not.is.null')    { clauses.push(`"${key}" IS NOT NULL`); }
-      else                               { clauses.push(`"${key}" = ?`); params.push(val); }
+      else                               { clauses.push(`"${key}" = ?`); params.push(coerceBool(val)); }
     }
   }
 
