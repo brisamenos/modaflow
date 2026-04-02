@@ -539,26 +539,26 @@ async function openEstoqueModal(id, nome) {
   const linhas = (data||[]).map(g => `
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">
       <div style="flex:1">
-        <div style="font-weight:600;font-size:13px">\${g.tamanho} \${g.cor_descricao?'- '+g.cor_descricao:''}</div>
-        \${g.ean?\`<div style="font-size:11px;color:var(--text-2)">EAN: \${g.ean}</div>\`:\`\`}
+        <div style="font-weight:600;font-size:13px">${g.tamanho} ${g.cor_descricao?'- '+g.cor_descricao:''}</div>
+        ${g.ean?`<div style="font-size:11px;color:var(--text-2)">EAN: ${g.ean}</div>`:``}
       </div>
       <div style="width:100px">
-        <input type="number" id="ajuste-grade-\${g.id}" value="\${g.estoque||0}" class="form-control" style="width:100%;text-align:center">
+        <input type="number" id="ajuste-grade-${g.id}" value="${g.estoque||0}" class="form-control" style="width:100%;text-align:center">
       </div>
     </div>
   `).join('');
 
   openModal(`
     <div class="modal-header">
-      <h3>Ajustar Estoque: \${nome}</h3>
+      <h3>Ajustar Estoque: ${nome}</h3>
       <button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button>
     </div>
     <div class="modal-body" style="max-height:60vh;overflow-y:auto">
-      \${data&&data.length?linhas:'<div class="empty-state" style="padding:24px"><p>Nenhuma grade cadastrada para este produto.</p></div>'}
+      ${data&&data.length?linhas:'<div class="empty-state" style="padding:24px"><p>Nenhuma grade cadastrada para este produto.</p></div>'}
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModalDirect()">Cancelar</button>
-      \${data&&data.length?\`<button class="btn btn-primary" onclick="salvarEstoqueModal('\${id}')"><i data-lucide="save"></i>Salvar Ajuste</button>\`:\`\`}
+      ${data&&data.length?`<button class="btn btn-primary" onclick="salvarEstoqueModal('${id}')"><i data-lucide="save"></i>Salvar Ajuste</button>`:``}
     </div>
   `, 'modal-md');
 }
