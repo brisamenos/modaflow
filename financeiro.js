@@ -1820,3 +1820,71 @@ async function toggleStatusConta(id, checked) {
   await sb.from('contas_correntes').update({status: checked ? 1 : 0}).eq('id',id);
   toast('Status alterado!');
 }
+
+// ===== FLUXO DE CAIXA =====
+function renderFluxoCaixa() {
+  document.getElementById('topbar-actions').innerHTML = '';
+  document.getElementById('content').innerHTML = `
+    <div style="font-family:var(--font-sans);padding-bottom:50px;">
+      <h2 style="color:#2c3e50;font-weight:800;font-size:18px;margin-bottom:20px;">Fluxo de Caixa</h2>
+      
+      <div style="background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.02);border:1px solid #f1f2f6;overflow:hidden;margin-bottom:16px;">
+        <div style="padding:16px 20px;border-bottom:1px solid #f1f2f6;display:flex;align-items:center;gap:16px;">
+          <label style="font-weight:800;color:#2c3e50;font-size:13px;">Informe o Ano/Mês:</label>
+          <select style="padding:6px 12px;border:1px solid #e1e8ed;border-radius:6px;outline:none;background:#fff;color:var(--text);font-weight:600;font-size:13px;width:100px;">
+            <option>2026</option>
+          </select>
+          <select style="padding:6px 12px;border:1px solid #e1e8ed;border-radius:6px;outline:none;background:#fff;color:var(--text);font-weight:600;font-size:13px;width:120px;">
+            <option>Abril</option>
+          </select>
+        </div>
+
+        <div style="padding:16px 20px 0;">
+          <div style="display:flex;gap:8px;">
+            <button style="background:#fff;border:1px solid #e1e8ed;border-bottom:none;border-radius:8px 8px 0 0;padding:10px 24px;font-weight:800;color:#3498db;font-size:13px;box-shadow:0 -4px 6px -4px rgba(0,0,0,0.05);cursor:pointer;position:relative;top:1px;">Previsto</button>
+            <button style="background:transparent;border:none;padding:10px 24px;font-weight:700;color:#7f8c8d;font-size:13px;cursor:pointer;">Realizado</button>
+          </div>
+        </div>
+
+        <div style="border-top:1px solid #e1e8ed;overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead style="background:#fcfcfc;border-bottom:1px solid #f1f2f6;">
+              <tr>
+                <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Data</th>
+                <th style="padding:16px;text-align:center;color:#2ecc71;font-weight:800;">Fluxo Caixa Diário</th>
+                <th style="padding:16px;text-align:center;color:#2ecc71;font-weight:800;">Contas a Receber</th>
+                <th style="padding:16px;text-align:center;color:#2ecc71;font-weight:800;">Total Entrada</th>
+                <th style="padding:16px;text-align:center;color:#e67e22;font-weight:800;">Contas a Pagar</th>
+                <th style="padding:16px;text-align:center;color:#3498db;font-weight:800;">Total Geral</th>
+                <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Saldo</th>
+                <th style="padding:16px;text-align:center;color:#2c3e50;font-weight:800;">Ação</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="8" style="text-align:center;padding:60px 0;color:#bdc3c7;font-weight:600;">Sem registros de fluxo neste período</td></tr>
+            </tbody>
+            <tfoot style="background:#fcfcfc;border-top:2px solid #e1e8ed;">
+              <tr>
+                <td style="padding:12px 16px;text-align:right;color:#2c3e50;font-weight:800;">Totais:</td>
+                <td style="padding:12px 16px;text-align:center;color:#2ecc71;font-weight:800;">0,00</td>
+                <td style="padding:12px 16px;text-align:center;color:#2ecc71;font-weight:800;">0,00</td>
+                <td style="padding:12px 16px;text-align:center;color:#2ecc71;font-weight:800;">0,00</td>
+                <td style="padding:12px 16px;text-align:center;color:#e74c3c;font-weight:800;">0,00</td>
+                <td style="padding:12px 16px;text-align:center;color:#3498db;font-weight:800;">0,00</td>
+                <td style="padding:12px 16px;text-align:center;color:#3498db;font-weight:800;">0,00</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+      
+      <div style="display:flex;justify-content:flex-end;">
+        <button class="btn" style="background:#e1e8ed;color:#2c3e50;border-radius:20px;padding:6px 20px;font-weight:700;border:none;display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">
+          <i data-lucide="file-down" style="width:14px;height:14px;"></i> Exportar
+        </button>
+      </div>
+    </div>
+  `;
+  lucide.createIcons();
+}
