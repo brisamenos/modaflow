@@ -255,7 +255,8 @@ async function executeImportCSV() {
             const corDesc=(vr[iCorDesc]||'').toString().trim();
             const vCusto=parseCSVBrMoney(vr[iCusto]);
             const vVenda=parseCSVBrMoney(vr[iVenda]);
-            const vPayload={produto_id:prodId,tamanho:tam,estoque:qtde,ean:ean||null,cor_hexa:corHex||null,cor_descricao:corDesc||null,custo:vCusto||null,preco_venda:vVenda||null};
+            const vMargem=vVenda>0?((vVenda-vCusto)/vVenda*100):0;
+            const vPayload={produto_id:prodId,tamanho:tam,estoque:qtde,ean:ean||null,cor_hexa:corHex||null,cor_descricao:corDesc||null,custo:vCusto||null,preco_venda:vVenda||null,margem_lucro:parseFloat(vMargem.toFixed(2))||null};
             // match por produto_id + tamanho + ean para suportar múltiplas cores por tamanho
             const matchObj = ean
               ? {produto_id:prodId, tamanho:tam, ean}
