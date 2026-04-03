@@ -2037,16 +2037,13 @@ async function renderCadastrarProduto() {
               </div>
             </div>
           </div>
-          <!-- Linha 4: Descrição produto (SKU + Nome) -->
-          <div style="display:grid;grid-template-columns:160px 1fr;gap:12px">
-            <div class="form-group">
-              <label>SKU</label>
-              <input id="cp-sku" value="${prod.sku||''}" placeholder="SKU">
-            </div>
-            <div class="form-group">
-              <label style="color:#d97706">Descrição produto *</label>
-              <input id="cp-nome" value="${prod.nome||''}" placeholder="Nome/descrição do produto">
-            </div>
+          <!-- Linha 4: Descrição produto full-width -->
+          <div class="form-group">
+            <label style="color:#d97706">Descrição produto *</label>
+            <input id="cp-nome" value="${prod.nome||''}" placeholder="Nome/descrição do produto">
+          </div>
+          <div class="form-group" style="display:none">
+            <input id="cp-sku" value="${prod.sku||''}">
           </div>
         </div>
       </div>
@@ -2068,11 +2065,13 @@ async function renderCadastrarProduto() {
             </div>
             <div class="form-group">
               <label>Cor</label>
-              <div style="display:flex;gap:6px;align-items:center">
-                <input type="color" id="cp-cor-hex" value="#cccccc" style="width:36px;height:36px;border:1.5px solid var(--border-2);border-radius:6px;cursor:pointer;padding:2px">
-                <input id="cp-cor-desc" placeholder="Ex: Preto" list="cores-list" style="flex:1">
-                <datalist id="cores-list">${[...new Set((cores||[]).map(c=>c.cor_descricao).filter(Boolean))].map(c=>`<option value="${c}">`).join('')}</datalist>
-              </div>
+              <select id="cp-cor-select" onchange="corSelectChanged(this)" style="width:100%;padding:9px 10px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;background:white;font-family:inherit">
+                <option value="">Selecione uma cor</option>
+                ${[...new Set((cores||[]).map(c=>c.cor_descricao).filter(Boolean))].sort().map(c=>{const hex=(cores||[]).find(x=>x.cor_descricao===c)?.cor_hexa||'';return `<option value="${c}" data-hex="${hex}">${c}</option>`;}).join('')}
+                <option value="__nova__">+ Nova cor...</option>
+              </select>
+              <input id="cp-cor-desc" style="display:none;margin-top:6px;width:100%;padding:9px 10px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit" placeholder="Nome da cor">
+              <input type="hidden" id="cp-cor-hex" value="#cccccc">
             </div>
             <div class="form-group">
               <label>Valor custo</label>
@@ -2365,12 +2364,31 @@ function toggleOutrasAcoes() {
   if(m) { m.style.display = m.style.display==='none'?'block':'none'; lucide.createIcons(); }
 }
 
+function corSelectChanged(sel) {
+  const desc = document.getElementById('cp-cor-desc');
+  const hex  = document.getElementById('cp-cor-hex');
+  if(!desc || !hex) return;
+  if(sel.value === '__nova__') {
+    desc.style.display = '';
+    desc.value = '';
+    hex.value = '#cccccc';
+    desc.focus();
+  } else {
+    desc.style.display = 'none';
+    desc.value = sel.value;
+    const opt = sel.options[sel.selectedIndex];
+    hex.value = opt?.dataset?.hex || '#cccccc';
+  }
+}
+
 function limparFormVariacao() {
   ['cp-ean','cp-ean-lido','cp-cor-desc'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   ['cp-custo','cp-margem','cp-preco'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   const qtde=document.getElementById('cp-qtde');if(qtde)qtde.value='0';
   const tam=document.getElementById('cp-tamanho');if(tam)tam.value='';
   const cor=document.getElementById('cp-cor-hex');if(cor)cor.value='#cccccc';
+  const corSel=document.getElementById('cp-cor-select');if(corSel)corSel.value='';
+  const corInput=document.getElementById('cp-cor-desc');if(corInput)corInput.style.display='none';
   const m=document.getElementById('outras-acoes-menu');if(m)m.style.display='none';
 }
 
@@ -2381,6 +2399,13 @@ async function editarVariante(varId) {
   if(e('cp-ean'))       e('cp-ean').value = v.ean||'';
   if(e('cp-cor-hex'))   e('cp-cor-hex').value = v.cor_hexa||'#cccccc';
   if(e('cp-cor-desc'))  e('cp-cor-desc').value = v.cor_descricao||'';
+  // Sincronizar select de cor
+  const corSel = e('cp-cor-select');
+  if(corSel && v.cor_descricao) {
+    const opt = [...corSel.options].find(o=>o.value===v.cor_descricao);
+    if(opt) { corSel.value = v.cor_descricao; e('cp-cor-desc').style.display='none'; }
+    else { corSel.value='__nova__'; e('cp-cor-desc').style.display=''; e('cp-cor-desc').value=v.cor_descricao||''; }
+  }
   if(e('cp-custo'))     e('cp-custo').value = v.custo||'';
   if(e('cp-margem'))    e('cp-margem').value = v.margem_lucro||'';
   if(e('cp-preco'))     e('cp-preco').value = v.preco_venda||'';
@@ -2453,7 +2478,12 @@ async function salvarProdutoCompleto() {
   const ean      = document.getElementById('cp-ean')?.value||'';
   const eanLido  = document.getElementById('cp-ean-lido')?.value||'';
   const corHex   = document.getElementById('cp-cor-hex')?.value||null;
-  const corDesc  = document.getElementById('cp-cor-desc')?.value||null;
+  // cor pode vir do select (hidden input) ou do campo de nova cor
+  const corSelEl = document.getElementById('cp-cor-select');
+  const corDescEl = document.getElementById('cp-cor-desc');
+  const corDesc = corSelEl?.value === '__nova__'
+    ? (corDescEl?.value?.trim()||null)
+    : (corDescEl?.value?.trim()||null);
   const custo    = parseFloat(document.getElementById('cp-custo')?.value||0)||null;
   const margem   = parseFloat(document.getElementById('cp-margem')?.value||0)||null;
   const preco    = parseFloat(document.getElementById('cp-preco')?.value||0)||null;
