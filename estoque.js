@@ -371,7 +371,7 @@ async function carregarDadosVGE(tab) {
 
   // Buscar dados de produto_grades com joins
   const {data:grades} = await sb.from('produto_grades')
-    .select('estoque,custo,preco_venda,produto_id,produtos!inner(nome,ativo,custo,preco_venda,fornecedor_id,colecao_id,grade_id,categoria_id,colecoes(nome),grades(nome),categorias(nome))')
+    .select('estoque,custo,preco_venda,produto_id,produtos!inner(nome,ativo,custo,preco_custo,preco_venda,fornecedor_id,colecao_id,grade_id,categoria_id,colecoes(nome),grades(nome),categorias(nome))')
     .eq('produtos.ativo',true);
 
   if(!grades||!grades.length) {
@@ -406,8 +406,8 @@ async function carregarDadosVGE(tab) {
     if(!map[key]) map[key] = { label:labelFn(g), cnpj:cnpjFn(g), qtde:0, custo:0, venda:0 };
     const est = g.estoque||0;
     const custUnit = _vgeCusto==='gerencial'
-      ? parseFloat(g.custo||g.produtos?.custo||0)
-      : parseFloat(g.custo||g.produtos?.custo||0) * 1.15; // operacional +15%
+      ? parseFloat(g.custo||g.produtos?.custo||g.produtos?.preco_custo||0)
+      : parseFloat(g.custo||g.produtos?.custo||g.produtos?.preco_custo||0) * 1.15; // operacional +15%
     const vendUnit = parseFloat(g.preco_venda||g.produtos?.preco_venda||0);
     map[key].qtde  += est;
     map[key].custo += est * custUnit;
