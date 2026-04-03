@@ -1749,139 +1749,128 @@ async function carregarTabelaProdutos(filtros) {
   if(!wrap) return;
   wrap.innerHTML = '<div class="loading" style="padding:32px;text-align:center">Carregando...</div>';
 
-  // Buscar variantes (produto_grades) com join de produtos
-  let q = sb.from('produto_grades')
-    .select('id,tamanho,ean,cor_hexa,cor_descricao,estoque,custo,preco_venda,margem_lucro,produto_id,produtos!inner(id,nome,sku,codigo,marca,categoria_id,fornecedor_id,grade_id,genero,ativo,categorias(nome),grades(id,nome))')
-    .eq('produtos.ativo', true)
-    .order('produto_id');
+  filtros = filtros || {};
 
-  // Filtros da barra de busca rápida
-  if(filtros.desc)  q = q.ilike('produtos.nome', `%${filtros.desc}%`);
-  if(filtros.ean)   q = q.ilike('ean', `%${filtros.ean}%`);
-  if(filtros.cod)   q = q.ilike('produtos.codigo', `%${filtros.cod}%`);
-  if(filtros.cat)   q = q.eq('produtos.categoria_id', filtros.cat);
-  if(filtros.forn)  q = q.eq('produtos.fornecedor_id', filtros.forn);
-  if(filtros.gen)   q = q.eq('produtos.genero', filtros.gen);
-  if(filtros.grade) q = q.eq('produtos.grade_id', filtros.grade);
-  // Filtros avançados (modal)
-  if(filtros.marca)   q = q.ilike('produtos.marca', `%${filtros.marca}%`);
-  if(filtros.colecao) q = q.eq('produtos.colecao_id', filtros.colecao);
-  if(filtros.cor)     q = q.ilike('cor_descricao', `%${filtros.cor}%`);
-  if(filtros.estoqueMin && parseInt(filtros.estoqueMin) > 0)
-    q = q.gte('estoque', parseInt(filtros.estoqueMin));
+  try {
+    // 1. Buscar produtos ativos com filtros
+    let qProd = sb.from('produtos')
+      .select('id,nome,sku,codigo,marca,genero,ativo,preco_venda,fornecedor_id,categoria_id,colecao_id,grade_id')
+      .eq('ativo', true)
+      .order('nome');
 
+    if(filtros.desc)    qProd = qProd.ilike('nome',    `%${filtros.desc}%`);
+    if(filtros.cod)     qProd = qProd.ilike('codigo',  `%${filtros.cod}%`);
+    if(filtros.cat)     qProd = qProd.eq('categoria_id', filtros.cat);
+    if(filtros.forn)    qProd = qProd.eq('fornecedor_id', filtros.forn);
+    if(filtros.gen)     qProd = qProd.eq('genero', filtros.gen);
+    if(filtros.grade)   qProd = qProd.eq('grade_id', filtros.grade);
+    if(filtros.marca)   qProd = qProd.ilike('marca', `%${filtros.marca}%`);
+    if(filtros.colecao) qProd = qProd.eq('colecao_id', filtros.colecao);
 
-  const {data, error} = await q;
+    const {data: produtosData, error: errProd} = await qProd;
+    if(errProd) throw errProd;
 
-  if(error) {
-    // Fallback: mostrar produtos sem variantes também
-    const {data:prods} = await sb.from('produtos').select('*,categorias(nome),grades(nome)').eq('ativo',true).order('nome');
-    renderTabelaProdutosFallback(prods||[]);
-    return;
-  }
-
-  // Agrupar variantes por produto
-  const prodMap = {};
-  (data||[]).forEach(v => {
-    if(!v.produtos) return; // skip se join retornou null
-    const pid = v.produto_id;
-    if(!prodMap[pid]) prodMap[pid] = { prod: v.produtos, variantes: [] };
-    prodMap[pid].variantes.push(v);
-  });
-
-  // Buscar produtos sem variantes (evita .not('id','in','()') com lista vazia)
-  const existingIds = Object.keys(prodMap);
-  let qSemVar = sb.from('produtos').select('*,categorias(nome),grades(nome)').eq('ativo',true).order('nome');
-  if(existingIds.length > 0) {
-    qSemVar = qSemVar.not('id','in',`(${existingIds.map(id=>`'${id}'`).join(',')})`);
-  }
-  const {data:prodsSemVar} = await qSemVar;
-
-  (prodsSemVar||[]).forEach(p => {
-    if(!p || !p.id) return;
-    prodMap[p.id] = prodMap[p.id] || { prod: p, variantes: [] };
-  });
-
-  const entries = Object.values(prodMap);
-
-  if(!entries.length) {
-    wrap.innerHTML = '<div class="empty-state" style="padding:48px"><i data-lucide="package"></i><h3>Nenhum produto encontrado</h3></div>';
-    lucide.createIcons(); return;
-  }
-
-  let rows = '';
-  entries.forEach(({prod, variantes}) => {
-    if(!prod || !prod.id) return; // guard contra prod nulo
-    const numVar = Math.max(variantes.length, 1);
-    if(variantes.length === 0) {
-      // Produto sem variantes
-      rows += `<tr>
-        <td style="padding:8px 12px"><input type="checkbox" data-pid="${prod.id}"></td>
-        <td style="padding:8px 10px;font-size:12px;color:var(--text-2)" rowspan="1">${prod.sku||'—'}</td>
-        <td style="padding:8px 10px;font-size:12px" rowspan="1">${prod.codigo||'—'}</td>
-        <td style="padding:8px 10px;font-size:13px;font-weight:600" rowspan="1">${prod.nome}</td>
-        <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">—</td>
-        <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">—</td>
-        <td style="padding:8px 10px">—</td>
-        <td style="padding:8px 10px;font-size:13px;font-weight:600">—</td>
-        <td style="padding:8px 10px;font-size:12px;text-align:center">0</td>
-        <td style="padding:8px 10px">
-          <div style="display:flex;gap:4px">
-            <button title="Editar produto" onclick="navigate('cadastrar-produto');_editProdId='${prod.id}'" style="width:28px;height:28px;border:1px solid var(--border-2);border-radius:4px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2)" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-2)'"><i data-lucide="square-pen" style="width:13px;height:13px"></i></button>
-            <button title="Excluir produto" onclick="deleteProduto('${prod.id}')" style="width:28px;height:28px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--red)"><i data-lucide="trash-2" style="width:13px;height:13px"></i></button>
-          </div>
-        </td>
-      </tr>`;
-    } else {
-      variantes.forEach((v, vi) => {
-        const corDot = v.cor_hexa
-          ? `<span style="display:inline-block;width:13px;height:13px;border-radius:50%;background:${v.cor_hexa};border:1px solid rgba(0,0,0,.15);vertical-align:-2px;margin-right:5px"></span>`
-          : '';
-        const corLabel = v.cor_descricao||'—';
-        const isFirst = vi === 0;
-        const rowBg = vi % 2 === 0 ? '' : 'background:#f8fafc';
-        rows += `<tr style="${rowBg}">
-          ${isFirst ? `<td style="padding:8px 12px;vertical-align:top" rowspan="${numVar}"><input type="checkbox" data-pid="${prod.id}"></td>
-          <td style="padding:8px 10px;font-size:12px;color:var(--text-2);vertical-align:top" rowspan="${numVar}">${prod.sku||'—'}</td>
-          <td style="padding:8px 10px;font-size:12px;vertical-align:top" rowspan="${numVar}">${prod.codigo||'—'}</td>
-          <td style="padding:8px 10px;font-size:13px;font-weight:600;vertical-align:top" rowspan="${numVar}">${prod.nome}</td>` : ''}
-          <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">${v.ean||'—'}</td>
-          <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">${v.tamanho||'—'}</td>
-          <td style="padding:8px 10px;font-size:12px;white-space:nowrap">${corDot}${corLabel}</td>
-          <td style="padding:8px 10px;font-size:13px;font-weight:600">${v.preco_venda?fmt(v.preco_venda):(prod.preco_venda?fmt(prod.preco_venda):'—')}</td>
-          <td style="padding:8px 10px;font-size:12px;text-align:center">${v.estoque??0}</td>
-          ${isFirst ? `<td style="padding:8px 10px;vertical-align:top" rowspan="${numVar}">
-            <div style="display:flex;gap:4px">
-              <button title="Editar produto" onclick="_editProdId='${prod.id}';navigate('cadastrar-produto')" style="width:28px;height:28px;border:1px solid var(--border-2);border-radius:4px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2)" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-2)'"><i data-lucide="square-pen" style="width:13px;height:13px"></i></button>
-              <button title="Excluir produto" onclick="deleteProduto('${prod.id}')" style="width:28px;height:28px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--red)"><i data-lucide="trash-2" style="width:13px;height:13px"></i></button>
-            </div>
-          </td>` : ''}
-        </tr>`;
-      });
+    const todosProdutos = produtosData || [];
+    if(!todosProdutos.length) {
+      wrap.innerHTML = '<div class="empty-state" style="padding:48px"><i data-lucide="package"></i><h3>Nenhum produto encontrado</h3></div>';
+      lucide.createIcons(); return;
     }
-  });
 
-  wrap.innerHTML = `
-    <div style="padding:8px 16px;background:#f8fafc;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-2)">
-      <strong>${entries.length}</strong> produto(s) encontrado(s)
-    </div>
-    <div class="table-wrap"><table class="data-table" style="font-size:13px">
-      <thead><tr>
-        <th style="width:36px"><input type="checkbox" id="chk-all" onchange="document.querySelectorAll('[data-pid]').forEach(c=>c.checked=this.checked)"></th>
-        <th style="min-width:80px">SKU</th>
-        <th style="min-width:90px">Código</th>
-        <th style="min-width:180px">Descrição</th>
-        <th style="min-width:130px">Cód. barras</th>
-        <th style="min-width:60px">Grade</th>
-        <th style="min-width:110px">Cor</th>
-        <th style="min-width:100px">Vlr Venda UN</th>
-        <th style="min-width:60px;text-align:center">Qtde</th>
-        <th style="min-width:70px">Ação</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table></div>`;
-  lucide.createIcons();
+    const prodIds = todosProdutos.map(p => p.id);
+
+    // 2. Buscar variantes para esses produtos
+    let qGrades = sb.from('produto_grades')
+      .select('id,produto_id,tamanho,ean,cor_hexa,cor_descricao,estoque,custo,preco_venda,margem_lucro')
+      .in('produto_id', prodIds)
+      .order('produto_id');
+
+    if(filtros.ean) qGrades = qGrades.ilike('ean', `%${filtros.ean}%`);
+    if(filtros.cor) qGrades = qGrades.ilike('cor_descricao', `%${filtros.cor}%`);
+    if(filtros.estoqueMin && parseInt(filtros.estoqueMin) > 0)
+      qGrades = qGrades.gte('estoque', parseInt(filtros.estoqueMin));
+
+    const {data: gradesData} = await qGrades;
+
+    // 3. Montar prodMap juntando produtos + variantes
+    const prodMap = {};
+    todosProdutos.forEach(p => { prodMap[p.id] = { prod: p, variantes: [] }; });
+    (gradesData || []).forEach(v => {
+      if(prodMap[v.produto_id]) prodMap[v.produto_id].variantes.push(v);
+    });
+
+    // Se filtrou por EAN/cor, manter só produtos que têm variantes com match
+    let entries = Object.values(prodMap);
+    if(filtros.ean || filtros.cor || filtros.estoqueMin) {
+      entries = entries.filter(e => e.variantes.length > 0);
+    }
+
+    if(!entries.length) {
+      wrap.innerHTML = '<div class="empty-state" style="padding:48px"><i data-lucide="package"></i><h3>Nenhum produto encontrado</h3></div>';
+      lucide.createIcons(); return;
+    }
+
+    // 4. Renderizar tabela
+    let rows = '';
+    entries.forEach(({prod, variantes}) => {
+      const numVar = Math.max(variantes.length, 1);
+      const btnEdit = `<button title="Editar" onclick="_editProdId='${prod.id}';navigate('cadastrar-produto')" style="width:28px;height:28px;border:1px solid var(--border-2);border-radius:4px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2)" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-2)'"><i data-lucide="square-pen" style="width:13px;height:13px"></i></button>`;
+      const btnDel  = `<button title="Excluir" onclick="deleteProduto('${prod.id}')" style="width:28px;height:28px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--red)"><i data-lucide="trash-2" style="width:13px;height:13px"></i></button>`;
+
+      if(variantes.length === 0) {
+        rows += `<tr>
+          <td style="padding:8px 10px"><input type="checkbox" data-pid="${prod.id}"></td>
+          <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">${prod.sku||'—'}</td>
+          <td style="padding:8px 10px;font-size:12px">${prod.codigo||'—'}</td>
+          <td style="padding:8px 10px;font-size:13px;font-weight:600">${prod.nome||'—'}</td>
+          <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">—</td>
+          <td style="padding:8px 10px;font-size:12px;color:var(--text-2)">—</td>
+          <td style="padding:8px 10px">—</td>
+          <td style="padding:8px 10px;font-size:13px;font-weight:600">${prod.preco_venda?fmt(prod.preco_venda):'—'}</td>
+          <td style="padding:8px 10px;text-align:center">0</td>
+          <td style="padding:8px 10px"><div style="display:flex;gap:4px">${btnEdit}${btnDel}</div></td>
+        </tr>`;
+      } else {
+        variantes.forEach((v, vi) => {
+          const corDot = v.cor_hexa
+            ? `<span style="display:inline-block;width:13px;height:13px;border-radius:50%;background:${v.cor_hexa};border:1px solid rgba(0,0,0,.15);vertical-align:-2px;margin-right:4px"></span>`
+            : '';
+          rows += `<tr style="${vi%2?'background:#f8fafc':''}">
+            ${vi===0 ? `<td style="padding:8px 10px;vertical-align:top" rowspan="${numVar}"><input type="checkbox" data-pid="${prod.id}"></td>
+            <td style="padding:8px 10px;font-size:12px;color:var(--text-2);vertical-align:top" rowspan="${numVar}">${prod.sku||'—'}</td>
+            <td style="padding:8px 10px;font-size:12px;vertical-align:top" rowspan="${numVar}">${prod.codigo||'—'}</td>
+            <td style="padding:8px 10px;font-size:13px;font-weight:600;vertical-align:top" rowspan="${numVar}">${prod.nome||'—'}</td>` : ''}
+            <td style="padding:8px 10px;font-size:12px">${v.ean||'—'}</td>
+            <td style="padding:8px 10px;font-size:12px">${v.tamanho||'—'}</td>
+            <td style="padding:8px 10px;font-size:12px;white-space:nowrap">${corDot}${v.cor_descricao||'—'}</td>
+            <td style="padding:8px 10px;font-size:13px;font-weight:600">${v.preco_venda?fmt(v.preco_venda):(prod.preco_venda?fmt(prod.preco_venda):'—')}</td>
+            <td style="padding:8px 10px;text-align:center">${v.estoque??0}</td>
+            ${vi===0 ? `<td style="padding:8px 10px;vertical-align:top" rowspan="${numVar}"><div style="display:flex;gap:4px">${btnEdit}${btnDel}</div></td>` : ''}
+          </tr>`;
+        });
+      }
+    });
+
+    wrap.innerHTML = `
+      <div style="padding:8px 16px;background:#f8fafc;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-2)">
+        <strong>${entries.length}</strong> produto(s) encontrado(s)
+      </div>
+      <div class="table-wrap"><table class="data-table" style="font-size:13px">
+        <thead><tr>
+          <th style="width:36px"><input type="checkbox" id="chk-all" onchange="document.querySelectorAll('[data-pid]').forEach(c=>c.checked=this.checked)"></th>
+          <th>SKU</th><th>Código</th><th>Descrição</th>
+          <th>Cód. barras</th><th>Grade</th><th>Cor</th>
+          <th>Vlr Venda UN</th><th style="text-align:center">Qtde</th><th>Ação</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>`;
+    lucide.createIcons();
+
+  } catch(e) {
+    console.error('Erro ao carregar produtos:', e);
+    wrap.innerHTML = `<div style="padding:24px;color:var(--red);text-align:center">Erro ao carregar produtos: ${e.message||e}</div>`;
+  }
 }
+
 
 function renderTabelaProdutosFallback(prods) {
   const wrap = document.getElementById('produtos-table-wrap');
