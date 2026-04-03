@@ -1915,13 +1915,14 @@ async function renderCadastrarProduto() {
   const prodId = _editProdId || null;
   _editProdId = null;
 
-  const [{data:cols},{data:forns},{data:marcas},{data:cats},{data:grades},{data:cores}] = await Promise.all([
+  const [{data:cols},{data:forns},{data:marcas},{data:cats},{data:gradesDB},{data:cores},{data:tamanhosBD}] = await Promise.all([
     sb.from('colecoes').select('id,nome').eq('ativo',true).order('nome'),
     sb.from('fornecedores').select('id,razao_social').eq('ativo',true).order('razao_social'),
     sb.from('produtos').select('marca').eq('ativo',true).not('marca','is',null),
     sb.from('categorias').select('id,nome').eq('ativo',true).order('nome'),
     sb.from('grades').select('id,nome,valores').eq('ativo',true).order('nome'),
-    sb.from('produto_grades').select('cor_hexa,cor_descricao').not('cor_descricao','is',null)
+    sb.from('produto_grades').select('cor_hexa,cor_descricao').not('cor_descricao','is',null),
+    sb.from('produto_grades').select('tamanho').not('tamanho','is',null)
   ]);
 
   let prod = {};
@@ -1942,6 +1943,21 @@ async function renderCadastrarProduto() {
     (arr||[]).map(r=>`<option value="${r[valKey]}" ${selected===r[valKey]?'selected':''}>${r[labelKey]}</option>`).join('');
 
   const marcasUnicas = [...new Set((marcas||[]).map(m=>m.marca).filter(Boolean))];
+
+  // Montar lista unificada de tamanhos: da tabela grades + de produto_grades reais
+  const tamSet = new Set();
+  // 1. Tamanhos dos grupos de grade cadastrados
+  const grades = gradesDB || [];
+  grades.forEach(g => { (g.valores||[]).forEach(v => tamSet.add(v)); });
+  // 2. Tamanhos reais importados via CSV
+  (tamanhosBD||[]).forEach(r => { if(r.tamanho) tamSet.add(r.tamanho.trim()); });
+  // Ordenar: números primeiro, depois letras
+  const tamanhos = [...tamSet].sort((a,b) => {
+    const na = parseFloat(a), nb = parseFloat(b);
+    if(!isNaN(na)&&!isNaN(nb)) return na-nb;
+    if(!isNaN(na)) return -1; if(!isNaN(nb)) return 1;
+    return a.localeCompare(b);
+  });
 
   // Cores únicas para o select
   const coresMap = {};
@@ -2067,7 +2083,7 @@ async function renderCadastrarProduto() {
               <label style="${labelOrange}">Grade</label>
               <select id="cp-grade" onchange="atualizarGradeOpcoes()" style="${selectStyle}">
                 <option value="">Selecione</option>
-                ${(grades||[]).map(g=>`<option value="${g.id}" data-vals='${JSON.stringify(g.valores||[])}'>${g.nome}</option>`).join('')}
+                ${tamanhos.map(t=>`<option value="${t}">${t}</option>`).join('')}
               </select>
             </div>
             <div>
@@ -2106,7 +2122,10 @@ async function renderCadastrarProduto() {
             </div>
             <div>
               <label style="${labelNormal}">Tamanho / Grade</label>
-              <select id="cp-tamanho" style="${selectStyle}"><option value="">—</option></select>
+              <select id="cp-tamanho" style="${selectStyle}">
+                <option value="">—</option>
+                ${tamanhos.map(t=>`<option value="${t}">${t}</option>`).join('')}
+              </select>
             </div>
             <div>
               <label style="${labelOrange}">Qtde</label>
@@ -2353,12 +2372,11 @@ async function imprimirEtiquetaVariante(varId, ean, tamanho, cor, preco) {
 }
 
 function atualizarGradeOpcoes() {
-  const sel = document.getElementById('cp-grade');
-  const opt = sel?.options[sel.selectedIndex];
-  const vals = opt ? JSON.parse(opt.getAttribute('data-vals')||'[]') : [];
-  const tamSel = document.getElementById('cp-tamanho');
-  if(!tamSel) return;
-  tamSel.innerHTML = `<option value="">—</option>` + vals.map(v=>`<option value="${v}">${v}</option>`).join('');
+  const grade = document.getElementById('cp-grade');
+  const tamanho = document.getElementById('cp-tamanho');
+  if(!grade || !tamanho) return;
+  // Sincronizar: ao selecionar Grade, Tamanho/Grade fica igual
+  tamanho.value = grade.value;
 }
 
 function calcMargemVariacao() {
@@ -2458,7 +2476,8 @@ async function editarVariante(varId) {
   if(e('cp-margem'))    e('cp-margem').value = v.margem_lucro||'';
   if(e('cp-preco'))     e('cp-preco').value = v.preco_venda||'';
   if(e('cp-qtde'))      e('cp-qtde').value = v.estoque||0;
-  if(e('cp-tamanho'))   e('cp-tamanho').value = v.tamanho||'';
+  if(e('cp-tamanho')) e('cp-tamanho').value = v.tamanho||'';
+  if(e('cp-grade'))   e('cp-grade').value   = v.tamanho||'';
   _editVarianteId = varId;
   window.scrollTo({top:0, behavior:'smooth'});
   toast('Variação carregada para edição','info');
