@@ -1778,9 +1778,9 @@ async function carregarTabelaProdutos(filtros) {
 
     const prodIds = todosProdutos.map(p => p.id);
 
-    // 2. Buscar variantes para esses produtos (só campos que existem em produto_grades)
+    // 2. Buscar variantes para esses produtos
     let qGrades = sb.from('produto_grades')
-      .select('id,produto_id,tamanho,ean,cor_hexa,cor_descricao,estoque')
+      .select('id,produto_id,tamanho,ean,cor_hexa,cor_descricao,estoque,custo,preco_venda,margem_lucro')
       .in('produto_id', prodIds)
       .order('produto_id');
 
@@ -1842,7 +1842,7 @@ async function carregarTabelaProdutos(filtros) {
             <td style="padding:8px 10px;font-size:12px">${v.ean||'—'}</td>
             <td style="padding:8px 10px;font-size:12px">${v.tamanho||'—'}</td>
             <td style="padding:8px 10px;font-size:12px;white-space:nowrap">${corDot}${v.cor_descricao||'—'}</td>
-            <td style="padding:8px 10px;font-size:13px;font-weight:600">${prod.preco_venda?fmt(prod.preco_venda):'—'}</td>
+            <td style="padding:8px 10px;font-size:13px;font-weight:600">${(v.preco_venda||prod.preco_venda)?fmt(v.preco_venda||prod.preco_venda):'—'}</td>
             <td style="padding:8px 10px;text-align:center">${v.estoque??0}</td>
             ${vi===0 ? `<td style="padding:8px 10px;vertical-align:top" rowspan="${numVar}"><div style="display:flex;gap:4px">${btnEdit}${btnDel}</div></td>` : ''}
           </tr>`;
@@ -2509,6 +2509,11 @@ async function salvarProdutoCompleto() {
     ncm:       document.getElementById('cp-ncm')?.value||null,
     ncm_descricao: document.getElementById('cp-ncm-desc')?.value||null
   };
+
+  // Se preço foi informado, atualiza também em produtos
+  const precoVendaInput = parseFloat(document.getElementById('cp-preco')?.value||0);
+  const custoInput = parseFloat(document.getElementById('cp-custo')?.value||0);
+  if(precoVendaInput > 0) { payload.preco_venda = precoVendaInput; payload.custo = custoInput; payload.preco_custo = custoInput; }
 
   let prodId = _cadProdId;
   if(prodId) {
