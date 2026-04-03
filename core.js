@@ -82,7 +82,7 @@ function initApp() {
 // ===== NAVIGATION =====
 const pageTitles = {
   dashboard:'Dashboard',pdv:'PDV — Registrar Venda',bag:'BAG — Pré-venda',
-  clientes:'Cadastrar Clientes','cadastrar-cliente':'Cadastrar Cliente','historico-clientes':'Histórico de Clientes','painel-clientes':'Painel de Clientes','como-conheceu':'Como nos Conheceu','importar-clientes':'Importar Clientes',produtos:'Produtos',categorias:'Categorias',colecoes:'Coleções',
+  clientes:'Cadastrar Clientes','cadastrar-cliente':'Cadastrar Cliente','historico-clientes':'Histórico de Clientes','painel-clientes':'Painel de Clientes','como-conheceu':'Como nos Conheceu','importar-clientes':'Importar Clientes',produtos:'Cadastro Produto',categorias:'Categorias',colecoes:'Coleções',
   grades:'Grades',vendedores:'Vendedores',fornecedores:'Fornecedores',
   'relacao-vendas':'Relação de Vendas','consulta-vendas':'Consulta Vendas',
   crediario:'Gestão Crediário','contas-receber':'Contas a Receber',
