@@ -1783,19 +1783,22 @@ async function carregarTabelaProdutos(filtros) {
   // Agrupar variantes por produto
   const prodMap = {};
   (data||[]).forEach(v => {
+    if(!v.produtos) return; // skip se join retornou null
     const pid = v.produto_id;
     if(!prodMap[pid]) prodMap[pid] = { prod: v.produtos, variantes: [] };
     prodMap[pid].variantes.push(v);
   });
 
-  // Buscar produtos sem variantes
-  const {data:prodsSemVar} = await sb.from('produtos')
-    .select('*,categorias(nome),grades(nome)')
-    .eq('ativo',true)
-    .not('id','in',`(${Object.keys(prodMap).map(id=>`'${id}'`).join(',')})`)
-    .order('nome');
+  // Buscar produtos sem variantes (evita .not('id','in','()') com lista vazia)
+  const existingIds = Object.keys(prodMap);
+  let qSemVar = sb.from('produtos').select('*,categorias(nome),grades(nome)').eq('ativo',true).order('nome');
+  if(existingIds.length > 0) {
+    qSemVar = qSemVar.not('id','in',`(${existingIds.map(id=>`'${id}'`).join(',')})`);
+  }
+  const {data:prodsSemVar} = await qSemVar;
 
   (prodsSemVar||[]).forEach(p => {
+    if(!p || !p.id) return;
     prodMap[p.id] = prodMap[p.id] || { prod: p, variantes: [] };
   });
 
@@ -1808,6 +1811,7 @@ async function carregarTabelaProdutos(filtros) {
 
   let rows = '';
   entries.forEach(({prod, variantes}) => {
+    if(!prod || !prod.id) return; // guard contra prod nulo
     const numVar = Math.max(variantes.length, 1);
     if(variantes.length === 0) {
       // Produto sem variantes
