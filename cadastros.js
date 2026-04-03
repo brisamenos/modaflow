@@ -1950,64 +1950,77 @@ async function renderCadastrarProduto() {
 
   const marcasUnicas = [...new Set((marcas||[]).map(m=>m.marca).filter(Boolean))];
 
-  // Montar HTML com sections igual ao Phibo
-  const html = `
-  <div style="display:flex;gap:16px;align-items:flex-start">
+  // Cores únicas para o select
+  const coresMap = {};
+  (cores||[]).forEach(c=>{ if(c.cor_descricao && !coresMap[c.cor_descricao]) coresMap[c.cor_descricao]=c.cor_hexa||''; });
+  const coresOpts = Object.entries(coresMap).sort(([a],[b])=>a.localeCompare(b))
+    .map(([desc,hex])=>`<option value="${desc}" data-hex="${hex}">${desc}</option>`).join('');
 
-    <!-- LEGENDA LATERAL -->
-    <div style="width:180px;flex-shrink:0;background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;position:sticky;top:0">
-      <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Status da variação</div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <span style="width:16px;height:16px;border-radius:3px;background:#86efac;flex-shrink:0"></span>
-        <span style="font-size:12px">Em cadastro</span>
+  const inputStyle = 'width:100%;padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:6px;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box';
+  const selectStyle = inputStyle + ';background:white';
+  const labelOrange = 'display:block;font-size:11px;font-weight:700;color:#b45309;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px';
+  const labelNormal = 'display:block;font-size:11px;font-weight:700;color:#374151;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px';
+
+  const html = `
+  <div style="display:flex;gap:14px;align-items:flex-start">
+
+    <!-- LEGENDA LATERAL (idêntica ao Phibo) -->
+    <div style="width:190px;flex-shrink:0;background:white;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px">
+      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:14px;line-height:1.4">As cores informam a situação da variação do produto</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="width:18px;height:18px;border-radius:3px;background:#4ade80;flex-shrink:0;border:1px solid #16a34a"></span>
+        <span style="font-size:12px;color:#374151">Em cadastro</span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <span style="width:16px;height:16px;border-radius:3px;background:#93c5fd;flex-shrink:0"></span>
-        <span style="font-size:12px">Em edição</span>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="width:18px;height:18px;border-radius:3px;background:#93c5fd;flex-shrink:0;border:1px solid #2563eb"></span>
+        <span style="font-size:12px;color:#374151">Em edição</span>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="width:16px;height:16px;border-radius:3px;background:#fb923c;flex-shrink:0"></span>
-        <span style="font-size:12px">última variação cadastrada</span>
+        <span style="width:18px;height:18px;border-radius:3px;background:#fb923c;flex-shrink:0;border:1px solid #ea580c"></span>
+        <span style="font-size:12px;color:#374151">Última variação cadastrada</span>
       </div>
     </div>
 
     <!-- FORMULÁRIO PRINCIPAL -->
-    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:14px">
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:12px">
 
-      <!-- DADOS GERAIS -->
-      <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
-        <div style="background:#e8f5e9;padding:11px 20px;border-bottom:1px solid #c8e6c9">
+      <!-- DADOS GERAIS PRODUTO -->
+      <div style="background:white;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+        <div style="background:#e8f5e9;padding:10px 20px;border-bottom:1px solid #c8e6c9;display:flex;justify-content:space-between;align-items:center">
           <span style="font-size:13px;font-weight:700;color:#2e7d32">Dados gerais produto</span>
+          ${prodId ? `<span style="font-size:12px;color:#6b7280">SKU: ${prod.sku||prodId}</span>` : ''}
         </div>
-        <div style="padding:18px 20px;display:flex;flex-direction:column;gap:14px">
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px">
+
           <!-- Linha 1: Coleção + Fornecedor + Marca -->
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-            <div class="form-group">
-              <label style="color:#d97706">Informar a coleção</label>
-              <select id="cp-colecao"><option value="">Selecione</option>${opts(cols,'id','nome',prod.colecao_id)}</select>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+            <div>
+              <label style="${labelOrange}">Informar a coleção</label>
+              <select id="cp-colecao" style="${selectStyle}"><option value="">Selecione</option>${opts(cols,'id','nome',prod.colecao_id)}</select>
             </div>
-            <div class="form-group">
-              <label style="color:#d97706">Fornecedor</label>
-              <select id="cp-fornecedor"><option value="">Selecione</option>${opts(forns,'id','razao_social',prod.fornecedor_id)}</select>
+            <div>
+              <label style="${labelOrange}">Fornecedor</label>
+              <select id="cp-fornecedor" style="${selectStyle}"><option value="">Selecione</option>${opts(forns,'id','razao_social',prod.fornecedor_id)}</select>
             </div>
-            <div class="form-group">
-              <label>Marca</label>
-              <input id="cp-marca" value="${prod.marca||''}" placeholder="Digite ou selecione" list="marcas-list">
+            <div>
+              <label style="${labelNormal}">Marca</label>
+              <input id="cp-marca" value="${prod.marca||''}" placeholder="Selecione" list="marcas-list" style="${inputStyle}">
               <datalist id="marcas-list">${marcasUnicas.map(m=>`<option value="${m}">`).join('')}</datalist>
             </div>
           </div>
-          <!-- Linha 2: Código Ref + Gênero + Categoria -->
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-            <div class="form-group">
-              <label style="color:#d97706">Código produto (Referência)</label>
+
+          <!-- Linha 2: Código Referência + Gênero + Categoria -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+            <div>
+              <label style="${labelOrange}">Código produto (Referência)</label>
               <div style="display:flex;gap:0">
-                <input id="cp-codigo" value="${prod.codigo||''}" style="flex:1;border-radius:var(--radius) 0 0 var(--radius)">
-                <button onclick="gerarCodProd()" style="padding:8px 10px;background:#2563eb;color:white;border-radius:0 var(--radius) var(--radius) 0;font-size:11px;font-weight:600;white-space:nowrap;font-family:inherit">Gerar Cód. Prod</button>
+                <input id="cp-codigo" value="${prod.codigo||''}" style="${inputStyle};border-radius:6px 0 0 6px">
+                <button onclick="gerarCodProd()" style="padding:0 10px;background:#2563eb;color:white;border:none;border-radius:0 6px 6px 0;font-size:11px;font-weight:600;white-space:nowrap;cursor:pointer;font-family:inherit">Gerar Cód. Prod</button>
               </div>
             </div>
-            <div class="form-group">
-              <label>Gênero</label>
-              <select id="cp-genero">
+            <div>
+              <label style="${labelNormal}">Gênero</label>
+              <select id="cp-genero" style="${selectStyle}">
                 <option value="">Selecione</option>
                 <option value="F" ${prod.genero==='F'?'selected':''}>Feminino</option>
                 <option value="M" ${prod.genero==='M'?'selected':''}>Masculino</option>
@@ -2015,133 +2028,138 @@ async function renderCadastrarProduto() {
                 <option value="J" ${prod.genero==='J'?'selected':''}>Juvenil/Infantil</option>
               </select>
             </div>
-            <div class="form-group">
-              <label>Categoria</label>
-              <select id="cp-categoria"><option value="">Selecione</option>${opts(cats,'id','nome',prod.categoria_id)}</select>
+            <div>
+              <label style="${labelNormal}">Categoria</label>
+              <select id="cp-categoria" style="${selectStyle}"><option value="">Selecione</option>${opts(cats,'id','nome',prod.categoria_id)}</select>
             </div>
           </div>
+
           <!-- Linha 3: NCM + Descrição NCM -->
-          <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px">
-            <div class="form-group">
-              <label style="color:#d97706">Código NCM</label>
+          <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px">
+            <div>
+              <label style="${labelOrange}">Código NCM</label>
               <div style="display:flex;gap:0">
-                <input id="cp-ncm" value="${prod.ncm||''}" placeholder="00000000" style="flex:1;border-radius:var(--radius) 0 0 var(--radius)">
-                <button onclick="gerarNCMPadrao()" style="padding:8px 10px;background:#2563eb;color:white;border-radius:0 var(--radius) var(--radius) 0;font-size:11px;font-weight:600;white-space:nowrap;font-family:inherit">Gerar NCM padrão</button>
+                <input id="cp-ncm" value="${prod.ncm||''}" placeholder="00000000" style="${inputStyle};border-radius:6px 0 0 6px">
+                <button onclick="gerarNCMPadrao()" style="padding:0 10px;background:#2563eb;color:white;border:none;border-radius:0 6px 6px 0;font-size:11px;font-weight:600;white-space:nowrap;cursor:pointer;font-family:inherit">Gerar NCM padrão</button>
               </div>
             </div>
-            <div class="form-group">
-              <label>Descrição NCM</label>
+            <div>
+              <label style="${labelNormal}">Descrição NCM</label>
               <div style="display:flex;gap:0">
-                <input id="cp-ncm-desc" value="${prod.ncm_descricao||''}" placeholder="Descrição..." style="flex:1;border-radius:var(--radius) 0 0 var(--radius)">
-                <button onclick="buscarNCM()" style="padding:8px 11px;background:#e2e8f0;border-radius:0 var(--radius) var(--radius) 0;display:flex;align-items:center;color:var(--text-2)"><i data-lucide="search" style="width:14px;height:14px"></i></button>
+                <input id="cp-ncm-desc" value="${prod.ncm_descricao||''}" placeholder="Descrição..." style="${inputStyle};border-radius:6px 0 0 6px">
+                <button onclick="buscarNCM()" style="padding:0 11px;background:#e2e8f0;border:1.5px solid #cbd5e1;border-left:none;border-radius:0 6px 6px 0;cursor:pointer;display:flex;align-items:center;color:#6b7280"><i data-lucide="search" style="width:14px;height:14px"></i></button>
               </div>
             </div>
           </div>
+
           <!-- Linha 4: Descrição produto full-width -->
-          <div class="form-group">
-            <label style="color:#d97706">Descrição produto *</label>
-            <input id="cp-nome" value="${prod.nome||''}" placeholder="Nome/descrição do produto">
+          <div>
+            <label style="${labelOrange}">Descrição produto</label>
+            <input id="cp-nome" value="${prod.nome||''}" placeholder="Nome/descrição do produto" style="${inputStyle}">
           </div>
-          <div class="form-group" style="display:none">
-            <input id="cp-sku" value="${prod.sku||''}">
-          </div>
+          <input type="hidden" id="cp-sku" value="${prod.sku||''}">
         </div>
       </div>
 
       <!-- DADOS DA VARIAÇÃO -->
-      <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
-        <div style="background:#e8f5e9;padding:11px 20px;border-bottom:1px solid #c8e6c9">
-          <span style="font-size:13px;font-weight:700;color:#2e7d32">Dados da variação</span>
+      <div style="background:white;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+        <div style="background:#e3f2fd;padding:10px 20px;border-bottom:1px solid #bbdefb">
+          <span style="font-size:13px;font-weight:700;color:#1565c0">Dados da variação</span>
         </div>
-        <div style="padding:18px 20px;display:flex;flex-direction:column;gap:14px">
-          <!-- Linha 1: Grade + Cor + Custo + Margem + Valor venda -->
-          <div style="display:grid;grid-template-columns:160px 180px 1fr 1fr 1fr;gap:12px">
-            <div class="form-group">
-              <label style="color:#d97706">Grade</label>
-              <select id="cp-grade" onchange="atualizarGradeOpcoes()">
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px;background:#f8fbff">
+
+          <!-- Linha 1: Grade + Cor + Custo + Margem + Venda -->
+          <div style="display:grid;grid-template-columns:160px 160px 1fr 1fr 1fr;gap:10px;align-items:end">
+            <div>
+              <label style="${labelOrange}">Grade</label>
+              <select id="cp-grade" onchange="atualizarGradeOpcoes()" style="${selectStyle}">
                 <option value="">Selecione</option>
                 ${(grades||[]).map(g=>`<option value="${g.id}" data-vals='${JSON.stringify(g.valores||[])}'>${g.nome}</option>`).join('')}
               </select>
             </div>
-            <div class="form-group">
-              <label>Cor</label>
-              <select id="cp-cor-select" onchange="corSelectChanged(this)" style="width:100%;padding:9px 10px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;background:white;font-family:inherit">
+            <div>
+              <label style="${labelNormal}">Cor</label>
+              <select id="cp-cor-select" onchange="corSelectChanged(this)" style="${selectStyle}">
                 <option value="">Selecione uma cor</option>
-                ${[...new Set((cores||[]).map(c=>c.cor_descricao).filter(Boolean))].sort().map(c=>{const hex=(cores||[]).find(x=>x.cor_descricao===c)?.cor_hexa||'';return `<option value="${c}" data-hex="${hex}">${c}</option>`;}).join('')}
+                ${coresOpts}
                 <option value="__nova__">+ Nova cor...</option>
               </select>
-              <input id="cp-cor-desc" style="display:none;margin-top:6px;width:100%;padding:9px 10px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-family:inherit" placeholder="Nome da cor">
+              <input id="cp-cor-desc" style="display:none;margin-top:6px;${inputStyle}" placeholder="Nome da cor">
               <input type="hidden" id="cp-cor-hex" value="#cccccc">
             </div>
-            <div class="form-group">
-              <label>Valor custo</label>
-              <input id="cp-custo" type="number" step="0.01" placeholder="0,00" oninput="calcMargemVariacao()">
+            <div>
+              <label style="${labelNormal}">Valor custo</label>
+              <input id="cp-custo" type="number" step="0.01" value="" placeholder="0,00" oninput="calcMargemVariacao()" style="${inputStyle}">
             </div>
-            <div class="form-group">
-              <label>Margem de venda %</label>
-              <input id="cp-margem" type="number" step="0.01" placeholder="0,00" oninput="calcPrecoVariacao()">
+            <div>
+              <label style="${labelNormal}">Margem de venda</label>
+              <input id="cp-margem" type="number" step="0.01" value="" placeholder="0,00" oninput="calcPrecoVariacao()" style="${inputStyle}">
             </div>
-            <div class="form-group">
-              <label style="color:#d97706">Valor venda</label>
-              <input id="cp-preco" type="number" step="0.01" placeholder="0,00" oninput="calcMargemVariacao()">
+            <div>
+              <label style="${labelOrange}">Valor venda</label>
+              <input id="cp-preco" type="number" step="0.01" value="" placeholder="0,00" oninput="calcMargemVariacao()" style="${inputStyle}">
             </div>
           </div>
+
           <!-- Linha 2: EAN + EAN Lido + Tamanho + Qtde -->
-          <div style="display:grid;grid-template-columns:1fr 1fr 120px 120px;gap:12px">
-            <div class="form-group">
-              <label style="color:#d97706">Código de barras (EAN)</label>
-              <div style="display:flex;gap:0">
-                <input id="cp-ean" placeholder="Código EAN" style="flex:1;border-radius:var(--radius) 0 0 var(--radius)">
-                <button onclick="gerarEAN()" style="padding:8px 10px;background:#2563eb;color:white;border-radius:0 var(--radius) var(--radius) 0;font-size:11px;font-weight:600;white-space:nowrap;font-family:inherit">Gerar Cód. EAN</button>
-              </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 130px 100px;gap:10px;align-items:end">
+            <div>
+              <label style="${labelOrange}">Código de barras (EAN)</label>
+              <input id="cp-ean" placeholder="" style="${inputStyle}">
             </div>
-            <div class="form-group">
-              <label>Código de barras (EAN) - Lido</label>
-              <input id="cp-ean-lido" placeholder="Leitura do leitor de barras">
+            <div>
+              <label style="${labelNormal}">Código de barras (EAN) - Lido</label>
+              <input id="cp-ean-lido" placeholder="" style="${inputStyle}">
             </div>
-            <div class="form-group">
-              <label>Tamanho / Grade</label>
-              <select id="cp-tamanho">
-                <option value="">—</option>
-              </select>
+            <div>
+              <label style="${labelNormal}">Tamanho / Grade</label>
+              <select id="cp-tamanho" style="${selectStyle}"><option value="">—</option></select>
             </div>
-            <div class="form-group">
-              <label style="color:#d97706">Qtde</label>
-              <input id="cp-qtde" type="number" min="0" value="0">
+            <div>
+              <label style="${labelOrange}">Qtde</label>
+              <input id="cp-qtde" type="number" min="0" value="0" style="${inputStyle}">
             </div>
+          </div>
+
+          <!-- Botão Trocar EAN -->
+          <div>
+            <button onclick="trocarCodigoBarras()" style="padding:8px 18px;background:#e2e8f0;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:#374151">
+              Trocar Cód. Barras (EAN)
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- VARIANTES Já CADASTRADAS -->
-      <div id="cp-variantes-lista" style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;${variantesExistentes.length?'':'display:none'}">
-        <div style="background:#f1f5f9;padding:11px 20px;border-bottom:1px solid var(--border)">
-          <span style="font-size:13px;font-weight:700;color:var(--text)">Variações cadastradas</span>
-        </div>
-        <div id="cp-variantes-table">
-          ${renderVariantesTable(variantesExistentes)}
-        </div>
-      </div>
-
-      <!-- RODAPÉ -->
-      <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 20px;display:flex;gap:10px;align-items:center">
-        <button class="btn btn-secondary" onclick="navigate('produtos')"><i data-lucide="arrow-left"></i>Voltar</button>
+      <!-- BOTÕES RODAPÉ (idênticos ao Phibo) -->
+      <div style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:12px 20px;display:flex;gap:8px;align-items:center">
+        <button onclick="navigate('produtos')" style="display:flex;align-items:center;gap:6px;padding:8px 16px;background:#ef4444;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+          <i data-lucide="arrow-left" style="width:14px;height:14px"></i>Voltar
+        </button>
         <div style="flex:1"></div>
         <div style="position:relative">
-          <button class="btn btn-secondary" onclick="toggleOutrasAcoes()" id="btn-outras-acoes">
-            <i data-lucide="chevron-down"></i>Outras ações
+          <button onclick="toggleOutrasAcoes()" id="btn-outras-acoes" style="background:none;border:none;color:#2563eb;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px">
+            <span style="font-size:16px;font-weight:700">+</span> Outras ações
           </button>
-          <div id="outras-acoes-menu" style="display:none;position:absolute;bottom:calc(100% + 4px);right:0;background:white;border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);min-width:180px;z-index:100;padding:4px">
-            <div onclick="limparFormVariacao()" style="padding:8px 14px;font-size:13px;cursor:pointer;border-radius:6px" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background=''">
+          <div id="outras-acoes-menu" style="display:none;position:absolute;bottom:calc(100% + 4px);right:0;background:white;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.12);min-width:180px;z-index:100;padding:4px">
+            <div onclick="limparFormVariacao()" style="padding:8px 14px;font-size:13px;cursor:pointer;border-radius:6px;color:#374151" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background=''">
               <i data-lucide="eraser" style="width:13px;height:13px;margin-right:6px"></i>Limpar variação
             </div>
-            <div onclick="deleteProduto('${prodId||''}');navigate('produtos')" style="padding:8px 14px;font-size:13px;cursor:pointer;color:var(--red);border-radius:6px" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background=''">
+            <div onclick="deleteProduto('${prodId||''}');navigate('produtos')" style="padding:8px 14px;font-size:13px;cursor:pointer;color:#dc2626;border-radius:6px" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background=''">
               <i data-lucide="trash-2" style="width:13px;height:13px;margin-right:6px"></i>Excluir produto
             </div>
           </div>
         </div>
-        <button class="btn btn-secondary" onclick="salvarDadosGerais()"><i data-lucide="edit"></i>Editar dados gerais</button>
-        <button class="btn btn-primary" style="background:#16a34a;box-shadow:0 2px 8px rgba(22,163,74,.3)" onclick="salvarProdutoCompleto()"><i data-lucide="save"></i>Salvar</button>
+        <button onclick="salvarDadosGerais()" style="display:flex;align-items:center;gap:6px;padding:8px 16px;background:#f1f5f9;color:#374151;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+          <i data-lucide="edit" style="width:14px;height:14px"></i>Editar dados gerais
+        </button>
+        <button onclick="salvarProdutoCompleto()" style="display:flex;align-items:center;gap:6px;padding:8px 20px;background:#2563eb;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+          <i data-lucide="thumbs-up" style="width:14px;height:14px"></i>Salvar
+        </button>
+      </div>
+
+      <!-- TABELA DE VARIAÇÕES DO PRODUTO -->
+      <div id="cp-variantes-lista" style="background:white;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden${variantesExistentes.length?'':';display:none'}">
+        <div id="cp-variantes-table">${renderVariantesTable(variantesExistentes, prod.nome||'')}</div>
       </div>
 
     </div>
@@ -2149,37 +2167,71 @@ async function renderCadastrarProduto() {
 
   document.getElementById('content').innerHTML = html;
   _cadProdId = prodId;
-  setTimeout(()=>lucide.createIcons(),10);
+  setTimeout(()=>lucide.createIcons(), 10);
 }
 
-function renderVariantesTable(variantes) {
-  if(!variantes.length) return '';
-  return `<div class="table-wrap"><table class="data-table" style="font-size:12px">
-    <thead><tr><th>Tamanho</th><th>Cor</th><th>EAN</th><th>Custo</th><th>Margem</th><th>Valor Venda</th><th>Qtde</th><th>Ação</th></tr></thead>
-    <tbody>${variantes.map(v=>`<tr>
-      <td>${v.tamanho||'—'}</td>
-      <td style="white-space:nowrap">${v.cor_hexa?`<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${v.cor_hexa};border:1px solid rgba(0,0,0,.15);vertical-align:-2px;margin-right:4px"></span>`:''}${v.cor_descricao||'—'}</td>
-      <td style="font-family:monospace;font-size:11px">${v.ean||'—'}</td>
-      <td>${v.custo?fmt(v.custo):'—'}</td>
-      <td>${v.margem_lucro?fmtNum(v.margem_lucro)+'%':'—'}</td>
-      <td><strong>${v.preco_venda?fmt(v.preco_venda):'—'}</strong></td>
-      <td>${v.estoque??0}</td>
-      <td>
-        <div style="display:flex;gap:4px;align-items:center">
-          <button title="Editar variação" onclick="editarVariante('${v.id}')" style="width:26px;height:26px;border:1px solid var(--border-2);border-radius:4px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2)" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-2)'">
+function renderVariantesTable(variantes, nomeProduto) {
+  const titulo = nomeProduto ? `Variações do produto: ${nomeProduto.toUpperCase()}` : 'Variações do produto';
+  if(!variantes.length) return `
+    <div style="padding:10px 20px;background:#f8fafc;border-bottom:1px solid #e2e8f0">
+      <span style="font-size:13px;font-weight:700;color:#374151">${titulo}</span>
+    </div>`;
+
+  const rows = variantes.map(v => {
+    const corDot = v.cor_hexa
+      ? `<span style="display:inline-block;width:13px;height:13px;border-radius:50%;background:${v.cor_hexa};border:1px solid rgba(0,0,0,.2);vertical-align:-2px;margin-right:5px"></span>`
+      : '';
+    return `<tr style="border-bottom:1px solid #f1f5f9">
+      <td style="padding:8px 12px;font-size:12px;font-family:monospace">${v.ean||'—'}</td>
+      <td style="padding:8px 12px;font-size:12px">${v.tamanho||'—'}</td>
+      <td style="padding:8px 12px;font-size:12px;white-space:nowrap">${corDot}${v.cor_descricao||'—'}</td>
+      <td style="padding:8px 12px;font-size:12px;text-align:right">${v.custo?fmt(v.custo):'—'}</td>
+      <td style="padding:8px 12px;font-size:12px;text-align:right">${v.margem_lucro!=null?v.margem_lucro.toFixed(2)+'%':'—'}</td>
+      <td style="padding:8px 12px;font-size:12px;font-weight:700;text-align:right">${v.preco_venda?fmt(v.preco_venda):'—'}</td>
+      <td style="padding:8px 12px;font-size:12px;text-align:center">${v.estoque??0}</td>
+      <td style="padding:8px 12px">
+        <div style="display:flex;gap:3px;align-items:center">
+          <button title="Editar variação" onclick="editarVariante('${v.id}')" style="width:26px;height:26px;border:1px solid #e2e8f0;border-radius:4px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#6b7280" onmouseover="this.style.color='#2563eb'" onmouseout="this.style.color='#6b7280'">
             <i data-lucide="square-pen" style="width:12px;height:12px"></i>
           </button>
-          <button title="Excluir variação" onclick="deletarVariante('${v.id}')" style="width:26px;height:26px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--red)" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">
+          <button title="Excluir variação" onclick="deletarVariante('${v.id}')" style="width:26px;height:26px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#dc2626">
             <i data-lucide="trash-2" style="width:12px;height:12px"></i>
           </button>
-          <button title="Imprimir etiqueta" onclick="imprimirEtiquetaVariante('${v.id}','${(v.ean||'').replace(/'/g,'')  }','${(v.tamanho||'').replace(/'/g,'')}','${(v.cor_descricao||'').replace(/'/g,'')}',${parseFloat(v.preco_venda||0).toFixed(2)})" style="width:26px;height:26px;border:1px solid #bfdbfe;border-radius:4px;background:#eff6ff;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#2563eb" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
+          <button title="Imprimir etiqueta" onclick="imprimirEtiquetaVariante('${v.id}','${(v.ean||'').replace(/'/g,'')}','${(v.tamanho||'').replace(/'/g,'')}','${(v.cor_descricao||'').replace(/'/g,'')}',${parseFloat(v.preco_venda||0).toFixed(2)})" style="width:26px;height:26px;border:1px solid #bfdbfe;border-radius:4px;background:#eff6ff;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#2563eb">
             <i data-lucide="printer" style="width:12px;height:12px"></i>
           </button>
         </div>
       </td>
-    </tr>`).join('')}
-    </tbody>
-  </table></div>`;
+    </tr>`;
+  }).join('');
+
+  return `
+    <div style="padding:10px 20px;background:#f8fafc;border-bottom:1px solid #e2e8f0">
+      <span style="font-size:13px;font-weight:700;color:#374151">${titulo}</span>
+    </div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">
+      <thead><tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
+        <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.4px">Código de barras (EAN)</th>
+        <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.4px">Grade</th>
+        <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.4px">Cor</th>
+        <th style="padding:8px 12px;text-align:right;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.4px">Valor custo</th>
+        <th style="padding:8px 12px;text-align:right;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.4px">Margem de venda</th>
+        <th style="padding:8px 12px;text-align:right;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.4px">Valor venda</th>
+        <th style="padding:8px 12px;text-align:center;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.4px">Qtde</th>
+        <th style="padding:8px 12px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.4px">Ação</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
+
+function trocarCodigoBarras() {
+  const ean = document.getElementById('cp-ean');
+  const lido = document.getElementById('cp-ean-lido');
+  if(!ean || !lido) return;
+  const tmp = ean.value;
+  ean.value = lido.value;
+  lido.value = tmp;
+  toast('Códigos de barras trocados');
 }
 
 async function deletarVariante(varId) {
@@ -2187,10 +2239,13 @@ async function deletarVariante(varId) {
   await sb.from('produto_grades').delete().eq('id', varId);
   toast('Variação excluída');
   if(_cadProdId) {
-    const {data:vars} = await sb.from('produto_grades').select('*').eq('produto_id',_cadProdId).order('tamanho');
+    const [{data:vars},{data:prod}] = await Promise.all([
+      sb.from('produto_grades').select('*').eq('produto_id',_cadProdId).order('tamanho'),
+      sb.from('produtos').select('nome').eq('id',_cadProdId).single()
+    ]);
     const listaEl = document.getElementById('cp-variantes-lista');
     const tableEl = document.getElementById('cp-variantes-table');
-    if(tableEl) tableEl.innerHTML = renderVariantesTable(vars||[]);
+    if(tableEl) tableEl.innerHTML = renderVariantesTable(vars||[], prod?.nome||'');
     if(listaEl) listaEl.style.display = (vars&&vars.length) ? '' : 'none';
     lucide.createIcons();
   }
@@ -2513,9 +2568,10 @@ async function salvarProdutoCompleto() {
   const {data:vars} = await sb.from('produto_grades').select('*').eq('produto_id',prodId).order('tamanho');
   const listaEl = document.getElementById('cp-variantes-lista');
   const tableEl = document.getElementById('cp-variantes-table');
+  const nomeProdSalvo = document.getElementById('cp-nome')?.value||'';
   if(listaEl && tableEl) {
     listaEl.style.display = '';
-    tableEl.innerHTML = renderVariantesTable(vars||[]);
+    tableEl.innerHTML = renderVariantesTable(vars||[], nomeProdSalvo);
   }
   limparFormVariacao();
   toast('Produto salvo com sucesso');
