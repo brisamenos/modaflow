@@ -658,35 +658,26 @@ async function handleProdInput() {
   const {data:eanResults} = await sb.from('produto_grades').select('id,produto_id,tamanho,ean,estoque,preco_venda').eq('ean', term);
   if(eanResults && eanResults.length > 0) {
     const pg = eanResults[0];
-    // Buscar o produto pai separadamente
     const {data:prod} = await sb.from('produtos').select('id,codigo,nome,preco_venda').eq('id', pg.produto_id).maybeSingle();
     if(prod) {
       const preco = parseFloat(pg.preco_venda) || parseFloat(prod.preco_venda) || 0;
       if(eanResults.length === 1) {
-        // EAN único: adiciona direto ao carrinho com o tamanho correto
-        const qty = parseInt(document.getElementById('pdv-qty-input')?.value || 1);
-        const existing = cart.find(i => i.id === prod.id && i.tamanho === pg.tamanho);
-        if(existing) { existing.qty += qty; } 
-        else { cart.push({ id: prod.id, nome: prod.nome, preco, tamanho: pg.tamanho, qty, codigo: prod.codigo }); }
-        const pInput = document.getElementById('pdv-prod-input');
-        if(pInput) pInput.value = '';
-        renderCart();
-        toast(`${prod.nome} (${pg.tamanho}) adicionado!`, 'success');
+        addCartFromGrade(prod.id, prod.nome, preco, pg.tamanho, prod.codigo, pg.id);
       } else {
-        // Mesmo EAN em múltiplos tamanhos: abre modal para selecionar
-        addModalItemToCart(prod.id, prod.nome, preco, prod.codigo);
+        openProdutoPDVModal(term);
       }
       return;
     }
   }
   
   // 2. Tentar buscar por codigo do produto
-  const {data} = await sb.from('produtos').select('id,codigo,nome,preco_venda,grade_id,grades(valores)').eq('ativo',true).eq('codigo', term);
+  const {data} = await sb.from('produtos').select('id,codigo,nome,preco_venda').eq('ativo',true).eq('codigo', term);
   if(data && data.length === 1) {
-    let vals = data[0].grades?.valores;
-    let gradesArr = typeof vals === 'string' ? JSON.parse(vals) : (vals || []);
-    if(gradesArr.length > 1) {
-      openProdutoPDVModal(term);
+    // Buscar variantes para escolher grade
+    const {data:pgs} = await sb.from('produto_grades').select('id,tamanho,estoque,preco_venda').eq('produto_id',data[0].id);
+    if(pgs && pgs.length === 1) {
+      const preco = parseFloat(pgs[0].preco_venda)||parseFloat(data[0].preco_venda)||0;
+      addCartFromGrade(data[0].id, data[0].nome, preco, pgs[0].tamanho, data[0].codigo, pgs[0].id);
     } else {
       addModalItemToCart(data[0].id, data[0].nome, data[0].preco_venda, data[0].codigo);
     }
@@ -774,24 +765,121 @@ async function searchModalProdutos() {
   const tbody = document.getElementById('modal-produtos-tbody');
   if(!tbody) return;
 
-  if(!ean && !cod && !desc) {
-     const {data} = await sb.from('produtos').select('id,codigo,nome,preco_venda,grade_id,grades(valores)').eq('ativo',true).limit(50);
-     tbody.innerHTML = renderModalProdRows(data);
-     lucide.createIcons();
-     return;
-  }
-  
   tbody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;font-weight:700;">Buscando...</td></tr>';
-  
-  let q = sb.from('produtos').select('id,codigo,nome,preco_venda,grade_id,grades(valores)').eq('ativo',true);
-  
-  if(ean) q = q.ilike('codigo', `%${ean}%`);
-  if(cod) q = q.ilike('codigo', `%${cod}%`);
+
+  // Se buscou por EAN, busca em produto_grades primeiro
+  if(ean) {
+    const {data:pgRows} = await sb.from('produto_grades')
+      .select('id,produto_id,tamanho,ean,estoque,preco_venda,cor_descricao')
+      .ilike('ean', `%${ean}%`).limit(50);
+    
+    if(pgRows && pgRows.length) {
+      // Buscar produtos pai
+      const pids = [...new Set(pgRows.map(r=>r.produto_id))];
+      const prodMap = {};
+      for(const pid of pids) {
+        const {data:p} = await sb.from('produtos').select('id,codigo,nome,preco_venda').eq('id',pid).maybeSingle();
+        if(p) prodMap[pid] = p;
+      }
+      tbody.innerHTML = pgRows.map(pg => {
+        const p = prodMap[pg.produto_id];
+        if(!p) return '';
+        const preco = parseFloat(pg.preco_venda) || parseFloat(p.preco_venda) || 0;
+        const corLabel = pg.cor_descricao ? ` / ${pg.cor_descricao}` : '';
+        return `<tr style="border-bottom:1px solid #f1f2f6;background:#fff;">
+          <td style="padding:8px;font-weight:700;">${p.codigo||'—'}</td>
+          <td style="padding:8px;font-weight:800;">${p.nome}</td>
+          <td style="padding:8px;font-weight:700;">${pg.tamanho||'Único'}${corLabel}</td>
+          <td style="padding:8px;font-family:monospace;font-size:11px;">${pg.ean||'—'}</td>
+          <td style="padding:8px;font-weight:800;">${fmt(preco)}</td>
+          <td style="padding:8px;text-align:center;">${pg.estoque||0}</td>
+          <td style="padding:8px;">
+            <button onclick="addCartFromGrade('${pg.produto_id}','${p.nome.replace(/'/g,"\\'")}',${preco},'${pg.tamanho||''}','${p.codigo||''}','${pg.id}');closeModalDirect();"
+              style="width:26px;height:26px;border-radius:50%;background:#2ecc71;border:none;color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">
+              <i data-lucide="check" style="width:14px;"></i>
+            </button>
+          </td>
+        </tr>`;
+      }).join('');
+      lucide.createIcons();
+      return;
+    }
+  }
+
+  // Busca por código ou descrição em produtos
+  if(!ean && !cod && !desc) {
+    const {data} = await sb.from('produtos').select('id,codigo,nome,preco_venda').eq('ativo',true).limit(50);
+    tbody.innerHTML = await renderModalProdRowsWithGrades(data||[]);
+    lucide.createIcons();
+    return;
+  }
+
+  let q = sb.from('produtos').select('id,codigo,nome,preco_venda').eq('ativo',true);
+  if(cod)  q = q.ilike('codigo', `%${cod}%`);
   if(desc) q = q.ilike('nome', `%${desc}%`);
   
   const {data} = await q.limit(50);
-  tbody.innerHTML = renderModalProdRows(data);
+  tbody.innerHTML = await renderModalProdRowsWithGrades(data||[]);
   lucide.createIcons();
+}
+
+async function renderModalProdRowsWithGrades(prods) {
+  if(!prods.length) return '<tr><td colspan="7" style="padding:20px;font-weight:700;">Nenhum produto encontrado.</td></tr>';
+  let rows = '';
+  for(const p of prods) {
+    const {data:grades} = await sb.from('produto_grades')
+      .select('id,tamanho,estoque,preco_venda,cor_descricao').eq('produto_id',p.id).order('tamanho');
+    if(grades && grades.length) {
+      grades.forEach(pg => {
+        const preco = parseFloat(pg.preco_venda)||parseFloat(p.preco_venda)||0;
+        const corLabel = pg.cor_descricao ? ` / ${pg.cor_descricao}` : '';
+        rows += `<tr style="border-bottom:1px solid #f1f2f6;background:#fff;">
+          <td style="padding:8px;font-weight:700;">${p.codigo||'—'}</td>
+          <td style="padding:8px;font-weight:800;">${p.nome}</td>
+          <td style="padding:8px;font-weight:700;">${pg.tamanho||'Único'}${corLabel}</td>
+          <td style="padding:8px;font-size:11px;">—</td>
+          <td style="padding:8px;font-weight:800;">${fmt(preco)}</td>
+          <td style="padding:8px;text-align:center;">${pg.estoque||0}</td>
+          <td style="padding:8px;">
+            <button onclick="addCartFromGrade('${p.id}','${p.nome.replace(/'/g,"\\'")}',${preco},'${pg.tamanho||''}','${p.codigo||''}','${pg.id}');closeModalDirect();"
+              style="width:26px;height:26px;border-radius:50%;background:#2ecc71;border:none;color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">
+              <i data-lucide="check" style="width:14px;"></i>
+            </button>
+          </td>
+        </tr>`;
+      });
+    } else {
+      const preco = parseFloat(p.preco_venda)||0;
+      rows += `<tr style="border-bottom:1px solid #f1f2f6;">
+        <td style="padding:8px;font-weight:700;">${p.codigo||'—'}</td>
+        <td style="padding:8px;font-weight:800;">${p.nome}</td>
+        <td style="padding:8px;">Único</td>
+        <td style="padding:8px;font-size:11px;">—</td>
+        <td style="padding:8px;font-weight:800;">${fmt(preco)}</td>
+        <td style="padding:8px;text-align:center;">—</td>
+        <td style="padding:8px;">
+          <button onclick="addCartFromGrade('${p.id}','${p.nome.replace(/'/g,"\\'")}',${preco},'Único','${p.codigo||''}','');closeModalDirect();"
+            style="width:26px;height:26px;border-radius:50%;background:#2ecc71;border:none;color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">
+            <i data-lucide="check" style="width:14px;"></i>
+          </button>
+        </td>
+      </tr>`;
+    }
+  }
+  return rows || '<tr><td colspan="7" style="padding:20px;font-weight:700;">Nenhum produto encontrado.</td></tr>';
+}
+
+function addCartFromGrade(prodId, nome, preco, tamanho, codigo, gradeId) {
+  const qtyInput = document.getElementById('pdv-qty-input');
+  const qty = parseInt(qtyInput?.value || 1);
+  const existing = cart.find(i => i.id === prodId && i.tamanho === tamanho);
+  if(existing) { existing.qty += qty; }
+  else { cart.push({ id: prodId, nome, preco: parseFloat(preco), tamanho: tamanho||'Único', qty, codigo, grade_id: gradeId }); }
+  if(qtyInput) qtyInput.value = 1;
+  const pInput = document.getElementById('pdv-prod-input');
+  if(pInput) pInput.value = '';
+  renderCart();
+  toast(`${nome} (${tamanho||'Único'}) adicionado!`, 'success');
 }
 
 function addModalItemToCart(id, nome, preco, codigo) {
@@ -897,8 +985,13 @@ async function finalizarVenda() {
 
   // Baixar estoque
   for(const i of cart){
-    const {data:pg} = await sb.from('produto_grades').select('estoque').match({produto_id:i.id,tamanho:i.tamanho}).maybeSingle();
-    if(pg) await sb.from('produto_grades').update({estoque:Math.max(0,(pg.estoque||0)-i.qty)}).match({produto_id:i.id,tamanho:i.tamanho});
+    if(i.grade_id) {
+      const {data:pg} = await sb.from('produto_grades').select('estoque').eq('id',i.grade_id).maybeSingle();
+      if(pg) await sb.from('produto_grades').update({estoque:Math.max(0,(pg.estoque||0)-i.qty)}).eq('id',i.grade_id);
+    } else {
+      const {data:pg} = await sb.from('produto_grades').select('id,estoque').match({produto_id:i.id,tamanho:i.tamanho}).maybeSingle();
+      if(pg) await sb.from('produto_grades').update({estoque:Math.max(0,(pg.estoque||0)-i.qty)}).eq('id',pg.id);
+    }
   }
 
   // Atualizar ultima_compra do cliente
