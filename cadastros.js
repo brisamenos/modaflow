@@ -1011,7 +1011,7 @@ async function renderProdutos() {
     <button class="btn btn-primary" style="background:#16a34a;border:none;box-shadow:0 2px 8px rgba(22,163,74,.3)" onclick="navigate('cadastrar-produto')">
       <i data-lucide="plus"></i>Incluir Novo Produto
     </button>`;
-  await renderListaProdutosEstoque();
+  await loadProdutos();
 }
 
 let _filaImpressao = [];
@@ -1360,43 +1360,71 @@ function ajudaEtiquetas() {
 async function loadProdutos(filtros={}) {
   const el = document.getElementById('content');
   if(el) el.innerHTML = `
-    <div style="background:white;border-radius:var(--radius-lg);border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden">
-      <!-- Barra de buscas -->
-      <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:8px;align-items:center">
-        <div style="display:flex;gap:0;flex:1;min-width:220px">
-          <input id="pf-ean" class="filter-input" placeholder="Buscar produtos pela cód. barras" style="border-radius:var(--radius) 0 0 var(--radius);flex:1;min-width:120px">
-          <button class="btn btn-primary" style="border-radius:0 var(--radius) var(--radius) 0;padding:7px 12px" onclick="aplicarFiltrosProdutos()"><i data-lucide="barcode"></i>Pesquisar</button>
+  <div style="display:flex;gap:0;align-items:flex-start">
+
+    <!-- SIDEBAR ESQUERDA: Filtros Avançados -->
+    <div style="flex-shrink:0;padding:0 10px 0 0">
+      <button onclick="openFiltrosAvancadosModal()"
+        style="display:flex;align-items:center;gap:7px;padding:9px 14px;background:white;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--text);white-space:nowrap">
+        <span style="width:18px;height:18px;border-radius:50%;background:#2563eb;color:white;font-size:14px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">+</span>
+        Filtros Avançados
+      </button>
+    </div>
+
+    <!-- ÁREA PRINCIPAL -->
+    <div style="flex:1;min-width:0;background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
+
+      <!-- Barra de buscas - linha 1 -->
+      <div style="padding:12px 16px 0 16px;display:flex;gap:8px">
+        <div style="display:flex;gap:0;flex:1;min-width:200px">
+          <input id="pf-ean" class="filter-input" placeholder="Buscar produtos pela cód. barras"
+            style="border-radius:var(--radius) 0 0 var(--radius);flex:1"
+            onkeydown="if(event.key==='Enter')aplicarFiltrosProdutos()">
+          <button class="btn btn-primary" style="border-radius:0 var(--radius) var(--radius) 0;padding:7px 12px;white-space:nowrap" onclick="aplicarFiltrosProdutos()">
+            <i data-lucide="barcode" style="width:14px;height:14px"></i>Pesquisar
+          </button>
         </div>
-        <div style="display:flex;gap:0;flex:1;min-width:220px">
-          <input id="pf-desc" class="filter-input" placeholder="Buscar produtos pela descrição" style="border-radius:var(--radius) 0 0 var(--radius);flex:1;min-width:120px">
-          <button class="btn btn-primary" style="border-radius:0 var(--radius) var(--radius) 0;padding:7px 12px" onclick="aplicarFiltrosProdutos()"><i data-lucide="search"></i>Pesquisar</button>
-        </div>
-        <div style="display:flex;gap:0;flex:1;min-width:160px">
-          <input id="pf-cod" class="filter-input" placeholder="Buscar produtos pelo Código" style="border-radius:var(--radius) 0 0 var(--radius);flex:1;min-width:100px">
-          <button class="btn btn-primary" style="border-radius:0 var(--radius) var(--radius) 0;padding:7px 12px" onclick="aplicarFiltrosProdutos()"><i data-lucide="search"></i>Pesquisar</button>
-        </div>
-        <div style="display:flex;gap:6px;align-items:center;margin-left:auto">
-          <div style="display:flex;gap:0">
-            <select id="pf-acao" class="filter-select" style="min-width:200px;border-radius:var(--radius) 0 0 var(--radius);border-right:none" onchange="executarAcaoEmMassa(this.value);this.value=''">
-              <option value="">Selecione uma ação</option>
-              <option value="desc-codigo">Alteração em massa Descrição e Código Referência</option>
-              <option value="categoria">Alteração em massa de Categoria</option>
-              <option value="marca">Alteração em massa da Marca</option>
-              <option value="genero">Alteração em massa da Gênero</option>
-              <option value="grade">Alteração em massa da Grade</option>
-              <option value="cor">Alteração em massa da Cor</option>
-              <option value="transferir">Transferir produtos para outra loja</option>
-              <option value="excluir">Excluir selecionados</option>
-            </select>
-            <button class="btn btn-secondary btn-sm" style="border-radius: 0 var(--radius) var(--radius) 0;padding:7px 10px;font-size:12px" onclick="openFiltrosAvancadosModal()">
-              <i data-lucide="sliders-horizontal" style="width:14px;height:14px"></i> Filtros Avançados
-            </button>
-          </div>
+        <div style="display:flex;gap:0;flex:1;min-width:200px">
+          <input id="pf-desc" class="filter-input" placeholder="Buscar produtos pela descrição"
+            style="border-radius:var(--radius) 0 0 var(--radius);flex:1"
+            onkeydown="if(event.key==='Enter')aplicarFiltrosProdutos()">
+          <button class="btn btn-primary" style="border-radius:0 var(--radius) var(--radius) 0;padding:7px 12px;white-space:nowrap" onclick="aplicarFiltrosProdutos()">
+            <i data-lucide="search" style="width:14px;height:14px"></i>Pesquisar
+          </button>
         </div>
       </div>
+
+      <!-- Barra de buscas - linha 2 -->
+      <div style="padding:8px 16px 12px 16px;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border)">
+        <div style="display:flex;gap:0;flex:1;min-width:200px">
+          <input id="pf-cod" class="filter-input" placeholder="Buscar produtos pelo Código"
+            style="border-radius:var(--radius) 0 0 var(--radius);flex:1"
+            onkeydown="if(event.key==='Enter')aplicarFiltrosProdutos()">
+          <button class="btn btn-primary" style="border-radius:0 var(--radius) var(--radius) 0;padding:7px 12px;white-space:nowrap" onclick="aplicarFiltrosProdutos()">
+            <i data-lucide="search" style="width:14px;height:14px"></i>Pesquisar
+          </button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:200px">
+          <span style="font-size:11px;font-weight:600;color:var(--text-2)">Ações</span>
+          <select id="pf-acao" style="padding:7px 10px;border:1.5px solid var(--border-2);border-radius:var(--radius);font-size:13px;background:white;font-family:inherit;width:100%"
+            onchange="executarAcaoEmMassa(this.value);this.value=''">
+            <option value="">Selecione uma ação</option>
+            <option value="desc-codigo">Alteração em massa Descrição e Código Referência (Agrupamento)</option>
+            <option value="categoria">Alteração em massa de Categoria</option>
+            <option value="marca">Alteração em massa da Marca</option>
+            <option value="genero">Alteração em massa da Gênero</option>
+            <option value="grade">Alteração em massa da Grade</option>
+            <option value="cor">Alteração em massa da Cor</option>
+            <option value="transferir">Transferir produtos para outra loja</option>
+            <option value="excluir">Excluir selecionados</option>
+          </select>
+        </div>
+      </div>
+
       <!-- Tabela -->
       <div id="produtos-table-wrap"><div class="loading" style="padding:32px;text-align:center">Carregando...</div></div>
-    </div>`;
+    </div>
+  </div>`;
   setTimeout(()=>lucide.createIcons(),10);
   await carregarTabelaProdutos({});
   await carregarSelectsFiltros();
@@ -1431,10 +1459,22 @@ async function openFiltrosAvancadosModal() {
         </div>
 
         <div class="form-group">
+          <label style="font-weight:600;color:var(--text)">Id do Produto</label>
+          <input id="fa-id-produto" class="filter-input" placeholder="Digite o Id do Produto" style="width:100%">
+        </div>
+
+        <div class="form-group">
           <label style="font-weight:600;color:var(--text)">Fornecedor</label>
           <select id="fa-forn" class="filter-select" style="width:100%">
             <option value="">Selecione um Fornecedor</option>
             ${optForn}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label style="font-weight:600;color:var(--text)">Nota Fiscal</label>
+          <select id="fa-nota" class="filter-select" style="width:100%;color:var(--text-2)">
+            <option value="">Selecione a nota fiscal</option>
           </select>
         </div>
 
@@ -1459,17 +1499,6 @@ async function openFiltrosAvancadosModal() {
           <select id="fa-categoria" class="filter-select" style="width:100%">
             <option value="">Selecione a categoria</option>
             ${optCat}
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label style="font-weight:600;color:var(--text)">Gênero</label>
-          <select id="fa-genero" class="filter-select" style="width:100%">
-            <option value="">Todos</option>
-            <option value="F">Feminino</option>
-            <option value="M">Masculino</option>
-            <option value="U">Unissex</option>
-            <option value="J">Juvenil/Infantil</option>
           </select>
         </div>
 
