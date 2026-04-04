@@ -1,6 +1,5 @@
 // ===== CREDIÁRIO — Layout idêntico ao Phibo =====
 
-function fmtDate(d){ if(!d) return '—'; try{ return new Date(d+'T00:00:00').toLocaleDateString('pt-BR'); }catch(e){return d;} }
 function diasAtraso(vencimento){ if(!vencimento) return 0; const v=new Date(vencimento+'T00:00:00'), h=new Date(); h.setHours(0,0,0,0); return Math.max(0,Math.floor((h-v)/86400000)); }
 
 // =============================================
