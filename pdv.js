@@ -156,9 +156,12 @@ async function renderPDV() {
             </div>
             <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;flex:1;min-width:0;">
               <label style="color:#e74c3c;font-weight:900;font-size:13px;">Informe o Produto</label>
-              <div class="pdv-prod-input-wrap">
-                 <input type="text" id="pdv-prod-input" style="flex:1;padding:10px 14px;border:1px solid #3498db;border-radius:6px;font-size:15px;font-weight:700;outline:none;min-width:0;box-sizing:border-box;" placeholder="Bipe/Digite o Cód. Barras..." onkeypress="if(event.key==='Enter')handleProdInput()">
+              <div class="pdv-prod-input-wrap" style="position:relative;">
+                 <input type="text" id="pdv-prod-input" style="flex:1;padding:10px 14px;border:1px solid #3498db;border-radius:6px;font-size:15px;font-weight:700;outline:none;min-width:0;box-sizing:border-box;" placeholder="Bipe/Digite o Cód. Barras..." 
+                   onkeypress="if(event.key==='Enter')handleProdInput()"
+                   oninput="handleProdInputLive(this.value)">
                  <i data-lucide="search" style="width:24px;height:24px;color:#3498db;cursor:pointer;flex-shrink:0;" onclick="handleProdInput()"></i>
+                 <div id="pdv-ean-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:2px solid #3498db;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.15);z-index:999;max-height:300px;overflow-y:auto;margin-top:2px;"></div>
               </div>
             </div>
           </div>
@@ -649,6 +652,126 @@ async function salvarClientePDV() {
   closeModalDirect();
   toast('Cliente cadastrado com sucesso!');
 }
+
+let _eanSearchTimer = null;
+
+async function handleProdInputLive(val) {
+  const term = (val||'').trim();
+  const drop = document.getElementById('pdv-ean-dropdown');
+  if(!drop) return;
+
+  if(!term) { drop.style.display='none'; drop.innerHTML=''; return; }
+
+  clearTimeout(_eanSearchTimer);
+  if(term.length < 3) { drop.style.display='none'; return; }
+
+  // Mostrar "buscando" imediatamente
+  drop.innerHTML = '<div style="padding:10px 14px;color:#888;font-size:13px;">Buscando...</div>';
+  drop.style.display = 'block';
+
+  // Debounce: EAN completo (8/13 dígitos) busca imediato, outros 300ms
+  const delay = (/^\d{8}$/.test(term) || /^\d{13}$/.test(term)) ? 0 : 300;
+
+  _eanSearchTimer = setTimeout(async () => {
+    const items = [];
+
+    // 1. Buscar por EAN em produto_grades (ilike com % para resolver type mismatch SQLite)
+    const {data:pgRows} = await sb.from('produto_grades')
+      .select('id,produto_id,tamanho,ean,estoque,preco_venda,cor_descricao')
+      .ilike('ean', `%${term}%`).limit(20);
+
+    if(pgRows && pgRows.length) {
+      const pids = [...new Set(pgRows.map(r=>r.produto_id))];
+      const prodMap = {};
+      for(const pid of pids) {
+        const {data:p} = await sb.from('produtos').select('id,codigo,nome,preco_venda').eq('id',pid).maybeSingle();
+        if(p) prodMap[pid] = p;
+      }
+      pgRows.forEach(pg => {
+        const p = prodMap[pg.produto_id];
+        if(!p) return;
+        const preco = parseFloat(pg.preco_venda)||parseFloat(p.preco_venda)||0;
+        const cor = pg.cor_descricao ? ` — ${pg.cor_descricao}` : '';
+        items.push({ prodId:p.id, nome:p.nome, preco, tamanho:pg.tamanho, codigo:p.codigo, gradeId:pg.id,
+          label:`${p.nome}`, grade:`${pg.tamanho||''}${cor}`, estoque:pg.estoque||0 });
+      });
+    }
+
+    // 2. Buscar por nome/código em produtos (só se não encontrou por EAN ou busca não é numérica)
+    if(!items.length || !/^\d+$/.test(term)) {
+      const {data:prods} = await sb.from('produtos').select('id,codigo,nome,preco_venda').eq('ativo',true)
+        .or(`nome.ilike.%${term}%,codigo.ilike.%${term}%`).limit(10);
+      if(prods) {
+        for(const p of prods) {
+          if(items.find(i=>i.prodId===p.id)) continue;
+          const {data:pgs} = await sb.from('produto_grades').select('id,tamanho,estoque,preco_venda,cor_descricao').eq('produto_id',p.id).limit(10);
+          if(pgs && pgs.length) {
+            pgs.forEach(pg => {
+              const preco = parseFloat(pg.preco_venda)||parseFloat(p.preco_venda)||0;
+              const cor = pg.cor_descricao ? ` — ${pg.cor_descricao}` : '';
+              items.push({ prodId:p.id, nome:p.nome, preco, tamanho:pg.tamanho, codigo:p.codigo, gradeId:pg.id,
+                label:p.nome, grade:`${pg.tamanho||''}${cor}`, estoque:pg.estoque||0 });
+            });
+          } else {
+            items.push({ prodId:p.id, nome:p.nome, preco:parseFloat(p.preco_venda)||0, tamanho:'Único', codigo:p.codigo, gradeId:'',
+              label:p.nome, grade:'Único', estoque:null });
+          }
+        }
+      }
+    }
+
+    if(!items.length) {
+      drop.innerHTML = '<div style="padding:12px 16px;color:#e74c3c;font-size:13px;font-weight:600;">Nenhum produto encontrado para este código</div>';
+      drop.style.display = 'block';
+      return;
+    }
+
+    drop.innerHTML = items.map((it,i) => `
+      <div onclick="selecionarItemEAN(${i})" data-idx="${i}"
+        style="padding:10px 14px;cursor:pointer;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;gap:10px;"
+        onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='white'">
+        <div style="min-width:0">
+          <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.label}</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:2px">
+            ${it.grade ? `<span style="background:#e0f2fe;color:#0369a1;padding:1px 7px;border-radius:10px;font-weight:700;">${it.grade}</span>` : ''}
+            ${it.estoque!=null ? `<span style="margin-left:6px;color:#16a34a">Estoque: ${it.estoque}</span>` : ''}
+          </div>
+        </div>
+        <div style="font-weight:800;color:#16a34a;white-space:nowrap;font-size:14px">${fmt(it.preco)}</div>
+      </div>`).join('');
+    window._pdvDropItems = items;
+    drop.style.display = 'block';
+
+    // Se EAN completo e só 1 resultado → adiciona direto ao carrinho
+    if((/^\d{8}$/.test(term) || /^\d{13}$/.test(term)) && items.length === 1) {
+      drop.style.display = 'none';
+      selecionarItemEAN(0);
+    }
+  }, delay);
+}
+
+
+function selecionarItemEAN(idx) {
+  const it = window._pdvDropItems?.[idx];
+  if(!it) return;
+  const drop = document.getElementById('pdv-ean-dropdown');
+  if(drop) { drop.style.display='none'; drop.innerHTML=''; }
+  if(it.tamanho) {
+    addCartFromGrade(it.prodId, it.nome, it.preco, it.tamanho, it.codigo, it.gradeId);
+  } else {
+    // Sem grade definida — abre modal para escolher
+    document.getElementById('pdv-prod-input').value = it.codigo||it.nome;
+    openProdutoPDVModal(it.codigo||it.nome);
+  }
+}
+
+// Fechar dropdown ao clicar fora
+document.addEventListener('click', function(e) {
+  if(!e.target.closest('#pdv-ean-dropdown') && e.target.id !== 'pdv-prod-input') {
+    const d = document.getElementById('pdv-ean-dropdown');
+    if(d) { d.style.display='none'; }
+  }
+});
 
 async function handleProdInput() {
   const term = document.getElementById('pdv-prod-input')?.value?.trim() || '';
