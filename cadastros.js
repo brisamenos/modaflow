@@ -2893,14 +2893,114 @@ async function renderSimpleCRUD(table, fields, title, cols, renderFn) {
 }
 
 async function renderCategorias() {
-  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary" onclick="openSimpleModal('categorias','Categoria')"><i data-lucide="plus"></i>Nova Categoria</button>`;
-  await loadSimple('categorias','Categoria',['nome','descricao']);
+  document.getElementById('topbar-actions').innerHTML = '';
+  await _renderCadastroSimples('categorias', 'Categoria', 'Cadastrar categoria', 'Listagem das categorias de estoque');
 }
 
 async function renderColecoes() {
-  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary" onclick="openSimpleModal('colecoes','Coleção')"><i data-lucide="plus"></i>Nova Coleção</button>`;
-  await loadSimple('colecoes','Coleção',['nome','temporada','ano']);
+  document.getElementById('topbar-actions').innerHTML = '';
+  await _renderCadastroSimples('colecoes', 'Coleção', 'Cadastrar coleção', 'Listagem das coleções');
 }
+
+async function _renderCadastroSimples(tabela, label, titulo, tituloLista) {
+  document.getElementById('content').innerHTML = `<div class="loading" style="padding:32px;text-align:center">Carregando...</div>`;
+
+  const {data} = await sb.from(tabela).select('id,nome').eq('ativo',true).order('nome');
+
+  const rows = (data||[]).map(r => `
+    <tr style="border-bottom:1px solid #f1f5f9">
+      <td style="padding:10px 14px;text-align:center;font-size:13px">${r.nome}</td>
+      <td style="padding:10px 14px;text-align:center;width:80px">
+        <button onclick="_editarSimples('${tabela}','${r.id}','${r.nome.replace(/'/g,"\\'")}')"
+          style="width:28px;height:28px;border:1px solid #d1d5db;border-radius:4px;background:white;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:#6b7280;margin-right:4px"
+          onmouseover="this.style.color='#2563eb'" onmouseout="this.style.color='#6b7280'">
+          <i data-lucide="square-pen" style="width:13px;height:13px"></i>
+        </button>
+        <button onclick="_excluirSimples('${tabela}','${r.id}')"
+          style="width:28px;height:28px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:#dc2626">
+          <i data-lucide="trash-2" style="width:13px;height:13px"></i>
+        </button>
+      </td>
+    </tr>`).join('') || `<tr><td colspan="2" style="padding:24px;text-align:center;color:#9ca3af">Nenhum registro cadastrado</td></tr>`;
+
+  document.getElementById('content').innerHTML = `
+    <div style="max-width:700px;margin:0 auto">
+
+      <!-- Formulário igual ao Phibo -->
+      <div style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin-bottom:16px">
+        <div>
+          <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;text-align:center">Descrição ${label.toLowerCase()}</label>
+          <input id="simples-nome" style="width:100%;padding:8px 10px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;font-family:inherit;margin-bottom:12px"
+            onkeypress="if(event.key==='Enter')_salvarSimples('${tabela}')">
+          <input type="hidden" id="simples-edit-id" value="">
+        </div>
+        <div style="display:flex;gap:8px;justify-content:center">
+          <button onclick="_limparSimples()" style="padding:8px 20px;background:#6b7280;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+            Atualizar
+          </button>
+          <button onclick="_salvarSimples('${tabela}')" style="padding:8px 24px;background:#2563eb;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+            Salvar
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabela igual ao Phibo -->
+      <div style="background:white;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+        <div style="padding:10px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;text-align:center;font-size:13px;font-weight:700;color:#374151">
+          ${tituloLista}
+        </div>
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
+              <th style="padding:10px 14px;text-align:center;font-size:12px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.4px">Descrição</th>
+              <th style="padding:10px 14px;text-align:center;font-size:12px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.4px;width:80px">Ação</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  lucide.createIcons();
+}
+
+async function _salvarSimples(tabela) {
+  const nome = document.getElementById('simples-nome')?.value?.trim();
+  const id = document.getElementById('simples-edit-id')?.value;
+  if(!nome) return toast('Descrição obrigatória','error');
+  if(id) {
+    await sb.from(tabela).update({nome}).eq('id',id);
+    toast('Atualizado com sucesso');
+  } else {
+    await sb.from(tabela).insert({nome, ativo:true});
+    toast('Salvo com sucesso');
+  }
+  _limparSimples();
+  const label = tabela==='categorias'?'Categoria':'Coleção';
+  const titulo = tabela==='categorias'?'Cadastrar categoria':'Cadastrar coleção';
+  const tituloLista = tabela==='categorias'?'Listagem das categorias de estoque':'Listagem das coleções';
+  await _renderCadastroSimples(tabela, label, titulo, tituloLista);
+}
+
+function _limparSimples() {
+  const n=document.getElementById('simples-nome'); if(n) n.value='';
+  const i=document.getElementById('simples-edit-id'); if(i) i.value='';
+}
+
+function _editarSimples(tabela, id, nome) {
+  const n=document.getElementById('simples-nome'); if(n){n.value=nome;n.focus();}
+  const i=document.getElementById('simples-edit-id'); if(i) i.value=id;
+}
+
+async function _excluirSimples(tabela, id) {
+  if(!confirm('Excluir este registro?')) return;
+  await sb.from(tabela).update({ativo:false}).eq('id',id);
+  toast('Excluído');
+  const label = tabela==='categorias'?'Categoria':'Coleção';
+  const tituloLista = tabela==='categorias'?'Listagem das categorias de estoque':'Listagem das coleções';
+  await _renderCadastroSimples(tabela, label, '', tituloLista);
+}
+
+
 
 async function renderGrades() {
   document.getElementById('topbar-actions').innerHTML = '';
@@ -2913,9 +3013,27 @@ async function renderGrades() {
     sb.from('produto_grades').select('tamanho').not('tamanho','is',null)
   ]);
 
+  // Se grades_itens vazio, importar automaticamente do produto_grades
+  let itens = gradeItens || [];
+  if(!itens.length && pgTams && pgTams.length) {
+    const tams = [...new Set((pgTams||[]).map(r=>r.tamanho?.trim()).filter(Boolean))];
+    const getFaixa = (t) => {
+      const n = parseFloat(t);
+      if(/infantil/i.test(t)) return 'INFANTIL';
+      if(/ano/i.test(t)) return 'ANOS';
+      if(!isNaN(n) && n <= 16) return 'INFANTIL';
+      return 'Adulto';
+    };
+    for(const tam of tams) {
+      try { await sb.from('grades_itens').insert({tamanho:tam, faixa_etaria:getFaixa(tam)}); } catch(e){}
+    }
+    const {data:novoItens} = await sb.from('grades_itens').select('id,tamanho,faixa_etaria').order('tamanho');
+    itens = novoItens || [];
+  }
+
   // Montar set de tamanhos já cadastrados
   const cadastrados = new Map();
-  (gradeItens||[]).forEach(g => cadastrados.set(g.tamanho, g));
+  itens.forEach(g => cadastrados.set(g.tamanho, g));
 
   // Tamanhos do backup que não estão cadastrados ainda
   const tamsBD = [...new Set((pgTams||[]).map(r=>r.tamanho?.trim()).filter(Boolean))];
