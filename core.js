@@ -142,7 +142,17 @@ function navigate(page) {
     el.classList.toggle('active', el.getAttribute('onclick')?.includes(`'${page}'`));
   });
 
-  document.getElementById('page-title').textContent = pageTitles[page]||page;
+  const titles = {
+    'pdv':'PDV','dashboard':'Dashboard','clientes':'Clientes','cadastrar-cliente':'Novo Cliente',
+    'produtos':'Produtos','cadastrar-produto':'Novo Produto','vendedores':'Vendedores',
+    'relacao-vendas':'Relação de Vendas','consulta-vendas':'Consulta de Vendas',
+    'crediario':'Crediário','caixa':'Caixa','financeiro':'Financeiro',
+    'gestao-estoque':'Gestão de Estoque','visao-geral-estoque':'Estoque — Visão Geral',
+    'importar-csv':'Importar Estoque CSV','cartoes-maquinas':'Cartões & Maquinetas',
+    'antecipar-parcelas':'Antecipar Parcelas',
+  };
+  const pt = document.getElementById('page-title');
+  if(pt) pt.textContent = pageTitles[page] || titles[page] || page;
   document.getElementById('topbar-actions').innerHTML = '';
   const contentEl = document.getElementById('content');
   contentEl.classList.remove('pdv-active');
