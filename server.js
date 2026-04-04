@@ -134,7 +134,7 @@ function aplicarMigracoes(tdb) {
   ac('clientes','endereco','TEXT');
   ac('clientes','nome_abreviado_2','TEXT');
   ac('vendas','numero_venda','INTEGER'); ac('vendas','subtotal','REAL'); ac('vendas','parcelas','INTEGER');
-  ac('vendas','valor_pago','REAL'); ac('vendas','troco','REAL');
+  ac('vendas','valor_pago','REAL'); ac('vendas','troco','REAL'); ac('vendas','data_pagamento','DATE');
   ac('fornecedores','razao_social','TEXT'); ac('fornecedores','nome_fantasia','TEXT');
   ac('fornecedores','cnpj','TEXT'); ac('fornecedores','celular','TEXT');
   ac('fornecedores','cidade','TEXT'); ac('fornecedores','estado','TEXT');
