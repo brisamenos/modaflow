@@ -56,14 +56,23 @@ async function verVenda(id) {
     sb.from('vendas').select('*,clientes(nome),vendedores(nome)').eq('id',id).single(),
     sb.from('venda_itens').select('*').eq('venda_id',id)
   ]);
+  // Data atual da venda em formato ISO para o input date
+  const dataIso = v?.created_at ? v.created_at.substring(0,10) : new Date().toISOString().split('T')[0];
   openModal(`
     <div class="modal-header"><h3>Venda #${v?.numero_venda}</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
     <div class="modal-body">
-      <div class="form-row" style="margin-bottom:16px">
+      <div class="form-row" style="margin-bottom:16px;flex-wrap:wrap;gap:12px">
         <div><strong>Cliente:</strong> ${v?.clientes?.nome||'Consumidor'}</div>
         <div><strong>Vendedor:</strong> ${v?.vendedores?.nome||'\u2014'}</div>
-        <div><strong>Data:</strong> ${fmtDatetime(v?.created_at)}</div>
         <div><strong>Status:</strong> ${badgeStatus(v?.status)}</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <strong>Data da Venda:</strong>
+          <input type="date" id="venda-data-edit" value="${dataIso}"
+            style="border:1px solid #d1d5db;border-radius:6px;padding:4px 8px;font-size:13px;font-weight:600;color:#1e293b;cursor:pointer;outline:none">
+          <button onclick="alterarDataVenda('${id}')" style="background:#3b82f6;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:4px">
+            <i data-lucide="save" style="width:13px;height:13px"></i> Salvar Data
+          </button>
+        </div>
       </div>
       <table class="data-table">
         <thead><tr><th>Produto</th><th>Tam.</th><th>Qtd</th><th>Unit.</th><th>Total</th></tr></thead>
@@ -76,6 +85,21 @@ async function verVenda(id) {
       </div>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModalDirect()">Fechar</button></div>`,'modal-lg');
+  setTimeout(()=>lucide.createIcons(),10);
+}
+
+async function alterarDataVenda(id) {
+  const novaData = document.getElementById('venda-data-edit')?.value;
+  if(!novaData) return toast('Selecione uma data válida','error');
+  // Mantém o horário 00:00:00 mas substitui apenas o dia
+  const novaDataISO = `${novaData}T00:00:00`;
+  const {error} = await sb.from('vendas').update({created_at: novaDataISO}).eq('id', id);
+  if(error) return toast('Erro ao alterar data: '+error.message,'error');
+  toast('Data da venda alterada com sucesso!','success');
+  // Atualiza o texto exibido no modal sem fechar
+  const partes = novaData.split('-');
+  const dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+  loadRelacaoVendas();
 }
 
 async function cancelarVenda(id) {
