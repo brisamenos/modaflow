@@ -84,7 +84,7 @@ const pageTitles = {
   dashboard:'Dashboard',pdv:'PDV — Registrar Venda',bag:'BAG — Pré-venda',
   clientes:'Cadastrar Clientes','cadastrar-cliente':'Cadastrar Cliente','historico-clientes':'Histórico de Clientes','painel-clientes':'Painel de Clientes','como-conheceu':'Como nos Conheceu','importar-clientes':'Importar Clientes',produtos:'Cadastro Produto',categorias:'Categorias',colecoes:'Coleções',
   grades:'Grades',vendedores:'Vendedores',fornecedores:'Fornecedores',
-  'relacao-vendas':'Relação de Vendas','consulta-vendas':'Consulta Vendas',
+  'relacao-vendas':'Relação de Vendas','consulta-vendas':'Vendas — Visão Geral','relacao-trocas':'Relação de Trocas','vendas-excluidas':'Vendas Excluídas','creditos-clientes':'Créditos de Clientes',
   crediario:'Gestão Crediário','contas-receber':'Recebimento Efetuado','efetuar-recebimento':'Efetuar Recebimento','analise-cliente':'Análise por Cliente','credito-atraso':'Crédito em Atraso','parametros-crediario':'Parâmetros Crediário',
   metas:'Metas de Vendas','painel-vendas':'Painel de Vendas',comissoes:'Comissões',
   'notas-fiscais':'Notas Fiscais',duplicatas:'Duplicatas a Pagar',
@@ -98,7 +98,7 @@ const pageTitles = {
 // Page → grupo do nav
 const pageGroup = {
   bag:'ng-vendas','painel-vendas':'ng-vendas','relacao-vendas':'ng-vendas',
-  'consulta-vendas':'ng-vendas',trocas:'ng-vendas',
+  'consulta-vendas':'ng-vendas','relacao-trocas':'ng-vendas','vendas-excluidas':'ng-vendas','creditos-clientes':'ng-vendas',trocas:'ng-vendas',
   crediario:'ng-vendas','contas-receber':'ng-vendas','efetuar-recebimento':'ng-vendas','analise-cliente':'ng-vendas','credito-atraso':'ng-vendas','parametros-crediario':'ng-vendas',
   comissoes:'ng-vendedores',metas:'ng-vendedores',vendedores:'ng-vendedores',
   'notas-fiscais':'ng-compras',duplicatas:'ng-compras','gestao-estoque':'ng-compras','parametros-estoque':'ng-compras','conferencia-estoque':'ng-compras','visao-geral-estoque':'ng-compras','visao-detalhada-estoque':'ng-compras','giro-estoque':'ng-compras','curva-abc':'ng-compras','transferencia-lojas':'ng-compras','importar-csv':'ng-compras',
@@ -147,7 +147,7 @@ function navigate(page) {
     dashboard:renderDashboard,pdv:renderPDV,clientes:renderClientes,'cadastrar-cliente':renderCadastrarCliente,'historico-clientes':renderHistoricoClientes,'painel-clientes':renderPainelClientes,'como-conheceu':renderComoConheceu,'importar-clientes':renderImportarClientes,
     produtos:renderProdutos,categorias:renderCategorias,colecoes:renderColecoes,
     grades:renderGrades,vendedores:renderVendedores,fornecedores:renderFornecedores,
-    'relacao-vendas':renderRelacaoVendas,'consulta-vendas':renderConsultaVendas,
+    'relacao-vendas':renderRelacaoVendas,'consulta-vendas':renderConsultaVendas,'relacao-trocas':renderRelacaoTrocas,'vendas-excluidas':renderVendasExcluidas,'creditos-clientes':renderCreditosClientes,
     crediario:renderCrediario,'contas-receber':renderContasReceber,'efetuar-recebimento':()=>renderCrediario('efetuar-recebimento'),'analise-cliente':()=>renderCrediario('analise-cliente'),'credito-atraso':()=>renderCrediario('credito-atraso'),'parametros-crediario':()=>renderCrediario('parametros-crediario'),
     metas:renderMetas,'painel-vendas':renderPainelVendas,comissoes:renderComissoes,
     'notas-fiscais':renderNotasFiscais,duplicatas:renderDuplicatas,

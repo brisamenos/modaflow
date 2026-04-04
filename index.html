@@ -6,6 +6,7 @@
 <title>ModaFlow — Gestão de Loja</title>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="style.css">
 
 <!-- Configurações do PWA (Android / iOS app) -->
@@ -77,7 +78,15 @@
               <div class="nav-dd-item" onclick="navigate('bag');closeNGs()"><i data-lucide="shopping-bag"></i> BAG — Pré-venda</div>
               <div class="nav-dd-item" onclick="navigate('painel-vendas');closeNGs()"><i data-lucide="bar-chart-2"></i> Painel de Vendas</div>
               <div class="nav-dd-item" onclick="navigate('relacao-vendas');closeNGs()"><i data-lucide="list"></i> Relação de Vendas</div>
-              <div class="nav-dd-item" onclick="navigate('consulta-vendas');closeNGs()"><i data-lucide="search"></i> Consulta Vendas</div>
+              <div class="nav-dd-item-sub">
+                <div class="nav-dd-item"><i data-lucide="search"></i> Consulta Vendas</div>
+                <div class="nav-submenu">
+                  <div class="nav-dd-item" onclick="navigate('consulta-vendas');closeNGs()"><i data-lucide="eye"></i> Visão geral</div>
+                  <div class="nav-dd-item" onclick="navigate('relacao-trocas');closeNGs()"><i data-lucide="repeat"></i> Relação de trocas</div>
+                  <div class="nav-dd-item" onclick="navigate('vendas-excluidas');closeNGs()"><i data-lucide="x-circle"></i> Vendas excluídas</div>
+                  <div class="nav-dd-item" onclick="navigate('creditos-clientes');closeNGs()"><i data-lucide="wallet"></i> Créditos de clientes</div>
+                </div>
+              </div>
               <div class="nav-dd-item" onclick="navigate('trocas');closeNGs()"><i data-lucide="repeat"></i> Devolução / Troca</div>
 
               <!-- Crediário como submenu flyout igual ao Phibo -->
@@ -532,7 +541,10 @@
   <div class="mobile-menu-item" onclick="navigate('bag');closeMobileMenu()"><i data-lucide="shopping-bag"></i> BAG — Pré-venda</div>
   <div class="mobile-menu-item" onclick="navigate('painel-vendas');closeMobileMenu()"><i data-lucide="bar-chart-2"></i> Painel de Vendas</div>
   <div class="mobile-menu-item" onclick="navigate('relacao-vendas');closeMobileMenu()"><i data-lucide="list"></i> Relação de Vendas</div>
-  <div class="mobile-menu-item" onclick="navigate('consulta-vendas');closeMobileMenu()"><i data-lucide="search"></i> Consulta Vendas</div>
+  <div class="mobile-menu-item" onclick="navigate('consulta-vendas');closeMobileMenu()"><i data-lucide="eye"></i> Vendas - Visão Geral</div>
+  <div class="mobile-menu-item" onclick="navigate('relacao-trocas');closeMobileMenu()"><i data-lucide="repeat"></i> Relação de Trocas</div>
+  <div class="mobile-menu-item" onclick="navigate('vendas-excluidas');closeMobileMenu()"><i data-lucide="x-circle"></i> Vendas Excluídas</div>
+  <div class="mobile-menu-item" onclick="navigate('creditos-clientes');closeMobileMenu()"><i data-lucide="wallet"></i> Créditos de Clientes</div>
   <div class="mobile-menu-item" onclick="navigate('trocas');closeMobileMenu()"><i data-lucide="repeat"></i> Devolução / Troca</div>
 
   <div class="mobile-menu-section">Crediário</div>
