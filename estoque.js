@@ -17,8 +17,53 @@ async function renderImportarCSV() {
         </div>
       </div>
       <div id="csv-preview" style="padding:0 28px 24px"></div>
+
+      <!-- Zona de Perigo -->
+      <div style="padding:20px 28px;border-top:1px solid var(--border);background:#fef2f2;border-radius:0 0 12px 12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+          <div>
+            <div style="font-weight:700;font-size:13px;color:#dc2626;display:flex;align-items:center;gap:6px">
+              <i data-lucide="alert-triangle" style="width:15px;height:15px"></i> Zona de Perigo
+            </div>
+            <div style="font-size:12px;color:#7f1d1d;margin-top:3px">
+              Use antes de reimportar do zero para evitar duplicatas.
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button onclick="zerarEstoque(false)" class="btn" style="background:#fff;border:1.5px solid #dc2626;color:#dc2626;font-size:12.5px;padding:7px 16px;font-weight:700">
+              <i data-lucide="eraser" style="width:13px;height:13px"></i> Zerar Variantes
+            </button>
+            <button onclick="zerarEstoque(true)" class="btn" style="background:#dc2626;color:#fff;font-size:12.5px;padding:7px 16px;font-weight:700">
+              <i data-lucide="trash-2" style="width:13px;height:13px"></i> Apagar TUDO
+            </button>
+          </div>
+        </div>
+      </div>
     </div>`;
   lucide.createIcons();
+}
+
+async function zerarEstoque(apagarProdutos) {
+  const msg = apagarProdutos
+    ? 'Isso vai APAGAR todos os produtos e variantes permanentemente. Tem certeza?'
+    : 'Isso vai apagar todas as variantes (grades) mantendo os produtos. Tem certeza?';
+  if(!confirm(msg)) return;
+  if(!confirm('Confirme novamente: esta ação não pode ser desfeita.')) return;
+
+  const token = localStorage.getItem('loja_token');
+  const headers = { 'Content-Type':'application/json', ...(token?{'Authorization':`Bearer ${token}`}:{}) };
+  try {
+    const res = await fetch(`/api/manutencao/zerar-estoque?apagar_produtos=${apagarProdutos?'1':'0'}`, { method:'POST', headers });
+    const data = await res.json();
+    if(res.ok){
+      toast(data.message || 'Estoque zerado com sucesso!', 'success');
+      renderImportarCSV();
+    } else {
+      toast('Erro: ' + (data.message||'falha desconhecida'), 'error');
+    }
+  } catch(e) {
+    toast('Erro de conexão: ' + e.message, 'error');
+  }
 }
 
 function downloadModeloCSV() {
