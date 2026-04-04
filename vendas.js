@@ -409,52 +409,187 @@ async function loadRelacaoTrocas() {
   lucide.createIcons();
 }
 
-// ===== VENDAS EXCLUIDAS (sub-page) =====
+// ===== VENDAS EXCLUIDAS (sub-page - Layout Phibo) =====
 async function renderVendasExcluidas() {
+  const now = new Date();
+  const anoAtual = now.getFullYear();
+  const mesAtual = now.getMonth()+1;
+  const mesesNomes = ['','Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
   document.getElementById('topbar-actions').innerHTML = '';
-  const {data:excl}=await sb.from('vendas').select('*,clientes(nome)').eq('status','cancelada').order('created_at',{ascending:false}).limit(50);
   document.getElementById('content').innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <span style="font-size:13px;font-weight:600;color:var(--text-1)">Informe o Ano / Mes:</span>
+      <select id="ve-ano" onchange="loadVendasExcluidas()" style="padding:7px 14px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;background:white;font-family:inherit;min-width:90px">
+        ${[anoAtual-2,anoAtual-1,anoAtual].map(y=>`<option value="${y}" ${y===anoAtual?'selected':''}>${y}</option>`).join('')}
+      </select>
+      <select id="ve-mes" onchange="loadVendasExcluidas()" style="padding:7px 14px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;background:white;font-family:inherit;min-width:120px">
+        ${mesesNomes.slice(1).map((m,i)=>`<option value="${i+1}" ${(i+1)===mesAtual?'selected':''}>${m}</option>`).join('')}
+      </select>
+    </div>
+    <div id="ve-content"><div class="loading">Carregando...</div></div>`;
+  await loadVendasExcluidas();
+}
+
+async function loadVendasExcluidas() {
+  const ano = parseInt(document.getElementById('ve-ano')?.value||new Date().getFullYear());
+  const mes = parseInt(document.getElementById('ve-mes')?.value||(new Date().getMonth()+1));
+  const mesStr = String(mes).padStart(2,'0');
+  const ini = `${ano}-${mesStr}-01`;
+  const lastDay = new Date(ano,mes,0).getDate();
+  const fim = `${ano}-${mesStr}-${lastDay}T23:59:59`;
+
+  const {data:excl} = await sb.from('vendas').select('*,clientes(nome),vendedores(nome)').eq('status','cancelada').gte('created_at',ini).lte('created_at',fim).order('created_at',{ascending:false});
+
+  const totalValor = (excl||[]).reduce((a,v)=>a+parseFloat(v.total||0),0);
+  const container = document.getElementById('ve-content');
+  if(!container) return;
+
+  container.innerHTML = `
     <div class="card">
-      <div class="card-header"><h3>Vendas Excluidas / Canceladas</h3></div>
-      <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>#</th><th>Data</th><th>Cliente</th><th>Total</th><th>Status</th></tr></thead>
-        <tbody>${(excl||[]).map(v=>`<tr>
-          <td><strong>#${v.numero_venda}</strong></td>
-          <td>${fmtDatetime(v.created_at)}</td>
+      <div class="table-wrap"><table class="data-table" style="font-size:12px">
+        <thead><tr>
+          <th>Cliente</th><th>Vendedor</th><th>Data Venda</th><th>Valor Total</th><th>Data Exclusao</th>
+        </tr></thead>
+        <tbody>${(excl||[]).length ? (excl||[]).map(v=>`<tr>
           <td>${v.clientes?.nome||'Consumidor'}</td>
-          <td><strong>${fmt(v.total)}</strong></td>
-          <td>${badgeStatus(v.status)}</td>
-        </tr>`).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--text-2)">Nenhuma venda cancelada</td></tr>'}</tbody>
+          <td>${v.vendedores?.nome||'\u2014'}</td>
+          <td>${fmtDatetime(v.created_at)}</td>
+          <td style="text-align:right">${fmtNum(parseFloat(v.total||0))}</td>
+          <td>${fmtDatetime(v.updated_at||v.created_at)}</td>
+        </tr>`).join('') : '<tr><td colspan="5" style="text-align:left;color:var(--text-2);padding:10px 14px">Nenhuma venda excluida foi identificada no periodo.</td></tr>'}</tbody>
+        <tfoot>
+          <tr style="font-weight:700;background:var(--bg-2)">
+            <td colspan="3"></td>
+            <td style="text-align:right">${fmtNum(totalValor)}</td>
+            <td></td>
+          </tr>
+        </tfoot>
       </table></div>
     </div>`;
   lucide.createIcons();
 }
 
-// ===== CREDITOS DE CLIENTES (sub-page) =====
+// ===== CREDITOS DE CLIENTES (sub-page - Layout Phibo) =====
+let _ccFiltroNome = '';
+let _ccFiltroCel = '';
+
 async function renderCreditosClientes() {
+  _ccFiltroNome = '';
+  _ccFiltroCel = '';
   document.getElementById('topbar-actions').innerHTML = '';
-  const {data:trocas}=await sb.from('trocas').select('*,clientes(nome)').gt('valor_credito',0).order('created_at',{ascending:false}).limit(50);
+  document.getElementById('content').innerHTML=`
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="openFiltroCreditos()" style="display:flex;align-items:center;gap:6px">
+        <i data-lucide="plus-circle" style="width:16px;height:16px"></i> Filtros Avancados
+      </button>
+      <div id="cc-filtro-tag" style="font-size:12px;color:var(--text-2)">
+        <span style="font-weight:600;color:var(--text-1)">Filtrado por:</span>
+        <span style="background:#dcfce7;color:#16a34a;padding:2px 10px;border-radius:4px;font-size:11px;font-weight:600;margin-left:4px">Todos os registros.</span>
+      </div>
+    </div>
+    <div id="cc-content"><div class="loading">Carregando...</div></div>`;
+  lucide.createIcons();
+  await loadCreditosClientes();
+}
+
+async function loadCreditosClientes() {
+  // Buscar todos os clientes que tem credito (via trocas com valor_credito > 0)
+  let q = sb.from('trocas').select('*,clientes(nome,telefone,celular)').gt('valor_credito',0);
+  const {data:trocas} = await q;
+
+  // Agrupar por cliente
   const porCliente = {};
   (trocas||[]).forEach(t=>{
-    const nome = t.clientes?.nome||'Sem nome';
-    if(!porCliente[nome]) porCliente[nome]={nome:nome,total:0,qtd:0};
-    porCliente[nome].total+=parseFloat(t.valor_credito||0);
-    porCliente[nome].qtd++;
+    const cliId = t.cliente_id || 'sem';
+    const nome = t.clientes?.nome || 'Sem nome';
+    const cel = t.clientes?.celular || t.clientes?.telefone || '';
+    if(!porCliente[cliId]) porCliente[cliId]={id:cliId, nome:nome, celular:cel, saldo:0};
+    porCliente[cliId].saldo += parseFloat(t.valor_credito||0);
   });
-  const lista = Object.values(porCliente).sort((a,b)=>b.total-a.total);
-  document.getElementById('content').innerHTML=`
+
+  let lista = Object.values(porCliente).sort((a,b)=>b.saldo-a.saldo);
+
+  // Aplicar filtros
+  if(_ccFiltroNome) {
+    const termo = _ccFiltroNome.toLowerCase();
+    lista = lista.filter(c=>c.nome.toLowerCase().includes(termo));
+  }
+  if(_ccFiltroCel) {
+    lista = lista.filter(c=>c.celular.includes(_ccFiltroCel));
+  }
+
+  const saldoTotal = lista.reduce((a,c)=>a+c.saldo,0);
+
+  // Atualizar tag de filtro
+  const tagEl = document.getElementById('cc-filtro-tag');
+  if(tagEl) {
+    if(_ccFiltroNome || _ccFiltroCel) {
+      const filtros = [];
+      if(_ccFiltroNome) filtros.push('Nome: '+_ccFiltroNome);
+      if(_ccFiltroCel) filtros.push('Cel: '+_ccFiltroCel);
+      tagEl.innerHTML = `<span style="font-weight:600;color:var(--text-1)">Filtrado por:</span> ${filtros.map(f=>`<span style="background:#dbeafe;color:#2563eb;padding:2px 10px;border-radius:4px;font-size:11px;font-weight:600;margin-left:4px">${f}</span>`).join('')} <button onclick="_ccFiltroNome='';_ccFiltroCel='';loadCreditosClientes()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:11px;font-weight:600;margin-left:6px">Limpar</button>`;
+    } else {
+      tagEl.innerHTML = `<span style="font-weight:600;color:var(--text-1)">Filtrado por:</span> <span style="background:#dcfce7;color:#16a34a;padding:2px 10px;border-radius:4px;font-size:11px;font-weight:600;margin-left:4px">Todos os registros.</span>`;
+    }
+  }
+
+  const container = document.getElementById('cc-content');
+  if(!container) return;
+
+  container.innerHTML = `
     <div class="card">
-      <div class="card-header"><h3>Creditos de Clientes</h3></div>
-      <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>Cliente</th><th>Qtd Trocas</th><th>Total Credito</th></tr></thead>
-        <tbody>${lista.map(c=>`<tr>
-          <td><strong>${c.nome}</strong></td>
-          <td style="text-align:center">${c.qtd}</td>
-          <td style="text-align:right"><strong style="color:var(--green,#16a34a)">${fmt(c.total)}</strong></td>
-        </tr>`).join('')||'<tr><td colspan="3" style="text-align:center;color:var(--text-2)">Nenhum credito de cliente encontrado</td></tr>'}</tbody>
+      <div class="table-wrap"><table class="data-table" style="font-size:12px">
+        <thead><tr>
+          <th>Celular</th><th>Nome Completo</th><th style="text-align:right">Saldo</th>
+        </tr></thead>
+        <tbody>${lista.length ? lista.map(c=>`<tr>
+          <td>${c.celular||'\u2014'}</td>
+          <td>${c.nome}</td>
+          <td style="text-align:right;font-weight:600">${fmtNum(c.saldo)}</td>
+        </tr>`).join('') : '<tr><td colspan="3" style="text-align:left;color:var(--text-2);padding:10px 14px">Nenhum cliente com cashback encontrado.</td></tr>'}</tbody>
+        <tfoot>
+          <tr style="font-weight:700;background:var(--bg-2)">
+            <td colspan="2" style="text-align:right">Saldo Total:</td>
+            <td style="text-align:right">${fmtNum(saldoTotal)}</td>
+          </tr>
+          <tr style="background:var(--bg-2)">
+            <td colspan="3" style="text-align:center;font-size:12px;font-weight:600;color:var(--text-2);padding:10px">
+              Existem ${lista.length} clientes nesta selecao.
+            </td>
+          </tr>
+        </tfoot>
       </table></div>
     </div>`;
   lucide.createIcons();
+}
+
+function openFiltroCreditos() {
+  openModal(`
+    <div class="modal-header"><h3>Filtros Avancados</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:16px">
+        <label style="font-weight:600;margin-bottom:8px;display:block">Cliente</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="cc-f-cel" type="text" placeholder="(  )_____-____" value="${_ccFiltroCel}" style="width:140px;padding:9px 12px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;font-family:inherit">
+          <input id="cc-f-nome" type="text" placeholder="Nome abreviado ou completo" value="${_ccFiltroNome}" style="flex:1;padding:9px 12px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;font-family:inherit">
+          <button onclick="aplicarFiltroCreditos()" style="background:none;border:none;cursor:pointer;padding:8px"><i data-lucide="search" style="width:20px;height:20px;color:var(--text-1)"></i></button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="aplicarFiltroCreditos()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">
+        <i data-lucide="filter" style="width:16px;height:16px"></i> Aplicar Filtro
+      </button>
+    </div>`,'modal-md');
+  lucide.createIcons();
+}
+
+function aplicarFiltroCreditos() {
+  _ccFiltroCel = document.getElementById('cc-f-cel')?.value?.trim() || '';
+  _ccFiltroNome = document.getElementById('cc-f-nome')?.value?.trim() || '';
+  closeModalDirect();
+  loadCreditosClientes();
 }
 
 function switchTab(id) {
