@@ -154,7 +154,7 @@ async function renderCadastrarCliente() {
   }
 
   const html = `
-  <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;max-width:900px;margin:0 auto">
+  <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;width:100%">
 
     <!-- TÍTULO -->
     <div style="padding:10px 20px;font-size:15px;font-weight:700;color:var(--text)">Cadastrar Cliente</div>
@@ -727,7 +727,7 @@ async function renderPainelClientes() {
 async function renderImportarClientes() {
   document.getElementById('topbar-actions').innerHTML = '';
   document.getElementById('content').innerHTML = `
-  <div style="max-width:860px">
+  <div style="width:100%">
     <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
 
       <div style="padding:16px 22px;border-bottom:1px solid var(--border)">
@@ -2924,7 +2924,7 @@ async function _renderCadastroSimples(tabela, label, titulo, tituloLista) {
     </tr>`).join('') || `<tr><td colspan="2" style="padding:24px;text-align:center;color:#9ca3af">Nenhum registro cadastrado</td></tr>`;
 
   document.getElementById('content').innerHTML = `
-    <div style="max-width:700px;margin:0 auto">
+    <div style="width:100%;max-width:600px">
 
       <!-- Formulário igual ao Phibo -->
       <div style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin-bottom:16px">
@@ -3057,7 +3057,7 @@ async function renderGrades() {
     </tr>`).join('') || '<tr><td colspan="3" style="padding:24px;text-align:center;color:#9ca3af">Nenhum tamanho cadastrado</td></tr>';
 
   document.getElementById('content').innerHTML = `
-    <div style="max-width:700px;margin:0 auto">
+    <div style="width:100%;max-width:600px">
 
       <!-- Formulário igual ao Phibo -->
       <div style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin-bottom:16px">

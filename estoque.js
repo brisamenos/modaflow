@@ -2,7 +2,7 @@
 async function renderImportarCSV() {
   renderCRUDPage({title:'Importar Estoque CSV', addBtn:null, content:''});
   document.getElementById('content').innerHTML = `
-    <div class="card" style="max-width:900px;margin:0 auto">
+    <div class="card" style="width:100%">
       <div style="padding:24px 28px 0">
         <h3 style="margin:0 0 6px;font-size:17px;color:var(--text-1)"><i data-lucide="file-up" style="width:18px;height:18px;vertical-align:-3px;margin-right:6px"></i>Importar Estoque via CSV</h3>
         <p style="margin:0 0 12px;color:var(--text-2);font-size:13.5px">Compatível com o formato de backup: <strong>Cód. Produto; Descrição Produto; UN; CNPJ Fornecedor; Preço Custo; Preço Venda; NCM; Cód de Barras - EAN; Tam - Grade; Qtde; Coleção; Marca; Categoria; Genero; Cor - Hexa; Cor - Descrição; SKU</strong></p>

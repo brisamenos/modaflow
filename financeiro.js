@@ -1909,7 +1909,7 @@ function renderFluxoCaixa() {
 
 function _cartoesShell(subtitulo, conteudo) {
   document.getElementById('content').innerHTML = `
-    <div style="max-width:1100px;margin:0 auto;padding:4px 0">
+    <div style="width:100%;padding:4px 0">
       <div style="background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden">
         <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:20px 28px;display:flex;align-items:center;gap:12px">
           <i data-lucide="credit-card" style="width:22px;height:22px;color:#fff"></i>
@@ -2019,7 +2019,7 @@ async function renderAnteciparParcelas() {
     </tr>`).join('') || '<tr><td colspan="5" style="padding:32px;text-align:center;color:var(--text-2)">Nenhuma parcela pendente</td></tr>';
 
   document.getElementById('content').innerHTML = `
-    <div style="max-width:1000px;margin:0 auto">
+    <div style="width:100%">
       <div style="background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden">
         <div style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);padding:20px 28px;display:flex;align-items:center;gap:12px">
           <i data-lucide="zap" style="width:22px;height:22px;color:#fff"></i>
@@ -2089,7 +2089,7 @@ async function renderListarAntecipacoes() {
     </tr>`).join('') || '<tr><td colspan="3" style="padding:32px;text-align:center;color:var(--text-2)">Nenhuma antecipação realizada</td></tr>';
 
   document.getElementById('content').innerHTML = `
-    <div style="max-width:800px;margin:0 auto">
+    <div style="width:100%">
       <div style="background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden">
         <div style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);padding:20px 28px;display:flex;align-items:center;gap:12px">
           <i data-lucide="list" style="width:22px;height:22px;color:#fff"></i>
@@ -2268,7 +2268,7 @@ function _renderMaquinetasPage(maq, editKey) {
   }).join('');
 
   document.getElementById('content').innerHTML = `
-    <div style="max-width:1000px;margin:0 auto">
+    <div style="width:100%">
       <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:20px 28px;border-radius:12px;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
         <div style="display:flex;align-items:center;gap:12px">
           <i data-lucide="credit-card" style="width:22px;height:22px;color:#fff"></i>
