@@ -737,7 +737,7 @@ async function loadContasReceberMes() {
   lucide.createIcons();
 }
 
-// ===== FLUXO RECEBIMENTO (stub) =====
+// ===== FLUXO RECEBIMENTO (Layout Phibo) =====
 async function renderFluxoRecebimento() {
   document.getElementById('topbar-actions').innerHTML = '';
   const now = new Date();
@@ -747,19 +747,122 @@ async function renderFluxoRecebimento() {
 
   document.getElementById('content').innerHTML = `
     <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-      <span style="font-size:13px;font-weight:600;color:var(--text-1)">Informe o Ano / Mes:</span>
-      <select id="fr-ano" style="padding:7px 14px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;background:white;font-family:inherit;min-width:90px">
+      <span style="font-size:13px;font-weight:600;color:var(--text-1)">Informe o Ano/Mes:</span>
+      <select id="fr-ano" onchange="loadFluxoRecebimento()" style="padding:7px 14px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;background:white;font-family:inherit;min-width:90px">
         ${[anoAtual-1,anoAtual].map(y=>`<option value="${y}" ${y===anoAtual?'selected':''}>${y}</option>`).join('')}
       </select>
-      <select id="fr-mes" style="padding:7px 14px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;background:white;font-family:inherit;min-width:120px">
+      <select id="fr-mes" onchange="loadFluxoRecebimento()" style="padding:7px 14px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;background:white;font-family:inherit;min-width:120px">
         ${mesesNomes.slice(1).map((m,i)=>`<option value="${i+1}" ${(i+1)===mesAtual?'selected':''}>${m}</option>`).join('')}
       </select>
     </div>
-    <div class="card">
-      <div class="card-body" style="text-align:center;padding:48px 24px">
-        <i data-lucide="arrow-down-circle" style="width:48px;height:48px;color:var(--accent);margin-bottom:16px"></i>
-        <h3 style="margin-bottom:8px;color:var(--text-1)">Fluxo de Recebimento</h3>
-        <p style="color:var(--text-2)">Modulo em desenvolvimento.</p>
+    <div id="fr-content"><div class="loading">Carregando...</div></div>`;
+  lucide.createIcons();
+  await loadFluxoRecebimento();
+}
+
+async function loadFluxoRecebimento() {
+  const ano = parseInt(document.getElementById('fr-ano')?.value||new Date().getFullYear());
+  const mes = parseInt(document.getElementById('fr-mes')?.value||(new Date().getMonth()+1));
+  const mesStr = String(mes).padStart(2,'0');
+  const ini = `${ano}-${mesStr}-01`;
+  const lastDay = new Date(ano,mes,0).getDate();
+  const fim = `${ano}-${mesStr}-${lastDay}T23:59:59`;
+
+  const {data:vendas} = await sb.from('vendas').select('total,forma_pagamento,created_at,status').gte('created_at',ini).lte('created_at',fim).eq('status','concluida').order('created_at',{ascending:true});
+
+  // Agrupar por data (dia)
+  const porDia = {};
+  const porTipo = {};
+  (vendas||[]).forEach(v=>{
+    const dia = v.created_at?.split('T')[0] || '';
+    const fp = v.forma_pagamento || 'outros';
+    const val = parseFloat(v.total||0);
+
+    if(!porDia[dia]) porDia[dia] = [];
+    porDia[dia].push({forma:fp, valor:val});
+
+    if(!porTipo[fp]) porTipo[fp] = 0;
+    porTipo[fp] += val;
+  });
+
+  const totalMes = (vendas||[]).reduce((a,v)=>a+parseFloat(v.total||0),0);
+  const dias = Object.keys(porDia).sort();
+
+  // Montar linhas da tabela principal com subtotais por dia
+  let mainRows = '';
+  dias.forEach(dia=>{
+    const itens = porDia[dia];
+    const subtotal = itens.reduce((a,i)=>a+i.valor,0);
+    const diaFmt = fmtDate(dia);
+
+    itens.forEach((item,idx)=>{
+      mainRows += `<tr>
+        <td>${idx===0?diaFmt:''}</td>
+        <td style="text-align:center;text-transform:capitalize">${item.forma}</td>
+        <td style="text-align:right">${fmtNum(item.valor)}</td>
+      </tr>`;
+    });
+    // Subtotal row
+    mainRows += `<tr style="font-weight:700;background:var(--bg-2)">
+      <td></td>
+      <td style="text-align:right;font-size:11px">SubTotal (R$):</td>
+      <td style="text-align:right">${fmtNum(subtotal)}</td>
+    </tr>`;
+  });
+
+  if(!dias.length) {
+    mainRows = '<tr><td colspan="3" style="color:var(--text-2);padding:10px 14px">Nenhum recebimento no periodo.</td></tr>';
+  }
+
+  // Tipo de pagamento summary
+  const tipoRows = Object.entries(porTipo).sort((a,b)=>b[1]-a[1]).map(([fp,val])=>`<tr>
+    <td style="text-transform:capitalize;font-size:11px">${fp}</td>
+    <td style="text-align:right;font-size:11px">${fmtNum(val)}</td>
+  </tr>`).join('');
+
+  const container = document.getElementById('fr-content');
+  if(!container) return;
+
+  container.innerHTML = `
+    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+      <!-- Tabela principal -->
+      <div class="card" style="flex:1;min-width:400px">
+        <div class="table-wrap"><table class="data-table" style="font-size:12px">
+          <thead><tr>
+            <th>Data Vencto</th><th style="text-align:center">Forma Pagto</th><th style="text-align:right">Valor a Receber</th>
+          </tr></thead>
+          <tbody>${mainRows}</tbody>
+          <tfoot>
+            <tr style="font-weight:700;background:var(--bg-2)">
+              <td></td>
+              <td style="text-align:right"><strong>Total do Mes (R$)</strong></td>
+              <td style="text-align:right"></td>
+            </tr>
+            <tr style="font-weight:700;background:var(--bg-2)">
+              <td colspan="2"></td>
+              <td style="text-align:right;font-size:14px"><strong>${fmtNum(totalMes)}</strong></td>
+            </tr>
+          </tfoot>
+        </table></div>
+      </div>
+
+      <!-- Painel lateral - Tipo de Pagamento -->
+      <div class="card" style="min-width:240px;max-width:320px">
+        <div class="card-header" style="background:var(--bg-2);text-align:center;padding:8px 12px">
+          <h3 style="font-size:13px;margin:0;font-weight:700">Tipo de Pagamento</h3>
+        </div>
+        <div class="table-wrap"><table class="data-table" style="font-size:12px">
+          <thead><tr>
+            <th style="font-size:11px">Tipo Pagamento</th><th style="text-align:right;font-size:11px">Valor A Receber</th>
+          </tr></thead>
+          <tbody>${tipoRows||'<tr><td colspan="2" style="color:var(--text-2);font-size:11px;padding:8px">Sem dados</td></tr>'}</tbody>
+          <tfoot>
+            <tr style="font-weight:700;background:var(--bg-2)">
+              <td style="font-size:11px">Total do Mes (R$)</td>
+              <td style="text-align:right;font-size:11px">${fmtNum(totalMes)}</td>
+            </tr>
+          </tfoot>
+        </table></div>
       </div>
     </div>`;
   lucide.createIcons();
