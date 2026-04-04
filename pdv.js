@@ -231,13 +231,22 @@ async function renderPDV() {
           <div class="pdv-rec-form-row">
             <div class="pdv-rec-form-item">
               <label style="color:#e74c3c;font-weight:900;font-size:12px;text-align:center;">Forma Pagto</label>
-              <select id="rec-forma" style="padding:10px;border:1px solid #2c3e50;border-radius:6px;outline:none;font-weight:800;font-size:13px;width:100%;box-sizing:border-box;">
-                <option value="Dinheiro">Dinheiro</option>
-                <option value="Pix">Pix</option>
-                <option value="Cartão Crédito">Cartão Crédito</option>
-                <option value="Cartão Débito">Cartão Débito</option>
-                <option value="Crediário">Crediário</option>
+              <select id="rec-forma" onchange="_pdvFormaChange()" style="padding:10px;border:1px solid #2c3e50;border-radius:6px;outline:none;font-weight:800;font-size:13px;width:100%;box-sizing:border-box;">
+                <option value="Dinheiro">💵 Dinheiro</option>
+                <option value="Pix">⚡ Pix</option>
+                <option value="Cartão Crédito">💳 Cartão Crédito</option>
+                <option value="Cartão Débito">💳 Cartão Débito</option>
+                <option value="Crediário">📋 Crediário</option>
               </select>
+              <div id="rec-cartao-extra" style="display:none;margin-top:8px;display:none">
+                <select id="rec-maquineta" onchange="_pdvMaquinetaChange()" style="padding:8px;border:1px solid #3498db;border-radius:6px;font-size:12px;width:100%;box-sizing:border-box;margin-bottom:6px">
+                  <option value="">— Selecione a maquineta —</option>
+                </select>
+                <select id="rec-bandeira" onchange="_pdvBandeiraChange()" style="padding:8px;border:1px solid #3498db;border-radius:6px;font-size:12px;width:100%;box-sizing:border-box">
+                  <option value="">— Bandeira —</option>
+                </select>
+                <div id="rec-taxa-info" style="font-size:11px;color:#7c3aed;font-weight:700;margin-top:4px;display:none"></div>
+              </div>
             </div>
             <div class="pdv-rec-form-item">
               <label style="color:#e74c3c;font-weight:900;font-size:12px;text-align:center;">Primeiro Vencto</label>
@@ -259,7 +268,7 @@ async function renderPDV() {
             <div class="pdv-rec-form-item">
               <label style="color:#e74c3c;font-weight:900;font-size:12px;text-align:center;">Valor</label>
               <div style="display:flex;align-items:center;">
-                <input type="number" id="rec-valor" style="padding:10px;border:1px solid #3498db;border-radius:6px 0 0 6px;outline:none;font-weight:900;font-size:14px;width:100%;color:#3498db;box-sizing:border-box;" onkeypress="if(event.key==='Enter')addPdvPayment()">
+                <input type="number" id="rec-valor" style="padding:10px;border:1px solid #3498db;border-radius:6px 0 0 6px;outline:none;font-weight:900;font-size:14px;width:100%;color:#3498db;box-sizing:border-box;" onkeypress="if(event.key==='Enter')addPdvPayment()" oninput="_pdvUpdateTaxaLiq()">
                 <button onclick="addPdvPayment()" style="background:#3498db;border:none;color:#fff;padding:10px 14px;border-radius:0 6px 6px 0;cursor:pointer;flex-shrink:0;"><i data-lucide="plus" style="width:16px;"></i></button>
               </div>
             </div>
@@ -547,15 +556,109 @@ function switchPdvTab(tab) {
   if(tab === 'recebimento') { updateCartTotals(); setTimeout(()=>lucide.createIcons(),10); }
 }
 
+
+async function _pdvLoadMaquinetas() {
+  if(window._pdvMaqCache) return window._pdvMaqCache;
+  try {
+    const token = localStorage.getItem('loja_token');
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+    const r = await fetch('/api/configuracoes?select=valor&chave=eq.cartoes_maquinetas_v2', { headers });
+    if(r.ok) {
+      const d = await r.json();
+      window._pdvMaqCache = d?.[0]?.valor ? JSON.parse(d[0].valor) : [];
+    }
+  } catch(e) {}
+  return window._pdvMaqCache || [];
+}
+
+async function _pdvFormaChange() {
+  const forma = document.getElementById('rec-forma')?.value;
+  const extra = document.getElementById('rec-cartao-extra');
+  if(!extra) return;
+  const isCard = forma === 'Cartão Crédito' || forma === 'Cartão Débito';
+  extra.style.display = isCard ? 'block' : 'none';
+  if(isCard) {
+    const maq = await _pdvLoadMaquinetas();
+    const sel = document.getElementById('rec-maquineta');
+    if(sel) {
+      sel.innerHTML = '<option value="">— Selecione a maquineta —</option>' +
+        maq.map(m=>`<option value="${m.nome}">${m.nome}</option>`).join('');
+    }
+    document.getElementById('rec-bandeira').innerHTML = '<option value="">— Bandeira —</option>';
+    const ti = document.getElementById('rec-taxa-info');
+    if(ti) { ti.style.display='none'; ti.textContent=''; ti.dataset.taxa=''; }
+  }
+}
+
+async function _pdvMaquinetaChange() {
+  const forma   = document.getElementById('rec-forma')?.value;
+  const maqNome = document.getElementById('rec-maquineta')?.value;
+  const maq     = await _pdvLoadMaquinetas();
+  const m       = maq.find(x=>x.nome===maqNome);
+  const selBand = document.getElementById('rec-bandeira');
+  if(!m || !selBand) return;
+  const tipo = forma==='Cartão Débito' ? 'Débito' : 'Crédito';
+  const taxas = m.taxas.filter(t=>t.tipo.toLowerCase().includes(tipo.toLowerCase()));
+  const bandeiras = [...new Set(taxas.map(t=>t.bandeira))];
+  selBand.innerHTML = '<option value="">— Bandeira —</option>' +
+    bandeiras.map(b=>`<option value="${b}">${b}</option>`).join('');
+  const ti = document.getElementById('rec-taxa-info');
+  if(ti) { ti.style.display='none'; ti.textContent=''; ti.dataset.taxa=''; }
+}
+
+async function _pdvBandeiraChange() {
+  const forma   = document.getElementById('rec-forma')?.value;
+  const maqNome = document.getElementById('rec-maquineta')?.value;
+  const band    = document.getElementById('rec-bandeira')?.value;
+  const parc    = parseInt(document.getElementById('rec-parc')?.value||1);
+  const ti      = document.getElementById('rec-taxa-info');
+  if(!maqNome || !band || !ti) return;
+  const maq = await _pdvLoadMaquinetas();
+  const m   = maq.find(x=>x.nome===maqNome);
+  if(!m) return;
+  const tipo = forma==='Cartão Débito' ? 'Débito' : 'Crédito';
+  const candidatos = m.taxas.filter(t=>
+    (t.bandeira===band||t.bandeira==='Todas') &&
+    t.tipo.toLowerCase().includes(tipo.toLowerCase()) &&
+    t.parc >= parc
+  ).sort((a,b)=>a.parc-b.parc);
+  const taxa = candidatos[0];
+  if(taxa) {
+    ti.style.display='block';
+    ti.innerHTML = `<i data-lucide="percent" style="width:11px;height:11px;vertical-align:-1px"></i> Taxa ${taxa.taxa}% — líquido: R$ <span id="rec-taxa-liq"></span>`;
+    ti.dataset.taxa = taxa.taxa;
+    lucide.createIcons();
+    _pdvUpdateTaxaLiq();
+  } else {
+    ti.style.display='none'; ti.dataset.taxa='';
+  }
+}
+
+function _pdvUpdateTaxaLiq() {
+  const ti   = document.getElementById('rec-taxa-info');
+  const val  = parseFloat(document.getElementById('rec-valor')?.value||0);
+  const taxa = parseFloat(ti?.dataset?.taxa||0);
+  const liq  = document.getElementById('rec-taxa-liq');
+  if(liq && val && taxa) liq.textContent = fmt(val*(1-taxa/100));
+}
+
 function addPdvPayment() {
   const forma = document.getElementById('rec-forma')?.value;
-  const parc = document.getElementById('rec-parc')?.value || '1';
-  const val = parseFloat(document.getElementById('rec-valor')?.value);
-  const dt = document.getElementById('rec-vencto')?.value || new Date().toLocaleDateString('pt-BR');
-  
+  const parc  = document.getElementById('rec-parc')?.value || '1';
+  const val   = parseFloat(document.getElementById('rec-valor')?.value);
+  const dt    = document.getElementById('rec-vencto')?.value || new Date().toLocaleDateString('pt-BR');
+
   if(!val || val <= 0) return toast('Informe um valor válido','error');
-  
-  pdvPayments.push({ forma, parcelas: parc, valor: val, vencimento: dt });
+
+  let label = forma;
+  const maq  = document.getElementById('rec-maquineta')?.value || '';
+  const band = document.getElementById('rec-bandeira')?.value  || '';
+  const taxa = parseFloat(document.getElementById('rec-taxa-info')?.dataset?.taxa || 0);
+
+  if((forma==='Cartão Crédito'||forma==='Cartão Débito') && maq)
+    label = `${forma} / ${maq}${band?' — '+band:''}`;
+
+  pdvPayments.push({ forma: label, parcelas: parc, valor: val, vencimento: dt, taxa });
   renderPdvPayments();
   toast('Pagamento adicionado!', 'success');
 }
@@ -704,28 +807,23 @@ async function handleProdInputLive(val) {
       } catch(e) {}
     }
 
-    // 2. EAN parcial ou não-numérico → ilike em produto_grades
+    // 2. EAN parcial ou não-numérico → usa /api/busca/produto (server-side, sem ilike em coluna numérica)
     if (!items.length && !isExactEAN) {
-      const {data:pgRows} = await sb.from('produto_grades')
-        .select('id,produto_id,tamanho,ean,estoque,preco_venda,cor_descricao')
-        .ilike('ean', `%${term}%`).limit(20);
-
-      if(pgRows && pgRows.length) {
-        const pids = [...new Set(pgRows.map(r=>r.produto_id))];
-        const prodMap = {};
-        for(const pid of pids) {
-          const {data:p} = await sb.from('produtos').select('id,codigo,nome,preco_venda').eq('id',pid).maybeSingle();
-          if(p) prodMap[pid] = p;
+      try {
+        const token2 = localStorage.getItem('loja_token');
+        const headers2 = token2 ? { 'Authorization': `Bearer ${token2}` } : {};
+        const res2 = await fetch(`/api/busca/produto?q=${encodeURIComponent(term)}`, { headers: headers2 });
+        if(res2.ok) {
+          const rows2 = await res2.json();
+          rows2.forEach(r => {
+            if(items.find(i=>i.gradeId===r.grade_id)) return;
+            const preco = parseFloat(r.grade_preco)||parseFloat(r.preco_venda)||0;
+            const cor = r.cor_descricao ? ` — ${r.cor_descricao}` : '';
+            items.push({ prodId:r.id, nome:r.nome, preco, tamanho:r.tamanho, codigo:r.codigo, gradeId:r.grade_id,
+              label:r.nome, grade:`${r.tamanho||''}${cor}`, estoque:r.estoque||0 });
+          });
         }
-        pgRows.forEach(pg => {
-          const p = prodMap[pg.produto_id];
-          if(!p) return;
-          const preco = parseFloat(pg.preco_venda)||parseFloat(p.preco_venda)||0;
-          const cor = pg.cor_descricao ? ` — ${pg.cor_descricao}` : '';
-          items.push({ prodId:p.id, nome:p.nome, preco, tamanho:pg.tamanho, codigo:p.codigo, gradeId:pg.id,
-            label:`${p.nome}`, grade:`${pg.tamanho||''}${cor}`, estoque:pg.estoque||0 });
-        });
-      }
+      } catch(e) {}
     }
 
     // 3. Buscar por nome/código em produtos (só se não é EAN exato e não achou ainda)
