@@ -146,6 +146,7 @@ function navigate(page) {
   document.getElementById('topbar-actions').innerHTML = '';
   const contentEl = document.getElementById('content');
   contentEl.classList.remove('pdv-active');
+  contentEl.scrollTop = 0;
   contentEl.innerHTML = '<div class="loading"><div class="sk" style="height:20px;width:200px;margin:0 auto 8px"></div><div class="sk" style="height:14px;width:140px;margin:0 auto"></div></div>';
   contentEl.classList.remove('page-enter');
   void contentEl.offsetWidth;

@@ -55,7 +55,7 @@ async function loadClientes(filtros={}) {
   }).join('');
 
   el.innerHTML = `
-  <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
+  <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:visible">
     <!-- barra superior -->
     <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <button onclick="toggleClientesFiltro()" style="padding:7px 14px;border:1.5px solid var(--border-2);border-radius:var(--radius);background:white;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;color:var(--text-2)">

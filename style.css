@@ -485,8 +485,29 @@ body {
    MAIN CONTENT
    ============================================================ */
 .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
-.content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 24px 28px; min-height: 0; }
+.content { flex: 1; overflow-y: auto; overflow-x: auto; padding: 20px 24px; min-height: 0; box-sizing: border-box; }
 .content.pdv-active { padding: 0; overflow: hidden; }
+
+/* ============================================================
+   UNIVERSAL PAGE WRAPPER — keeps pages scrollable & consistent
+   ============================================================ */
+.page-body {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+.page-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.page-section {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.page-section:last-child { border-bottom: none; }
 
 /* Page entry animation */
 .page-enter { animation: pageIn 0.28s var(--ease) both; }
@@ -661,8 +682,8 @@ body {
 /* ============================================================
    COMPONENTS — TABLES
    ============================================================ */
-.table-wrap { overflow-x: auto; }
-.data-table { width: 100%; border-collapse: collapse; }
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
+.data-table { width: 100%; border-collapse: collapse; min-width: 500px; }
 .data-table th {
   padding: 11px 16px;
   text-align: left;
@@ -1334,7 +1355,7 @@ body {
   .bottom-nav { display: block; }
 
   /* Pad content for bottom nav */
-  .content { padding: 16px 14px 76px; }
+  .content { padding: 12px 12px 76px; overflow-x: auto; }
   .pagebar { padding: 0 16px; }
 
   /* Stats: 2 col on mobile */
@@ -1378,7 +1399,7 @@ body {
   .products-grid { grid-template-columns: repeat(2, 1fr); }
 
   /* Filters: scroll horizontal */
-  .filters { overflow-x: auto; flex-wrap: nowrap; padding: 10px 14px; }
+  .filters { overflow-x: auto; flex-wrap: nowrap; padding: 10px 12px; -webkit-overflow-scrolling: touch; }
 
   /* Topbar actions */
   .pagebar-actions .btn span { display: none; }
@@ -1555,7 +1576,7 @@ body {
   .pdv-sidebar-actions {
     width: 100%; flex-direction: row; flex-wrap: wrap;
     border-right: none; border-bottom: 1px solid #e1e8ed;
-    padding: 0 0 10px 0; gap: 6px;
+    padding: 0 0 8px 0; gap: 6px; flex-shrink: 0;
   }
   .pdv-sidebar-actions button {
     flex: 1; min-width: calc(50% - 4px); font-size: 12px !important;

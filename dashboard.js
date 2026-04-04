@@ -92,7 +92,7 @@ function hBar(pct, color) {
 async function renderDashboard() {
   const el = document.getElementById('content');
   el.innerHTML = `
-    <div id="dash-root" style="animation:fadeUp .35s ease both">
+    <div id="dash-root" style="animation:fadeUp .35s ease both;min-width:0;overflow-x:hidden">
       ${skeletonLoader()}
     </div>`;
   setTimeout(() => lucide.createIcons(), 10);
