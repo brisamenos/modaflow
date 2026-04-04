@@ -146,9 +146,10 @@ async function executeImportCSV() {
       if(!val) return null;
       const v = val.toString().trim();
       if(!v) return null;
-      let {data}=await sb.from(table).select('id').ilike(field,v).eq('ativo',true).limit(1);
+      // Sem .eq('ativo',true): categorias e colecoes não têm coluna ativo
+      let {data}=await sb.from(table).select('id').ilike(field,v).limit(1);
       if(data&&data[0]) return data[0].id;
-      const ins={}; ins[field]=v; ins['ativo']=1;
+      const ins={}; ins[field]=v;
       const {data:nd}=await sb.from(table).insert(ins).select('id').single();
       return nd?.id||null;
     };
@@ -223,10 +224,18 @@ async function executeImportCSV() {
           genero, ativo:true
         };
 
-        // Upsert por código
+        // Upsert por código — tenta com zero à esquerda e sem zero (CSVs diferentes podem omitir zeros)
         let prodId=null;
         if(cod){
           let {data:ep}=await sb.from('produtos').select('id').eq('codigo',cod).eq('ativo',true).limit(1);
+          // Fallback: mesmo código sem leading zeros (ex: '0801' vs '801')
+          if(!ep||!ep[0]){
+            const codAlt = cod.replace(/^0+/,'');
+            if(codAlt !== cod){
+              let {data:ep2}=await sb.from('produtos').select('id').eq('codigo',codAlt).eq('ativo',true).limit(1);
+              if(ep2&&ep2[0]) ep=ep2;
+            }
+          }
           if(ep&&ep[0]){
             await sb.from('produtos').update(payload).eq('id',ep[0].id);
             prodId=ep[0].id; atualizados++;
@@ -258,10 +267,10 @@ async function executeImportCSV() {
             const vMargem=vVenda>0?((vVenda-vCusto)/vVenda*100):0;
             const vPayload={produto_id:prodId,tamanho:tam,estoque:qtde,ean:ean||null,cor_hexa:corHex||null,cor_descricao:corDesc||null,custo:vCusto||null,preco_venda:vVenda||null,margem_lucro:parseFloat(vMargem.toFixed(2))||null};
 
-            // Estratégia de match em prioridade:
-            // 1. EAN exato (chave mais confiável — funciona mesmo se grade salva com ean=null antes)
-            // 2. produto_id + tamanho + cor_descricao
-            // 3. produto_id + tamanho (fallback)
+            // Match em cascata:
+            // 1. EAN exato — chave mais confiável (único por variante)
+            // 2. produto_id + tamanho + cor_descricao — para produtos sem EAN mas com cor
+            // 3. INSERT — nunca usa fallback só por tamanho (evita pegar grade errada em multi-cor)
             let ev = null;
             if(ean){
               const {data:r1}=await sb.from('produto_grades').select('id').eq('produto_id',prodId).eq('ean',ean).maybeSingle();
@@ -271,7 +280,8 @@ async function executeImportCSV() {
               const {data:r2}=await sb.from('produto_grades').select('id').eq('produto_id',prodId).eq('tamanho',tam).eq('cor_descricao',corDesc).maybeSingle();
               ev=r2;
             }
-            if(!ev){
+            if(!ev && !corDesc && !ean){
+              // Sem EAN e sem cor: único tamanho, fallback seguro
               const {data:r3}=await sb.from('produto_grades').select('id').eq('produto_id',prodId).eq('tamanho',tam).maybeSingle();
               ev=r3;
             }

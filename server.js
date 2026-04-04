@@ -413,7 +413,11 @@ function buildWhere(query) {
         }
         continue;
       }
-      if (val.startsWith('eq.'))        { pushC('=', val.slice(3)); }
+      if (val.startsWith('eq.'))        {
+        // EAN pode ser INTEGER no SQLite — usar CAST para comparação segura
+        if (key === 'ean') { clauses.push(`CAST("ean" AS TEXT) = ?`); params.push(coerceBool(val.slice(3))); }
+        else pushC('=', val.slice(3));
+      }
       else if (val.startsWith('neq.'))  { pushC('!=', val.slice(4)); }
       else if (val.startsWith('gt.'))   { pushC('>', val.slice(3)); }
       else if (val.startsWith('gte.'))  { pushC('>=', val.slice(4)); }
@@ -421,7 +425,10 @@ function buildWhere(query) {
       else if (val.startsWith('lte.'))  { pushC('<=', val.slice(4)); }
       else if (val.startsWith('ilike.')||val.startsWith('like.')) {
         const p = val.startsWith('ilike.') ? 6 : 5;
-        pushC('LIKE', val.slice(p).replace(/\*/g,'%'));
+        const pattern = val.slice(p).replace(/\*/g,'%');
+        // EAN pode ser INTEGER — usar CAST para LIKE funcionar
+        if (key === 'ean') { clauses.push(`CAST("ean" AS TEXT) LIKE ?`); params.push(pattern); }
+        else pushC('LIKE', pattern);
       } else if (val.startsWith('in.(')) {
         const list = val.slice(4,-1).split(',').map(v=>v.trim()).filter(Boolean);
         if (list.length) { clauses.push(`${leftSide} IN (${list.map(()=>'?').join(',')})${rightSideClose}`); params.push(...list.map(coerceBool)); }
@@ -540,7 +547,8 @@ function toSQLiteValue(val) {
 // API ROUTES (multi-tenant via resolveDb)
 // =============================================
 
-// Rota dedicada de busca por EAN — garante comparação como TEXT no SQLite
+
+
 // Rota de diagnóstico — mostra o que há no banco sobre um EAN
 app.get('/api/debug/ean', resolveDb, (req, res) => {
   try {
@@ -576,7 +584,7 @@ app.get('/api/busca/ean', resolveDb, (req, res) => {
       LIMIT 10
     `).all(ean);
 
-    // 2. Fallback: busca por produtos.codigo (EAN pode estar no código do produto)
+    // 2. Fallback: produtos.codigo exato OU normalizado (zeros à esquerda)
     if (!rows.length) {
       rows = db.prepare(`
         SELECT pg.id, pg.produto_id, pg.tamanho, pg.ean, pg.estoque,
@@ -584,12 +592,14 @@ app.get('/api/busca/ean', resolveDb, (req, res) => {
                p.id as prod_id, p.nome as prod_nome, p.codigo as prod_codigo, p.preco_venda as prod_preco
         FROM produto_grades pg
         JOIN produtos p ON p.id = pg.produto_id
-        WHERE CAST(p.codigo AS TEXT) = ? AND p.ativo = 1
+        WHERE (CAST(p.codigo AS TEXT) = ?
+           OR LTRIM(CAST(p.codigo AS TEXT),'0') = LTRIM(?,'0'))
+          AND p.ativo = 1
         LIMIT 10
-      `).all(ean);
+      `).all(ean, ean);
     }
 
-    // 3. Fallback LIKE: EAN armazenado com zeros à esquerda ou espaços extras
+    // 3. Fallback LIKE: zeros à esquerda, espaços extras ou EAN parcial
     if (!rows.length) {
       rows = db.prepare(`
         SELECT pg.id, pg.produto_id, pg.tamanho, pg.ean, pg.estoque,
@@ -602,6 +612,39 @@ app.get('/api/busca/ean', resolveDb, (req, res) => {
       `).all(`%${ean}%`, `%${ean}%`);
     }
 
+    res.json(rows);
+  } catch(e) { res.status(500).json({ message: e.message }); }
+});
+
+// Busca produto por nome/código/EAN (PDV modal + estoque)
+// Aceita: ?q=termo  ou  ?ean=X  ou  ?cod=X  ou  ?desc=X
+app.get('/api/busca/produto', resolveDb, (req, res) => {
+  try {
+    const db = req.db;
+    const q    = (req.query.q    || '').toString().trim();
+    const ean  = (req.query.ean  || q).toString().trim();
+    const cod  = (req.query.cod  || q).toString().trim();
+    const desc = (req.query.desc || q).toString().trim();
+    if (!q && !req.query.ean && !req.query.cod && !req.query.desc) return res.json([]);
+
+    const rows = db.prepare(`
+      SELECT p.id, p.codigo, p.nome, p.preco_venda,
+             pg.id as grade_id, pg.tamanho, pg.ean, pg.estoque,
+             pg.preco_venda as grade_preco, pg.cor_descricao,
+             pg.produto_id, p.nome as prod_nome, p.codigo as prod_codigo,
+             p.preco_venda as prod_preco, pg.id as prod_grade_id
+      FROM produtos p
+      LEFT JOIN produto_grades pg ON pg.produto_id = p.id
+      WHERE p.ativo = 1
+        AND (
+          p.nome LIKE ?
+          OR CAST(p.codigo AS TEXT) LIKE ?
+          OR LTRIM(CAST(p.codigo AS TEXT),'0') = LTRIM(?,'0')
+          OR CAST(pg.ean AS TEXT) LIKE ?
+        )
+      ORDER BY p.nome
+      LIMIT 100
+    `).all(`%${desc}%`, `%${cod}%`, cod, `%${ean}%`);
     res.json(rows);
   } catch(e) { res.status(500).json({ message: e.message }); }
 });

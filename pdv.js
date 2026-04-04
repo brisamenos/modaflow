@@ -831,13 +831,21 @@ async function handleProdInput() {
     }
   } catch(e) {}
   
-  // 2. Buscar por código do produto
-  const {data:byCode} = await sb.from('produtos').select('id,codigo,nome,preco_venda').eq('ativo',true).eq('codigo', term);
-  if(byCode && byCode.length === 1) {
+  // 2. Buscar por código do produto (com fallback sem zeros à esquerda)
+  let byCode = null;
+  for(const codTry of [term, term.replace(/^0+/,'')].filter((v,i,a)=>a.indexOf(v)===i)){
+    const {data:r}=await sb.from('produtos').select('id,codigo,nome,preco_venda').eq('ativo',true).eq('codigo',codTry);
+    if(r && r.length){ byCode=r; break; }
+  }
+  if(byCode && byCode.length >= 1) {
     const {data:pgs} = await sb.from('produto_grades').select('id,tamanho,estoque,preco_venda').eq('produto_id',byCode[0].id);
     if(pgs && pgs.length === 1) {
       const preco = parseFloat(pgs[0].preco_venda)||parseFloat(byCode[0].preco_venda)||0;
       addCartFromGrade(byCode[0].id, byCode[0].nome, preco, pgs[0].tamanho, byCode[0].codigo, pgs[0].id);
+      return;
+    }
+    if(pgs && pgs.length > 1) {
+      openProdutoPDVModal(term);
       return;
     }
   }
@@ -976,12 +984,66 @@ async function searchModalProdutos() {
     return;
   }
 
-  // 3. Busca por código ou descrição
-  let q = sb.from('produtos').select('id,codigo,nome,preco_venda').eq('ativo',true);
-  if(cod)  q = q.ilike('codigo', `%${cod}%`);
-  if(desc) q = q.ilike('nome',   `%${desc}%`);
-  const {data} = await q.limit(50);
-  tbody.innerHTML = await renderModalProdRowsWithGrades(data||[]);
+  // 3. Busca por código ou descrição — usa /api/busca/produto (suporta LTRIM zeros + JOIN grades)
+  try {
+    const term = cod || desc;
+    const token = localStorage.getItem('loja_token');
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+    const res = await fetch(`/api/busca/produto?q=${encodeURIComponent(term)}`, { headers });
+    if(res.ok) {
+      const rows = await res.json();
+      if(rows && rows.length) {
+        // Agrupar por produto para renderizar grades
+        const prodMap = {};
+        rows.forEach(r => {
+          if(!prodMap[r.id]) prodMap[r.id] = { ...r, grades: [] };
+          if(r.grade_id) prodMap[r.id].grades.push(r);
+        });
+        let html = '';
+        for(const p of Object.values(prodMap)) {
+          if(p.grades.length) {
+            p.grades.forEach(pg => {
+              const preco = parseFloat(pg.grade_preco)||parseFloat(p.preco_venda)||0;
+              const corLabel = pg.cor_descricao ? ` / ${pg.cor_descricao}` : '';
+              html += `<tr style="border-bottom:1px solid #f1f2f6;background:#fff;">
+                <td style="padding:8px;font-weight:700;">${p.codigo||'—'}</td>
+                <td style="padding:8px;font-weight:800;">${p.nome}</td>
+                <td style="padding:8px;font-weight:700;">${pg.tamanho||'Único'}${corLabel}</td>
+                <td style="padding:8px;font-size:11px;">${pg.ean||'—'}</td>
+                <td style="padding:8px;font-weight:800;">${fmt(preco)}</td>
+                <td style="padding:8px;text-align:center;">${pg.estoque||0}</td>
+                <td style="padding:8px;">
+                  <button onclick="addCartFromGrade('${p.id}','${p.nome.replace(/'/g,"\'")}',${preco},'${pg.tamanho||''}','${p.codigo||''}','${pg.grade_id}');closeModalDirect();"
+                    style="width:26px;height:26px;border-radius:50%;background:#2ecc71;border:none;color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">
+                    <i data-lucide="check" style="width:14px;"></i>
+                  </button>
+                </td>
+              </tr>`;
+            });
+          } else {
+            const preco = parseFloat(p.preco_venda)||0;
+            html += `<tr style="border-bottom:1px solid #f1f2f6;">
+              <td style="padding:8px;font-weight:700;">${p.codigo||'—'}</td>
+              <td style="padding:8px;font-weight:800;">${p.nome}</td>
+              <td style="padding:8px;">Único</td><td style="padding:8px;">—</td>
+              <td style="padding:8px;font-weight:800;">${fmt(preco)}</td>
+              <td style="padding:8px;">—</td>
+              <td style="padding:8px;">
+                <button onclick="addCartFromGrade('${p.id}','${p.nome.replace(/'/g,"\'")}',${preco},'Único','${p.codigo||''}','');closeModalDirect();"
+                  style="width:26px;height:26px;border-radius:50%;background:#2ecc71;border:none;color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">
+                  <i data-lucide="check" style="width:14px;"></i>
+                </button>
+              </td>
+            </tr>`;
+          }
+        }
+        tbody.innerHTML = html || '<tr><td colspan="7" style="padding:20px;font-weight:700;">Nenhum produto encontrado.</td></tr>';
+        lucide.createIcons();
+        return;
+      }
+    }
+  } catch(e) {}
+  tbody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;color:#e74c3c;font-weight:700;">Nenhum produto encontrado.</td></tr>';
   lucide.createIcons();
 }
 
