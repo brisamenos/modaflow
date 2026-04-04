@@ -63,138 +63,143 @@ async function renderPDV() {
 
   const dtHoje = new Date().toLocaleDateString('pt-BR');
   const html = `
-  <div class="pdv-mobile-layout">
-    
-    <!-- Sidebar de Ações -->
-    <div class="pdv-sidebar-actions">
-      <button onclick="clearCart()" style="background:#95a5a6;color:#fff;border:none;padding:14px 10px;border-radius:6px;font-weight:800;font-size:13px;cursor:pointer;display:flex;justify-content:center;align-items:center;width:100%;">Limpar</button>
-      <button onclick="switchPdvTab('recebimento')" style="background:#2ecc71;color:#fff;border:none;padding:14px 10px;border-radius:6px;font-weight:900;font-size:13px;cursor:pointer;display:flex;justify-content:center;align-items:center;width:100%;">Efetuar Recebimento</button>
-      <button onclick="finalizarVenda()" style="background:#3498db;color:#fff;border:none;padding:14px 10px;border-radius:6px;font-weight:900;font-size:13px;cursor:pointer;display:flex;justify-content:center;align-items:center;width:100%;">Concluir Venda</button>
-      <button onclick="toast('Módulo Troca em desenvolvimento')" style="background:#95a5a6;color:#fff;border:none;padding:14px 10px;border-radius:6px;font-weight:800;font-size:13px;cursor:pointer;display:flex;justify-content:center;align-items:center;width:100%;">Troca</button>
-      <div style="border-top:1px solid rgba(255,255,255,0.15);padding-top:8px;margin-top:4px;">
-        <button onclick="fecharCaixaPDV()" style="background:#c0392b;color:#fff;border:none;padding:14px 10px;border-radius:6px;font-weight:800;font-size:12px;cursor:pointer;display:flex;justify-content:center;align-items:center;gap:6px;width:100%;">
-          <i data-lucide="lock" style="width:15px;height:15px;"></i>Fechar Caixa
+  <div class="pdv-layout-v2">
+
+    <!-- ══ SIDEBAR ESQUERDA ══ -->
+    <aside class="pdv-aside">
+      <div class="pdv-aside-header">
+        <i data-lucide="shopping-cart" style="width:16px;height:16px;opacity:.7"></i>
+        <span>PDV</span>
+        <span id="pdv-aside-badge" style="margin-left:auto;background:rgba(255,255,255,.2);border-radius:20px;padding:2px 8px;font-size:11px" id="cart-total-qty-badge">0</span>
+      </div>
+
+      <div class="pdv-aside-body">
+        <!-- Vendedor -->
+        <div class="pdv-field-group">
+          <label class="pdv-label">Vendedor(a)</label>
+          <select id="pdv-seller" onchange="cartSeller=this.value" class="pdv-select">
+            <option value="">Selecione</option>
+          </select>
+        </div>
+
+        <!-- Cliente -->
+        <div class="pdv-field-group">
+          <label class="pdv-label">Cliente</label>
+          <div style="display:flex;gap:6px;margin-bottom:6px">
+            <button onclick="openClientePDVModal()" class="pdv-btn-sm pdv-btn-green">
+              <i data-lucide="user-plus" style="width:13px;height:13px"></i> Cliente
+            </button>
+            <div style="position:relative;flex:1">
+              <input type="text" id="pdv-client-phone" placeholder="Celular" class="pdv-input pdv-input-sm" oninput="filterClientesPDV(this.value,'phone')" autocomplete="off">
+              <div id="pdv-client-dd-phone" class="pdv-dropdown-list"></div>
+            </div>
+          </div>
+          <div style="position:relative">
+            <input type="text" id="pdv-client-name" placeholder="Nome do cliente" class="pdv-input pdv-input-sm" oninput="filterClientesPDV(this.value,'name')" autocomplete="off">
+            <div id="pdv-client-dd-name" class="pdv-dropdown-list"></div>
+          </div>
+          <select id="pdv-client" onchange="cartClient=this.value" style="display:none"></select>
+        </div>
+
+        <!-- Data -->
+        <div class="pdv-field-group">
+          <label class="pdv-label">Data</label>
+          <input type="text" value="${dtHoje}" disabled class="pdv-input" style="background:#f8fafc;color:var(--pdv-text-2);text-align:center">
+        </div>
+
+        <!-- Totais -->
+        <div class="pdv-totals-card">
+          <div class="pdv-total-row"><span>Subtotal</span><span id="cart-total-sale">R$ 0,00</span></div>
+          <div class="pdv-total-row"><span>Desconto</span><span style="color:#ef4444" id="pdv-aside-desc">R$ 0,00</span></div>
+          <div class="pdv-total-divider"></div>
+          <div class="pdv-total-row pdv-total-final"><span>Total</span><span id="cart-grand-total">R$ 0,00</span></div>
+        </div>
+      </div>
+
+      <div class="pdv-aside-actions">
+        <button onclick="clearCart()" class="pdv-action-btn pdv-action-gray">
+          <i data-lucide="trash-2" style="width:14px;height:14px"></i> Limpar
+        </button>
+        <button onclick="switchPdvTab('recebimento')" class="pdv-action-btn pdv-action-green">
+          <i data-lucide="credit-card" style="width:14px;height:14px"></i> Receber
+        </button>
+        <button onclick="finalizarVenda()" class="pdv-action-btn pdv-action-blue">
+          <i data-lucide="check-circle" style="width:14px;height:14px"></i> Concluir
+        </button>
+        <button onclick="fecharCaixaPDV()" class="pdv-action-btn pdv-action-red">
+          <i data-lucide="lock" style="width:14px;height:14px"></i> Fechar Caixa
         </button>
       </div>
-    </div>
+    </aside>
 
-    <!-- Main Content Area -->
-    <div class="pdv-main-area">
-      
-      <!-- Fundo Alert -->
-      <div id="pdv-alert-fundo" style="background:#d9edf7;border:1px solid #bce8f1;border-radius:4px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;">
-        <span style="color:#31708f;font-weight:600;font-size:13px;"><i data-lucide="info" style="width:16px;vertical-align:middle;margin-right:6px;"></i> O Fundo de Caixa foi cadastrado corretamente! Obrigado.</span>
-        <i data-lucide="x" style="width:16px;color:#31708f;cursor:pointer;" onclick="document.getElementById('pdv-alert-fundo').style.display='none'"></i>
+    <!-- ══ ÁREA PRINCIPAL ══ -->
+    <main class="pdv-main-v2">
+
+      <!-- Alerta fundo -->
+      <div id="pdv-alert-fundo" class="pdv-alert-info">
+        <i data-lucide="check-circle" style="width:15px;height:15px;flex-shrink:0"></i>
+        Fundo de Caixa registrado com sucesso.
+        <i data-lucide="x" style="width:14px;height:14px;cursor:pointer;margin-left:auto" onclick="this.parentElement.style.display='none'"></i>
       </div>
 
-      <!-- Top Area: Filters + Green Total -->
-      <div class="pdv-top-section">
-        <!-- Filter Form -->
-        <div class="pdv-filters-area">
-          <div class="pdv-filters-grid">
-            <div>
-              <label style="display:block;color:#2c3e50;font-weight:900;font-size:12px;margin-bottom:8px;">Vendedor(a)</label>
-              <select id="pdv-seller" onchange="cartSeller=this.value" style="width:100%;padding:10px 14px;border:2px solid #2c3e50;border-radius:6px;outline:none;font-size:14px;font-weight:700;color:#2c3e50;background:#fff;box-sizing:border-box;">
-                <option value="">Selecione</option>
-              </select>
-            </div>
-            <div>
-              <label style="display:block;color:#2c3e50;font-weight:900;font-size:12px;margin-bottom:8px;">Data Venda</label>
-              <input type="text" value="${dtHoje}" disabled style="width:100%;padding:10px 14px;border:1px solid #e1e8ed;border-radius:6px;outline:none;font-size:14px;font-weight:700;color:#7f8c8d;background:#fff;text-align:center;box-sizing:border-box;">
-            </div>
-          </div>
-
-          <div>
-             <label style="display:block;color:#2c3e50;font-weight:900;font-size:12px;margin-bottom:8px;">Cliente</label>
-             <div class="pdv-client-row" style="display:flex;align-items:center;gap:8px;">
-              <button onclick="openClientePDVModal()" style="background:#5cb85c;color:#fff;border:none;border-radius:4px;padding:8px 14px;font-weight:800;font-size:12px;cursor:pointer;white-space:nowrap;">Incluir Cliente</button>
-              
-              <div style="position:relative;width:140px;flex-shrink:0;">
-                <input type="text" id="pdv-client-phone" placeholder="Número Celular" style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:4px;outline:none;font-size:13px;background:#fff;box-sizing:border-box;" oninput="filterClientesPDV(this.value, 'phone')" autocomplete="off">
-                <div id="pdv-client-dd-phone" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #bdc3c7;border-radius:4px;max-height:200px;overflow-y:auto;z-index:999;box-shadow:0 4px 6px rgba(0,0,0,0.1);"></div>
-              </div>
-
-              <div style="position:relative;flex:1;min-width:0;">
-                <input type="text" id="pdv-client-name" placeholder="Nome abreviado ou completo" style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:4px;outline:none;font-size:13px;background:#fff;box-sizing:border-box;" oninput="filterClientesPDV(this.value, 'name')" autocomplete="off">
-                <div id="pdv-client-dd-name" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #bdc3c7;border-radius:4px;max-height:200px;overflow-y:auto;z-index:999;box-shadow:0 4px 6px rgba(0,0,0,0.1);"></div>
-              </div>
-              
-              <select id="pdv-client" onchange="cartClient=this.value" style="display:none;">
-                <option value="">Consumidor final</option>
-              </select>
-              <!-- Hidden search button to replace old functionality layout if needed -->
-              <button onclick="searchClientePDV()" style="display:none;"><i data-lucide="search" style="width:16px;"></i></button>
-            </div></div>
-          </div>
-        </div>
-        
-        <!-- Green Total Box -->
-        <div class="pdv-total-box">
-          <div style="display:flex;justify-content:space-between;color:#000;font-weight:800;font-size:13px;"><span style="color:#2c3e50">(+) Total Venda:</span><span id="cart-total-sale">0,00</span></div>
-          <div style="display:flex;justify-content:space-between;color:#000;font-weight:800;font-size:13px;"><span style="color:#2c3e50">(-) Total Troca:</span><span>0,00</span></div>
-          <div style="border-top:1px solid #00b300;margin-top:6px;padding-top:8px;display:flex;justify-content:space-between;color:#000;font-weight:900;font-size:15px;"><span style="color:#2c3e50">(=) Valor Final R$:</span><span id="cart-grand-total">0,00</span></div>
-        </div>
-      </div>
-
-      <!-- Tabs + Table -->
-      <div style="background:#fff;border-radius:12px;border:1px solid #e1e8ed;flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;margin-bottom:10px;">
-        
-        <!-- Tabs Row -->
-        <div style="background:#f4f6f7;display:flex;flex-direction:column;border-bottom:1px solid #e1e8ed;">
-          <div style="display:flex;gap:1px;background:#e1e8ed;padding:2px 2px 0 2px;">
-            <div id="pdv-tab-btn-itens" style="background:#fff;color:#3498db;font-weight:800;font-size:13px;padding:10px 24px;border-radius:6px 6px 0 0;cursor:pointer;" onclick="switchPdvTab('itens')">Itens Venda</div>
-            <div id="pdv-tab-btn-receb" style="background:#ecf0f1;color:#95a5a6;font-weight:800;font-size:13px;padding:10px 24px;border-radius:6px 6px 0 0;cursor:pointer;" onclick="switchPdvTab('recebimento')">Recebimento</div>
-          </div>
+      <!-- Tabs -->
+      <div class="pdv-tabs-container">
+        <div class="pdv-tabs-header">
+          <button id="pdv-tab-btn-itens" class="pdv-tab-btn pdv-tab-active" onclick="switchPdvTab('itens')">
+            <i data-lucide="package" style="width:14px;height:14px"></i> Itens da Venda
+          </button>
+          <button id="pdv-tab-btn-receb" class="pdv-tab-btn" onclick="switchPdvTab('recebimento')">
+            <i data-lucide="credit-card" style="width:14px;height:14px"></i> Recebimento
+          </button>
         </div>
 
-        <!-- TAB: ITENS VENDA -->
-        <div id="pdv-tab-itens" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
-          <!-- Inputs -->
-          <div class="pdv-qty-prod-row">
-            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
-              <label style="color:#e74c3c;font-weight:900;font-size:13px;">Quantidade</label>
-              <input type="number" id="pdv-qty-input" value="1" min="1" style="width:120px;padding:10px;border:1px solid #bdc3c7;border-radius:6px;text-align:center;font-size:15px;font-weight:800;outline:none;box-sizing:border-box;">
+        <!-- ─── TAB ITENS ─── -->
+        <div id="pdv-tab-itens" class="pdv-tab-panel">
+          <div class="pdv-search-bar">
+            <div class="pdv-qty-wrap">
+              <label class="pdv-label">Qtde</label>
+              <input type="number" id="pdv-qty-input" value="1" min="1" class="pdv-input pdv-input-qty">
             </div>
-            <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;flex:1;min-width:0;">
-              <label style="color:#e74c3c;font-weight:900;font-size:13px;">Informe o Produto</label>
-              <div class="pdv-prod-input-wrap" style="position:relative;">
-                 <input type="text" id="pdv-prod-input" style="flex:1;padding:10px 14px;border:1px solid #3498db;border-radius:6px;font-size:15px;font-weight:700;outline:none;min-width:0;box-sizing:border-box;" placeholder="Bipe/Digite o Cód. Barras..." 
-                   onkeypress="if(event.key==='Enter')handleProdInput()"
-                   oninput="handleProdInputLive(this.value)">
-                 <i data-lucide="search" style="width:24px;height:24px;color:#3498db;cursor:pointer;flex-shrink:0;" onclick="handleProdInput()"></i>
-                 <div id="pdv-ean-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:2px solid #3498db;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.15);z-index:999;max-height:300px;overflow-y:auto;margin-top:2px;"></div>
+            <div class="pdv-prod-wrap">
+              <label class="pdv-label">Produto / Código de Barras</label>
+              <div class="pdv-prod-input-wrap" style="position:relative">
+                <i data-lucide="scan-line" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:17px;height:17px;color:#94a3b8;pointer-events:none"></i>
+                <input type="text" id="pdv-prod-input"
+                  class="pdv-input pdv-input-scan"
+                  placeholder="Bipe ou digite o código de barras / nome do produto..."
+                  onkeypress="if(event.key==='Enter')handleProdInput()"
+                  oninput="handleProdInputLive(this.value)">
+                <button onclick="handleProdInput()" class="pdv-scan-btn">
+                  <i data-lucide="search" style="width:15px;height:15px"></i>
+                </button>
+                <div id="pdv-ean-dropdown" class="pdv-ean-drop"></div>
               </div>
             </div>
           </div>
 
-          <!-- Cart Table -->
-          <div class="pdv-cart-table-wrap" style="flex:1;overflow-y:auto;background:#fcfcfc;">
-            <table style="width:100%;border-collapse:collapse;font-size:12px;">
-              <thead style="background:#fcfcfc;border-bottom:2px solid #e1e8ed;">
-                <tr style="background:#f4f6f7;border-bottom:1px solid #e1e8ed;">
-                   <th colspan="9" style="padding:8px 16px;text-align:center;color:#2c3e50;font-weight:900;font-size:13px;">Itens da Venda</th>
-                </tr>
+          <div class="pdv-cart-wrap">
+            <table class="pdv-cart-table">
+              <thead>
                 <tr>
-                  <th style="padding:12px 16px;text-align:left;color:#7f8c8d;font-weight:900;">Código (EAN)</th>
-                  <th style="padding:12px 16px;text-align:left;color:#7f8c8d;font-weight:900;">Descrição Produto</th>
-                  <th style="padding:12px 16px;text-align:center;color:#7f8c8d;font-weight:900;">Grade</th>
-                  <th style="padding:12px 16px;text-align:center;color:#7f8c8d;font-weight:900;">Cor</th>
-                  <th style="padding:12px 16px;text-align:center;color:#7f8c8d;font-weight:900;">Qtde</th>
-                  <th style="padding:12px 16px;text-align:right;color:#7f8c8d;font-weight:900;">Vlr Un</th>
-                  <th style="padding:12px 16px;text-align:right;color:#7f8c8d;font-weight:900;">Descto</th>
-                  <th style="padding:12px 16px;text-align:right;color:#7f8c8d;font-weight:900;">Vlr Total</th>
-                  <th style="padding:12px 16px;text-align:center;color:#7f8c8d;font-weight:900;">Ação</th>
+                  <th>Código</th>
+                  <th>Produto</th>
+                  <th>Grade</th>
+                  <th>Cor</th>
+                  <th>Qtde</th>
+                  <th style="text-align:right">Vlr Un</th>
+                  <th style="text-align:right">Total</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody id="cart-items-list">
+                <tr><td colspan="8" class="pdv-cart-empty">Nenhum Item de Venda.</td></tr>
               </tbody>
-              <tfoot style="background:#fcfcfc;border-top:1px solid #e1e8ed;">
+              <tfoot>
                 <tr>
-                  <td colspan="4" style="padding:12px 16px;text-align:right;color:#7f8c8d;font-weight:900;text-transform:uppercase;">Total:</td>
-                  <td style="padding:12px 16px;text-align:center;color:#3498db;font-weight:900;font-size:14px;" id="cart-total-qty">0</td>
-                  <td style="padding:12px 16px;text-align:right;"></td>
-                  <td style="padding:12px 16px;text-align:right;color:#e74c3c;font-weight:900;font-size:14px;" id="cart-total-desc">0,00</td>
-                  <td style="padding:12px 16px;text-align:right;color:#3498db;font-weight:900;font-size:14px;" id="cart-total-val">0,00</td>
+                  <td colspan="4" style="padding:10px 14px;text-align:right;font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Total</td>
+                  <td style="padding:10px 14px;text-align:center;font-weight:800;color:#3b82f6" id="cart-total-qty">0</td>
+                  <td></td>
+                  <td style="padding:10px 14px;text-align:right;font-weight:800;color:#1e293b" id="cart-total-val">0,00</td>
                   <td></td>
                 </tr>
               </tfoot>
@@ -202,36 +207,36 @@ async function renderPDV() {
           </div>
         </div>
 
-        <!-- TAB: RECEBIMENTO -->
-        <div id="pdv-tab-recebimento" style="display:none;flex-direction:column;flex:1;overflow-y:auto;min-height:0;background:#fff;padding:20px;">
-          
-          <div class="pdv-rec-top-flex">
-            <!-- Desconto e Frete -->
-            <div style="flex:1;background:#dff9fb;border:1px solid #badc58;border-radius:8px;padding:16px;">
-              <h4 style="color:#2c3e50;font-weight:900;font-size:13px;text-align:center;margin-bottom:10px;">Desconto</h4>
-              <div style="display:flex;gap:8px;margin-bottom:12px;">
-                <div style="flex:1;background:#fff;border:1px solid #badc58;border-radius:4px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#7f8c8d;">%</div>
-                <input type="number" id="pdv-desc-val" style="flex:2;padding:6px;border:1px solid #badc58;border-radius:4px;outline:none;box-sizing:border-box;" oninput="updateCartTotals()">
+        <!-- ─── TAB RECEBIMENTO ─── -->
+        <div id="pdv-tab-recebimento" class="pdv-tab-panel" style="display:none">
+          <!-- Linha 1: Desconto / Frete / Resumo -->
+          <div class="pdv-rec-summary">
+            <div class="pdv-rec-adjustments">
+              <div class="pdv-rec-field">
+                <label class="pdv-label">Desconto</label>
+                <div class="pdv-input-addon">
+                  <span class="pdv-addon-text">%</span>
+                  <input type="number" id="pdv-desc-val" class="pdv-input" placeholder="0" oninput="updateCartTotals()">
+                </div>
               </div>
-              <h4 style="color:#2c3e50;font-weight:900;font-size:13px;text-align:center;margin-bottom:10px;">Frete</h4>
-              <input type="number" id="pdv-frete-val" style="width:100%;padding:6px;border:1px solid #badc58;border-radius:4px;outline:none;margin-bottom:12px;box-sizing:border-box;" oninput="updateCartTotals()">
-              <a href="#" style="color:#3498db;font-size:12px;font-weight:800;text-align:center;display:block;">+ Adicionar Cupom de Desconto</a>
+              <div class="pdv-rec-field">
+                <label class="pdv-label">Frete (R$)</label>
+                <input type="number" id="pdv-frete-val" class="pdv-input" placeholder="0,00" oninput="updateCartTotals()">
+              </div>
             </div>
-            
-            <!-- Resumo Financeiro -->
-            <div style="flex:1.5;background:#00e600;border-radius:8px;padding:20px;display:flex;flex-direction:column;gap:10px;">
-              <div style="display:flex;justify-content:space-between;color:#000;font-weight:800;font-size:14px;"><span style="color:#2c3e50">(+) Total Venda:</span><span id="rec-total-venda">0,00</span></div>
-              <div style="display:flex;justify-content:space-between;color:#000;font-weight:800;font-size:14px;"><span style="color:#2c3e50">(-) Total Desconto:</span><span id="rec-total-desc">0,00</span></div>
-              <div style="display:flex;justify-content:space-between;color:#000;font-weight:800;font-size:14px;"><span style="color:#2c3e50">(+) Valor Frete:</span><span id="rec-total-frete">0,00</span></div>
-              <div style="border-top:1px solid #00b300;margin-top:6px;padding-top:10px;display:flex;justify-content:space-between;color:#000;font-weight:900;font-size:16px;"><span style="color:#2c3e50">(=) Valor Final:</span><span id="rec-valor-final">R$ 0,00</span></div>
+            <div class="pdv-rec-totals">
+              <div class="pdv-rec-total-row"><span>(+) Total Venda</span><span id="rec-total-venda">0,00</span></div>
+              <div class="pdv-rec-total-row"><span>(-) Desconto</span><span id="rec-total-desc">0,00</span></div>
+              <div class="pdv-rec-total-row"><span>(+) Frete</span><span id="rec-total-frete">0,00</span></div>
+              <div class="pdv-rec-total-final"><span>Valor Final</span><span id="rec-valor-final">R$ 0,00</span></div>
             </div>
           </div>
 
-          <!-- Formulário Incluir Pagamento -->
-          <div class="pdv-rec-form-row">
-            <div class="pdv-rec-form-item">
-              <label style="color:#e74c3c;font-weight:900;font-size:12px;text-align:center;">Forma Pagto</label>
-              <select id="rec-forma" onchange="_pdvFormaChange()" style="padding:10px;border:1px solid #2c3e50;border-radius:6px;outline:none;font-weight:800;font-size:13px;width:100%;box-sizing:border-box;">
+          <!-- Linha 2: Formulário de pagamento -->
+          <div class="pdv-payment-form">
+            <div class="pdv-pay-field">
+              <label class="pdv-label">Forma de Pagamento</label>
+              <select id="rec-forma" onchange="_pdvFormaChange()" class="pdv-select pdv-select-pay">
                 <option value="Dinheiro">💵 Dinheiro</option>
                 <option value="Pix">⚡ Pix</option>
                 <option value="Cartão Crédito">💳 Cartão Crédito</option>
@@ -239,76 +244,71 @@ async function renderPDV() {
                 <option value="Crediário">📋 Crediário</option>
               </select>
               <div id="rec-cartao-extra" style="display:none;margin-top:6px">
-                <div style="display:flex;gap:6px;margin-bottom:4px">
-                  <select id="rec-maquineta" onchange="_pdvMaquinetaChange()" style="flex:1;padding:6px;border:1px solid #3498db;border-radius:6px;font-size:12px;box-sizing:border-box">
+                <div style="display:flex;gap:6px">
+                  <select id="rec-maquineta" onchange="_pdvMaquinetaChange()" class="pdv-select" style="flex:1;font-size:12px">
                     <option value="">— Maquineta —</option>
                   </select>
-                  <select id="rec-bandeira" onchange="_pdvBandeiraChange()" style="flex:1;padding:6px;border:1px solid #3498db;border-radius:6px;font-size:12px;box-sizing:border-box">
+                  <select id="rec-bandeira" onchange="_pdvBandeiraChange()" class="pdv-select" style="flex:1;font-size:12px">
                     <option value="">— Bandeira —</option>
                   </select>
                 </div>
-                <div id="rec-taxa-info" style="font-size:11px;color:#7c3aed;font-weight:700;display:none"></div>
+                <div id="rec-taxa-info" style="font-size:11px;color:#7c3aed;font-weight:700;margin-top:4px;display:none"></div>
               </div>
             </div>
-            <div class="pdv-rec-form-item">
-              <label style="color:#e74c3c;font-weight:900;font-size:12px;text-align:center;">Primeiro Vencto</label>
-              <input type="text" id="rec-vencto" value="${dtHoje}" disabled style="padding:10px;border:1px solid #e1e8ed;border-radius:6px;outline:none;text-align:center;font-weight:700;color:#7f8c8d;width:100%;background:#fcfcfc;box-sizing:border-box;">
-            </div>
-            <div class="pdv-rec-form-item">
-              <label style="color:#e74c3c;font-weight:900;font-size:12px;text-align:center;">Qtde Parcela</label>
-              <select id="rec-parc" style="padding:10px;border:1px solid #e1e8ed;border-radius:6px;outline:none;font-weight:700;width:100%;box-sizing:border-box;">
-                <option value="1">1x</option>
-                <option value="2">2x</option>
-                <option value="3">3x</option>
-                <option value="4">4x</option>
-                <option value="5">5x</option>
-                <option value="6">6x</option>
-                <option value="10">10x</option>
-                <option value="12">12x</option>
+            <div class="pdv-pay-field pdv-pay-field-sm">
+              <label class="pdv-label">Parcelas</label>
+              <select id="rec-parc" class="pdv-select">
+                <option value="1">1x</option><option value="2">2x</option><option value="3">3x</option>
+                <option value="4">4x</option><option value="5">5x</option><option value="6">6x</option>
+                <option value="10">10x</option><option value="12">12x</option>
               </select>
             </div>
-            <div class="pdv-rec-form-item">
-              <label style="color:#e74c3c;font-weight:900;font-size:12px;text-align:center;">Valor</label>
-              <div style="display:flex;align-items:center;">
-                <input type="number" id="rec-valor" style="padding:10px;border:1px solid #3498db;border-radius:6px 0 0 6px;outline:none;font-weight:900;font-size:14px;width:100%;color:#3498db;box-sizing:border-box;" onkeypress="if(event.key==='Enter')addPdvPayment()" oninput="_pdvUpdateTaxaLiq()">
-                <button onclick="addPdvPayment()" style="background:#3498db;border:none;color:#fff;padding:10px 14px;border-radius:0 6px 6px 0;cursor:pointer;flex-shrink:0;"><i data-lucide="plus" style="width:16px;"></i></button>
+            <div class="pdv-pay-field pdv-pay-field-sm">
+              <label class="pdv-label">1º Vencimento</label>
+              <input type="text" id="rec-vencto" value="${dtHoje}" disabled class="pdv-input" style="background:#f8fafc;text-align:center">
+            </div>
+            <div class="pdv-pay-field">
+              <label class="pdv-label">Valor (R$)</label>
+              <div style="display:flex">
+                <input type="number" id="rec-valor" class="pdv-input pdv-input-valor" placeholder="0,00"
+                  onkeypress="if(event.key==='Enter')addPdvPayment()" oninput="_pdvUpdateTaxaLiq()">
+                <button onclick="addPdvPayment()" class="pdv-add-pay-btn">
+                  <i data-lucide="plus" style="width:16px;height:16px"></i>
+                </button>
               </div>
             </div>
           </div>
 
-          <!-- Tabela de Pagamentos -->
-          <div class="pdv-cart-table-wrap" style="border:1px solid #e1e8ed;flex:1;overflow-y:auto;border-radius:6px;">
-            <table style="width:100%;border-collapse:collapse;font-size:12px;">
-              <thead style="background:#f4f6f7;border-bottom:1px solid #e1e8ed;">
+          <!-- Linha 3: Lista de pagamentos -->
+          <div class="pdv-payments-list">
+            <table class="pdv-cart-table">
+              <thead>
                 <tr>
-                  <th style="padding:10px;font-weight:900;color:#2c3e50;text-align:left;">Forma Pagto</th>
-                  <th style="padding:10px;font-weight:900;color:#2c3e50;text-align:center;">Parcelas</th>
-                  <th style="padding:10px;font-weight:900;color:#2c3e50;text-align:center;">Primeiro Vencimento</th>
-                  <th style="padding:10px;font-weight:900;color:#2c3e50;text-align:right;">Valor</th>
-                  <th style="padding:10px;font-weight:900;color:#2c3e50;text-align:center;">Ação</th>
+                  <th>Forma</th><th style="text-align:center">Parcelas</th>
+                  <th style="text-align:center">Vencimento</th>
+                  <th style="text-align:right">Valor</th><th></th>
                 </tr>
               </thead>
               <tbody id="rec-items-list">
-                <tr><td colspan="5" style="padding:16px;text-align:center;color:#7f8c8d;font-weight:700;">Nenhuma Forma de Pagamento para a Venda.</td></tr>
+                <tr><td colspan="5" class="pdv-cart-empty">Nenhuma forma de pagamento adicionada.</td></tr>
               </tbody>
-              <tfoot style="background:#fcfcfc;">
-                <tr>
-                  <td colspan="3" style="padding:8px 10px;text-align:right;color:#7f8c8d;font-weight:800;">Total pago:</td>
-                  <td style="padding:8px 10px;text-align:right;color:#2ecc71;font-weight:900;font-size:14px;border-bottom:1px solid #e1e8ed;" id="rec-total-pago">0,00</td>
-                  <td></td>
-                </tr>
-                <tr>
-                  <td colspan="3" style="padding:8px 10px;text-align:right;color:#7f8c8d;font-weight:800;">Total a pagar:</td>
-                  <td style="padding:8px 10px;text-align:right;color:#e74c3c;font-weight:900;font-size:14px;" id="rec-total-apagar">0,00</td>
-                  <td></td>
-                </tr>
-              </tfoot>
             </table>
           </div>
 
+          <!-- Linha 4: Resumo pago -->
+          <div class="pdv-pay-summary">
+            <div class="pdv-pay-summary-row">
+              <span>Total a pagar</span>
+              <span id="rec-valor-final-2" style="font-weight:800;color:#1e293b">R$ 0,00</span>
+            </div>
+            <div class="pdv-pay-summary-row">
+              <span>Total pago</span>
+              <span id="pdv-total-pago" style="font-weight:800;color:#16a34a">R$ 0,00</span>
+            </div>
+          </div>
         </div>
-
       </div>
+    </main>
   </div>`;
   document.getElementById('content').innerHTML = html;
   setTimeout(()=>lucide.createIcons(),10);
@@ -533,19 +533,15 @@ function updateCartTotals() {
 }
 
 function switchPdvTab(tab) {
-  if(tab==='recebimento') { setTimeout(()=>{ const f=document.getElementById('rec-forma'); if(f && (f.value.includes('Cartão'))) _pdvFormaChange(); },50); }
+  if(tab==='recebimento') { setTimeout(()=>{ const f=document.getElementById('rec-forma'); if(f && f.value.includes('Cartão')) _pdvFormaChange(); },50); }
   pdvTab = tab;
-  const btnItens = document.getElementById('pdv-tab-btn-itens');
-  const btnReceb = document.getElementById('pdv-tab-btn-receb');
-  const tabItens = document.getElementById('pdv-tab-itens');
-  const tabReceb = document.getElementById('pdv-tab-recebimento');
-  
-  if(btnItens) { btnItens.style.background = tab==='itens' ? '#fff' : '#ecf0f1'; btnItens.style.color = tab==='itens' ? '#3498db' : '#95a5a6'; }
-  if(btnReceb) { btnReceb.style.background = tab==='recebimento' ? '#fff' : '#ecf0f1'; btnReceb.style.color = tab==='recebimento' ? '#3498db' : '#95a5a6'; }
-  if(tabItens) tabItens.style.display = tab==='itens' ? 'flex' : 'none';
-  if(tabReceb) tabReceb.style.display = tab==='recebimento' ? 'flex' : 'none';
-  
-  if(tab === 'recebimento') { updateCartTotals(); setTimeout(()=>lucide.createIcons(),10); }
+  document.getElementById('pdv-tab-btn-itens')?.classList.toggle('pdv-tab-active', tab==='itens');
+  document.getElementById('pdv-tab-btn-receb')?.classList.toggle('pdv-tab-active', tab==='recebimento');
+  const ti = document.getElementById('pdv-tab-itens');
+  const tr = document.getElementById('pdv-tab-recebimento');
+  if(ti) ti.style.display = tab==='itens' ? 'flex' : 'none';
+  if(tr) tr.style.display = tab==='recebimento' ? 'flex' : 'none';
+  if(tab==='recebimento') { updateCartTotals(); setTimeout(()=>lucide.createIcons(),10); }
 }
 
 
@@ -677,16 +673,24 @@ function renderPdvPayments() {
     return;
   }
   list.innerHTML = pdvPayments.map((p,i) => `
-    <tr style="border-bottom:1px solid #f1f2f6;background:#fff;">
-      <td style="padding:10px;font-weight:800;color:#2c3e50;">${p.forma}</td>
-      <td style="padding:10px;text-align:center;font-weight:700;color:#7f8c8d;">${p.parcelas}x</td>
-      <td style="padding:10px;text-align:center;font-weight:700;color:#7f8c8d;">${p.vencimento}</td>
-      <td style="padding:10px;text-align:right;font-weight:800;color:#3498db;">${fmt(p.valor)}</td>
-      <td style="padding:10px;text-align:center;">
-        <i data-lucide="trash-2" style="color:#e74c3c;cursor:pointer;width:16px;display:inline-block;" onclick="removePdvPayment(${i})"></i>
+    <tr>
+      <td style="font-weight:600">${p.forma}</td>
+      <td style="text-align:center">${p.parcelas}x</td>
+      <td style="text-align:center">${p.vencimento}</td>
+      <td style="text-align:right;font-weight:700;color:#2563eb">${fmt(p.valor)}</td>
+      <td style="text-align:center;padding:6px 8px">
+        <button onclick="removePdvPayment(${i})" style="width:28px;height:28px;border-radius:5px;border:none;background:#fef2f2;color:#ef4444;cursor:pointer;display:inline-flex;align-items:center;justify-content:center">
+          <i data-lucide="trash-2" style="width:13px;height:13px"></i>
+        </button>
       </td>
     </tr>
   `).join('');
+  // Update pay summary
+  const totalPago = pdvPayments.reduce((a,p)=>a+p.valor,0);
+  const el2 = document.getElementById('pdv-total-pago');
+  if(el2) el2.textContent = 'R$ ' + fmt(totalPago);
+  const el3 = document.getElementById('rec-valor-final-2');
+  if(el3) el3.textContent = document.getElementById('rec-valor-final')?.textContent || 'R$ 0,00';
   updateCartTotals();
   lucide.createIcons();
 }
