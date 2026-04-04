@@ -222,7 +222,13 @@ function closeSizeModalDirect() {
 const fmt = v => 'R$ '+parseFloat(v||0).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
 const fmtNum = v => parseFloat(v||0).toFixed(2).replace('.',',');
 const fmtDate = d => d?new Date(d+'T00:00:00').toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'}):'—';
-const fmtDatetime = d => d?new Date(d).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+const fmtDatetime = d => {
+  if(!d) return '—';
+  // Normaliza: troca espaço por T (formato SQLite), e adiciona Z se não tiver fuso (assume UTC)
+  let s = String(d).replace(' ','T');
+  if(!/Z|[+-]\d{2}:?\d{2}$/.test(s)) s += 'Z';
+  return new Date(s).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+};
 // Retorna "YYYY-MM-DD" no fuso de Brasília (evita virar dia no UTC)
 const hojeStr = () => new Date().toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'});
 
