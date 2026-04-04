@@ -91,7 +91,8 @@ async function verVenda(id) {
     nomeVendedor = vd?.nome;
   }
   // Data atual da venda em formato ISO para o input date
-  const dataIso = v?.created_at ? v.created_at.substring(0,10) : new Date().toISOString().split('T')[0];
+  const dataIso = v?.created_at ? v.created_at.substring(0,10) : hojeStr();
+  const dataPagIso = v?.data_pagamento ? v.data_pagamento.substring(0,10) : '';
   openModal(`
     <div class="modal-header"><h3>Venda #${v?.numero_venda}</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
     <div class="modal-body">
@@ -105,6 +106,14 @@ async function verVenda(id) {
             style="border:1px solid #d1d5db;border-radius:6px;padding:4px 8px;font-size:13px;font-weight:600;color:#1e293b;cursor:pointer;outline:none">
           <button onclick="alterarDataVenda('${id}')" style="background:#3b82f6;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:4px">
             <i data-lucide="save" style="width:13px;height:13px"></i> Salvar Data
+          </button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <strong>Data de Pagamento:</strong>
+          <input type="date" id="venda-data-pagamento-edit" value="${dataPagIso}"
+            style="border:1px solid #d1d5db;border-radius:6px;padding:4px 8px;font-size:13px;font-weight:600;color:#1e293b;cursor:pointer;outline:none">
+          <button onclick="alterarDataPagamento('${id}')" style="background:#16a34a;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:4px">
+            <i data-lucide="save" style="width:13px;height:13px"></i> Salvar Pagamento
           </button>
         </div>
       </div>
@@ -133,6 +142,16 @@ async function alterarDataVenda(id) {
   // Atualiza o texto exibido no modal sem fechar
   const partes = novaData.split('-');
   const dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+  loadRelacaoVendas();
+}
+
+async function alterarDataPagamento(id) {
+  const novaData = document.getElementById('venda-data-pagamento-edit')?.value;
+  if(!novaData) return toast('Selecione uma data de pagamento válida','error');
+  const novaDataISO = `${novaData}T00:00:00`;
+  const {error} = await sb.from('vendas').update({data_pagamento: novaDataISO}).eq('id', id);
+  if(error) return toast('Erro ao alterar data de pagamento: '+error.message,'error');
+  toast('Data de pagamento alterada com sucesso!','success');
   loadRelacaoVendas();
 }
 
@@ -692,7 +711,7 @@ function switchTab(id) {
 
 // ===== LISTAR CONTAS A RECEBER (Layout Phibo) =====
 async function renderListarContasReceber() {
-  const hoje = new Date().toISOString().split('T')[0];
+  const hoje = hojeStr();
   document.getElementById('topbar-actions').innerHTML = '';
   document.getElementById('content').innerHTML = `
     <div class="tabs" id="lcr-tabs">
@@ -732,7 +751,7 @@ function switchLCRTab(id) {
 }
 
 async function loadContasReceberDia() {
-  const data = document.getElementById('lcr-data')?.value || new Date().toISOString().split('T')[0];
+  const data = document.getElementById('lcr-data')?.value || hojeStr();
   const ini = data+'T00:00:00';
   const fim = data+'T23:59:59';
 
@@ -1221,7 +1240,7 @@ async function saveTroca() {
     motivo:document.getElementById('tr-motivo').value,
     valor_credito:parseFloat(document.getElementById('tr-cred').value||0),
     valor:parseFloat(document.getElementById('tr-cred').value||0),
-    data_troca:new Date().toISOString().split('T')[0]
+    data_troca:hojeStr()
   };
   const {error} = await sb.from('trocas').insert(payload);
   if(error) return toast('Erro ao registrar troca: '+error.message,'error');
