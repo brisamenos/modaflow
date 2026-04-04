@@ -2115,7 +2115,7 @@ async function renderListarAntecipacoes() {
 
 // ===== CARTÕES — MAQUINETAS & TAXAS =====
 
-const _MAQUINETAS_DEFAULT = [
+var _MAQUINETAS_DEFAULT = [
   { id:'cielo',       nome:'Cielo',       cor:'#003087', taxas:[
     {bandeira:'Todas',tipo:'Débito',parc:1,taxa:1.99},
     {bandeira:'Todas',tipo:'Crédito à vista',parc:1,taxa:2.99},
