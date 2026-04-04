@@ -252,7 +252,7 @@ async function renderPainelFinanceiro() {
     
     return `<tr>
       <td style="text-align:center;">
-        <span style="display:inline-block; background:${dStr === new Date().toISOString().split('T')[0].split('-').reverse().slice(0,2).join('/') ? '#eafaf1' : '#f8f9fa'}; color:${dStr === new Date().toISOString().split('T')[0].split('-').reverse().slice(0,2).join('/') ? '#27ae60' : '#7f8c8d'}; padding:6px 14px; border-radius:6px; font-weight:700; border:1px solid ${dStr === new Date().toISOString().split('T')[0].split('-').reverse().slice(0,2).join('/') ? '#c9ebd6' : '#e1e8ed'}; font-size:12px;">
+        <span style="display:inline-block; background:${dStr === hojeStr().split('-').reverse().slice(0,2).join('/') ? '#eafaf1' : '#f8f9fa'}; color:${dStr === hojeStr().split('-').reverse().slice(0,2).join('/') ? '#27ae60' : '#7f8c8d'}; padding:6px 14px; border-radius:6px; font-weight:700; border:1px solid ${dStr === hojeStr().split('-').reverse().slice(0,2).join('/') ? '#c9ebd6' : '#e1e8ed'}; font-size:12px;">
           ${dStr}
         </span>
       </td>
@@ -519,7 +519,7 @@ async function saveDespesa() {
     descricao:document.getElementById('dp2-desc').value.trim(),
     valor:parseFloat(document.getElementById('dp2-val').value||0),
     vencimento:document.getElementById('dp2-venc').value||null,
-    data_competencia: new Date().toISOString().split('T')[0],
+    data_competencia: hojeStr(),
     classificacao_id:document.getElementById('dp2-cls').value||null
   };
   if(!payload.descricao||!payload.valor||!payload.vencimento) return toast('Preencha os campos obrigatórios em vermelho!','error');
@@ -527,7 +527,7 @@ async function saveDespesa() {
   closeModalDirect();toast('Despesa cadastrada');renderDespesas();
 }
 
-async function pagarDespesa(id){await sb.from('despesas').update({status:'pago',data_pagamento:new Date().toISOString().split('T')[0]}).eq('id',id);toast('Despesa paga');renderDespesas();}
+async function pagarDespesa(id){await sb.from('despesas').update({status:'pago',data_pagamento:hojeStr()}).eq('id',id);toast('Despesa paga');renderDespesas();}
 async function deleteDespesa(id){if(!confirm('Excluir?'))return;await sb.from('despesas').delete().eq('id',id);toast('Removido');renderDespesas();}
 
 // ===== CONTAS A PAGAR (Dashboard) =====
@@ -702,7 +702,7 @@ async function saveContaPagar() {
   closeModalDirect();toast('Conta a pagar inserida!');renderContasPagar();
 }
 
-async function pagarConta(id){await sb.from('contas_pagar').update({status:'paga',data_pagamento:new Date().toISOString().split('T')[0]}).eq('id',id);toast('A conta foi marcada como paga.');renderContasPagar();}
+async function pagarConta(id){await sb.from('contas_pagar').update({status:'paga',data_pagamento:hojeStr()}).eq('id',id);toast('A conta foi marcada como paga.');renderContasPagar();}
 
 // ===== CONTAS BANCÁRIAS =====
 async function renderContasBancarias() {
@@ -907,7 +907,7 @@ async function renderCaixaMensal() {
     
     return `<tr>
       <td style="text-align:center;">
-        <span style="display:inline-block; background:${dStr.startsWith(new Date().toISOString().split('T')[0].split('-').reverse().slice(0,2).join('/')) ? '#eafaf1' : '#f8f9fa'}; color:${dStr.startsWith(new Date().toISOString().split('T')[0].split('-').reverse().slice(0,2).join('/')) ? '#27ae60' : '#7f8c8d'}; padding:5px 12px; border-radius:6px; font-weight:700; border:1px solid ${dStr.startsWith(new Date().toISOString().split('T')[0].split('-').reverse().slice(0,2).join('/')) ? '#c9ebd6' : '#e1e8ed'}; font-size:12px;">
+        <span style="display:inline-block; background:${dStr.startsWith(hojeStr().split('-').reverse().slice(0,2).join('/')) ? '#eafaf1' : '#f8f9fa'}; color:${dStr.startsWith(hojeStr().split('-').reverse().slice(0,2).join('/')) ? '#27ae60' : '#7f8c8d'}; padding:5px 12px; border-radius:6px; font-weight:700; border:1px solid ${dStr.startsWith(hojeStr().split('-').reverse().slice(0,2).join('/')) ? '#c9ebd6' : '#e1e8ed'}; font-size:12px;">
           ${dStr}
         </span>
       </td>
@@ -1047,7 +1047,7 @@ async function renderCaixaMensal() {
 
 // ===== OPERAÇÕES DE CAIXA =====
 async function renderOperacoesCaixa() {
-  const dataStore = document.getElementById('opcx-data')?.value || new Date().toISOString().split('T')[0];
+  const dataStore = document.getElementById('opcx-data')?.value || hojeStr();
   
   document.getElementById('topbar-actions').innerHTML = `
     <button class="btn btn-success" style="background:#2ecc71;border:none;border-radius:20px;padding:8px 16px;color:#fff;font-weight:700;display:flex;align-items:center;gap:6px;" onclick="openOperacaoCaixaModal()">
@@ -1733,7 +1733,7 @@ async function renderCadastrarContaCorrente() {
 
 function openContaCorrenteModal() {
   const bankOpts = BRAZILIAN_BANKS.map(b => `<option value="${b}">${b}</option>`).join('');
-  let today = new Date().toISOString().split('T')[0];
+  let today = hojeStr();
   
   openModal(`
     <style>
@@ -2065,13 +2065,13 @@ async function _efetuarAntecipacao(){
   if(!selecionados.length) return toast('Selecione ao menos uma parcela','error');
   if(!confirm(`Antecipar ${selecionados.length} parcela(s)?`)) return;
   for(const id of selecionados){
-    await sb.from('crediario_parcelas').update({status:'pago',data_pagamento:new Date().toISOString().split('T')[0]}).eq('id',id);
+    await sb.from('crediario_parcelas').update({status:'pago',data_pagamento:hojeStr()}).eq('id',id);
   }
   // Salvar registro de antecipação
   const total = [...document.querySelectorAll('.antec-chk:checked')].reduce((a,c)=>a+parseFloat(c.dataset.val||0),0);
   const {data:atual} = await sb.from('configuracoes').select('valor').eq('chave','antecipacoes_hist').maybeSingle();
   const hist = atual?.valor ? JSON.parse(atual.valor) : [];
-  hist.unshift({data:new Date().toISOString().split('T')[0],qtd:selecionados.length,valor:total});
+  hist.unshift({data:hojeStr(),qtd:selecionados.length,valor:total});
   await sb.from('configuracoes').upsert({chave:'antecipacoes_hist',valor:JSON.stringify(hist.slice(0,100))});
   toast(`${selecionados.length} parcela(s) antecipada(s)!`,'success');
   renderAnteciparParcelas();

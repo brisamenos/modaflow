@@ -265,7 +265,7 @@ async function renderPDV() {
             </div>
             <div class="pdv-pay-field pdv-pay-field-sm">
               <label class="pdv-label">1º Vencimento</label>
-              <input type="date" id="rec-vencto" value="${new Date().toISOString().split('T')[0]}" class="pdv-input" style="text-align:center;cursor:pointer">
+              <input type="date" id="rec-vencto" value="${hojeStr()}" class="pdv-input" style="text-align:center;cursor:pointer">
             </div>
             <div class="pdv-pay-field">
               <label class="pdv-label">Valor (R$)</label>
@@ -643,7 +643,7 @@ function addPdvPayment() {
   const forma = document.getElementById('rec-forma')?.value;
   const parc  = document.getElementById('rec-parc')?.value || '1';
   const val   = parseFloat(document.getElementById('rec-valor')?.value);
-  const dtRaw = document.getElementById('rec-vencto')?.value || new Date().toISOString().split('T')[0];
+  const dtRaw = document.getElementById('rec-vencto')?.value || hojeStr();
   // Converte yyyy-MM-dd para dd/MM/yyyy para exibição
   const dt = dtRaw.includes('-') && dtRaw.length === 10
     ? dtRaw.split('-').reverse().join('/')
@@ -1349,7 +1349,7 @@ async function finalizarVenda() {
 
   // Atualizar ultima_compra do cliente
   if(clienteId) {
-    try { await sb.from('clientes').update({ultima_compra: new Date().toISOString().split('T')[0]}).eq('id',clienteId); } catch(e) {}
+    try { await sb.from('clientes').update({ultima_compra: hojeStr()}).eq('id',clienteId); } catch(e) {}
   }
 
   toast(`Venda #${venda.numero_venda} concluída com sucesso!${troco>0?' Troco: '+fmt(troco):''}`, 'success');

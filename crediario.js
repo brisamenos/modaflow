@@ -96,7 +96,7 @@ async function abrirModalReceber(parcId, credId, totalDue, clienteNome) {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div class="form-group"><label>Valor a Pagar (R$)</label><input id="rec-valor-parc" type="number" step="0.01" value="${totalDue.toFixed(2)}" style="font-size:15px;font-weight:700;color:#2563eb"></div>
         <div class="form-group"><label>Forma de Pagamento</label><select id="rec-forma"><option>Dinheiro</option><option>PIX</option><option>Cartão Débito</option><option>Cartão Crédito</option></select></div>
-        <div class="form-group"><label>Data Pagamento</label><input id="rec-data" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
+        <div class="form-group"><label>Data Pagamento</label><input id="rec-data" type="date" value="${hojeStr()}"></div>
         <div class="form-group"><label>Desconto (R$)</label><input id="rec-desc" type="number" step="0.01" value="0"></div>
       </div>
     </div>
@@ -109,7 +109,7 @@ async function abrirModalReceber(parcId, credId, totalDue, clienteNome) {
 async function confirmarRecebimento(parcId, credId) {
   const valor=parseFloat(document.getElementById('rec-valor-parc')?.value||0);
   const forma=document.getElementById('rec-forma')?.value||'Dinheiro';
-  const data=document.getElementById('rec-data')?.value||new Date().toISOString().split('T')[0];
+  const data=document.getElementById('rec-data')?.value||hojeStr();
   const desc=parseFloat(document.getElementById('rec-desc')?.value||0);
   if(!valor) return toast('Informe o valor','error');
   await sb.from('crediario_parcelas').update({status:'paga',data_pagamento:data,valor_pago:valor,forma_pagamento:forma,desconto:desc}).eq('id',parcId);
@@ -131,7 +131,7 @@ async function renderCrediario(subPage) {
   document.getElementById('topbar-actions').innerHTML='';
   const {data:cfgP}=await sb.from('configuracoes').select('valor').eq('chave','crediario_params').maybeSingle();
   try{_crediParams=cfgP?JSON.parse(cfgP.valor):{multa_pct:2,juros_mes:1,prazo_dias:0};}catch(e){_crediParams={multa_pct:2,juros_mes:1,prazo_dias:0};}
-  const hoje=new Date().toISOString().split('T')[0];
+  const hoje=hojeStr();
   const [{data:todos},{data:atrasadas},{data:emDia},{data:clientes}]=await Promise.all([
     sb.from('crediario_parcelas').select('id,valor,vencimento,status').in('status',['pendente','atrasada']),
     sb.from('crediario_parcelas').select('id,valor').eq('status','atrasada'),
@@ -388,7 +388,7 @@ async function carregarListaClientesCrediario(filtroNome, filtroFone) {
     try{_crediParams=cfgP?JSON.parse(cfgP.valor):{multa_pct:2,juros_mes:1};}catch(e){_crediParams={multa_pct:2,juros_mes:1};}
   }
   const params = _crediParams||{multa_pct:2,juros_mes:1};
-  const hoje = new Date().toISOString().split('T')[0];
+  const hoje = hojeStr();
 
   // Busca todos crediários em aberto/atrasado com parcelas pendentes
   const {data:parcelas} = await sb.from('crediario_parcelas')

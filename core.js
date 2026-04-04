@@ -221,8 +221,10 @@ function closeSizeModalDirect() {
 // ===== UTILS =====
 const fmt = v => 'R$ '+parseFloat(v||0).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
 const fmtNum = v => parseFloat(v||0).toFixed(2).replace('.',',');
-const fmtDate = d => d?new Date(d+'T00:00:00').toLocaleDateString('pt-BR'):'—';
-const fmtDatetime = d => d?new Date(d).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+const fmtDate = d => d?new Date(d+'T00:00:00').toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'}):'—';
+const fmtDatetime = d => d?new Date(d).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+// Retorna "YYYY-MM-DD" no fuso de Brasília (evita virar dia no UTC)
+const hojeStr = () => new Date().toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'});
 
 function badgeStatus(status) {
   const map = {
