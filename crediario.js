@@ -311,37 +311,40 @@ function openFiltrarPeriodosCredi() {
 async function renderAnaliseCliente() {
   document.getElementById('topbar-actions').innerHTML='';
   document.getElementById('content').innerHTML=`
-    <div style="background:white;border:1px solid #e2e8f0;border-radius:8px">
+    <div style="background:white;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:16px">
       <div style="padding:12px 16px;border-bottom:1px solid #e2e8f0">
         <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:10px">Buscar Cliente</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end">
-          <div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end">
+          <div style="flex:1;min-width:140px">
             <label style="font-size:11px;color:#6b7280;font-weight:600;display:block;margin-bottom:4px">Celular</label>
             <input id="ac-fone" placeholder="Número do celular" style="width:100%;padding:8px 12px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box"
               onkeypress="if(event.key==='Enter')buscarAnaliseCliente()">
           </div>
-          <div>
+          <div style="flex:2;min-width:180px">
             <label style="font-size:11px;color:#6b7280;font-weight:600;display:block;margin-bottom:4px">Nome</label>
             <input id="ac-nome" placeholder="Nome completo ou abreviado" style="width:100%;padding:8px 12px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box"
               onkeypress="if(event.key==='Enter')buscarAnaliseCliente()">
           </div>
-          <div style="display:flex;gap:6px">
-            <button onclick="buscarAnaliseCliente()" title="Buscar" style="padding:8px 16px;background:#2563eb;color:white;border:none;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;white-space:nowrap">
+          <div style="flex-shrink:0">
+            <button onclick="buscarAnaliseCliente()" style="padding:8px 18px;background:#2563eb;color:white;border:none;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600">
               <i data-lucide="search" style="width:15px;height:15px"></i> Buscar
-            </button>
-            <button onclick="buscarAnaliseCliente(true)" title="Ver todos" style="padding:8px 12px;background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">
-              Ver todos
             </button>
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Lista de clientes com crediário -->
-      <div id="ac-clientes-lista" style="padding:12px 16px;border-bottom:1px solid #e2e8f0;display:none">
-        <div style="font-size:11px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Clientes encontrados — clique para ver parcelas</div>
-        <div id="ac-clientes-chips" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+    <!-- Tabela resumo de todos os clientes com crediário -->
+    <div style="background:white;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:16px;overflow:hidden">
+      <div style="padding:10px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-size:13px;font-weight:700;color:#374151">
+        Clientes com Crediário — Próximos Vencimentos
       </div>
+      <div id="ac-lista-clientes" style="overflow-x:auto"><div style="padding:24px;text-align:center;color:#888">Carregando...</div></div>
+    </div>
 
+    <!-- Detalhe parcelas do cliente selecionado -->
+    <div id="ac-detalhe" style="display:none;background:white;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+      <div style="padding:10px 16px;background:#eff6ff;border-bottom:1px solid #bfdbfe;font-size:13px;font-weight:700;color:#2563eb" id="ac-detalhe-titulo">Parcelas</div>
       <div style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse;font-size:12px">
           <thead>
@@ -352,10 +355,9 @@ async function renderAnaliseCliente() {
               <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280" rowspan="2">Status</th>
               <th colspan="4" style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280;border-left:2px solid #e2e8f0">Recebimento</th>
               <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280" rowspan="2">Dias Atraso</th>
-              <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280" rowspan="2">Parcela</th>
               <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280" rowspan="2">Multa</th>
               <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280" rowspan="2">Juros</th>
-              <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280" rowspan="2">Total</th>
+              <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280" rowspan="2">Total a Pagar</th>
             </tr>
             <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
               <th style="padding:6px 8px;text-align:center;font-size:10px;font-weight:700;color:#6b7280;border-left:2px solid #e2e8f0">Data Pagto</th>
@@ -364,97 +366,134 @@ async function renderAnaliseCliente() {
               <th style="padding:6px 8px;text-align:center;font-size:10px;font-weight:700;color:#6b7280">Forma</th>
             </tr>
           </thead>
-          <tbody id="ac-tbody"><tr><td colspan="13" style="padding:24px;text-align:center;color:#888">Pesquise um cliente ou clique em "Ver todos".</td></tr></tbody>
+          <tbody id="ac-tbody"><tr><td colspan="12" style="padding:24px;text-align:center;color:#888">Clique em um cliente para ver as parcelas.</td></tr></tbody>
           <tfoot><tr style="border-top:2px solid #e2e8f0;background:#f8fafc">
-            <td colspan="9" style="padding:8px 10px;text-align:right;font-size:12px;font-weight:700">Total a pagar:</td>
+            <td colspan="8" style="padding:8px 10px;text-align:right;font-size:12px;font-weight:700">Total a pagar:</td>
             <td colspan="4" id="ac-total" style="padding:8px 10px"></td>
           </tr></tfoot>
         </table>
       </div>
     </div>`;
   lucide.createIcons();
-  // Carrega automaticamente todos os clientes com crediário aberto
-  await buscarAnaliseCliente(true);
+  await carregarListaClientesCrediario();
 }
 
-async function buscarAnaliseCliente(todos) {
-  const fone = document.getElementById('ac-fone')?.value.trim() || '';
-  const nome = document.getElementById('ac-nome')?.value.trim() || '';
-  const tbody = document.getElementById('ac-tbody');
-  if(!tbody) return;
-
-  // Se não é "todos" e não tem filtro, mostra instrução
-  if(!todos && !fone && !nome) {
-    tbody.innerHTML='<tr><td colspan="13" style="padding:24px;text-align:center;color:#888">Digite celular ou nome para pesquisar.</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML='<tr><td colspan="13" style="padding:16px;text-align:center;color:#888">Buscando...</td></tr>';
+async function carregarListaClientesCrediario(filtroNome, filtroFone) {
+  const wrap = document.getElementById('ac-lista-clientes');
+  if(!wrap) return;
+  wrap.innerHTML='<div style="padding:16px;text-align:center;color:#888">Carregando...</div>';
 
   if(!_crediParams){
     const {data:cfgP}=await sb.from('configuracoes').select('valor').eq('chave','crediario_params').maybeSingle();
     try{_crediParams=cfgP?JSON.parse(cfgP.valor):{multa_pct:2,juros_mes:1};}catch(e){_crediParams={multa_pct:2,juros_mes:1};}
   }
   const params = _crediParams||{multa_pct:2,juros_mes:1};
+  const hoje = new Date().toISOString().split('T')[0];
 
-  let clientes = [];
+  // Busca todos crediários em aberto/atrasado com parcelas pendentes
+  const {data:parcelas} = await sb.from('crediario_parcelas')
+    .select('id,numero_parcela,vencimento,valor,status,crediario_id,crediario(cliente_id,clientes(id,nome,celular))')
+    .in('status',['pendente','atrasada'])
+    .order('vencimento');
 
-  if(todos) {
-    // Busca todos os clientes que têm crediário (aberto, atrasado ou quitado)
-    const {data:creds} = await sb.from('crediario').select('cliente_id').not('cliente_id','is',null);
-    const ids = [...new Set((creds||[]).map(c=>c.cliente_id))];
-    if(ids.length) {
-      const {data:clis} = await sb.from('clientes').select('id,nome,celular').in('id', ids);
-      clientes = clis||[];
-    }
-  } else {
-    let q = sb.from('clientes').select('id,nome,celular').eq('ativo',true);
-    if(fone) q = q.ilike('celular',`%${fone}%`);
-    if(nome) q = q.ilike('nome',`%${nome}%`);
-    const {data:clis} = await q.limit(10);
-    clientes = clis||[];
-  }
-
-  if(!clientes.length) {
-    tbody.innerHTML='<tr><td colspan="13" style="padding:16px;text-align:center;color:#e74c3c">Nenhum cliente com crediário encontrado.</td></tr>';
-    const lista = document.getElementById('ac-clientes-lista');
-    if(lista) lista.style.display='none';
+  if(!parcelas||!parcelas.length){
+    wrap.innerHTML='<div style="padding:24px;text-align:center;color:#888">Nenhum cliente com crediário em aberto.</div>';
     return;
   }
 
-  // Mostra chips de clientes para seleção rápida
-  const lista = document.getElementById('ac-clientes-lista');
-  const chips = document.getElementById('ac-clientes-chips');
-  if(lista && chips) {
-    lista.style.display = 'block';
-    chips.innerHTML = clientes.map(c=>`
-      <button onclick="carregarParcelasCliente('${c.id}','${(c.nome||'').replace(/'/g,"\\'")}',this)"
-        style="padding:6px 14px;border:1.5px solid #e2e8f0;border-radius:20px;background:white;cursor:pointer;font-size:12px;font-weight:600;color:#374151;display:flex;align-items:center;gap:6px">
-        <i data-lucide="user" style="width:12px;height:12px;color:#6b7280"></i>
-        ${c.nome} ${c.celular?`<span style="color:#94a3b8;font-weight:400">${c.celular}</span>`:''}
-      </button>`).join('');
-    lucide.createIcons();
+  // Agrupar por cliente
+  const porCliente = {};
+  parcelas.forEach(p=>{
+    const cli = p.crediario?.clientes;
+    if(!cli) return;
+    const id = cli.id;
+    if(!porCliente[id]) porCliente[id] = {id, nome:cli.nome||'—', celular:cli.celular||'—', parcelas:[], totalEmAberto:0, totalAtraso:0, proximoVencimento:null};
+    const dias = diasAtraso(p.vencimento);
+    const multa = dias>0?(p.valor*(params.multa_pct||2)/100):0;
+    const juros = dias>0?(p.valor*(params.juros_mes||1)/100*(dias/30)):0;
+    const total = p.valor+multa+juros;
+    porCliente[id].parcelas.push({...p, dias, total});
+    porCliente[id].totalEmAberto += total;
+    if(dias>0) porCliente[id].totalAtraso += total;
+    if(!porCliente[id].proximoVencimento || p.vencimento < porCliente[id].proximoVencimento)
+      porCliente[id].proximoVencimento = p.vencimento;
+  });
+
+  let lista = Object.values(porCliente);
+
+  // Filtros de busca
+  if(filtroNome) lista = lista.filter(c=>c.nome.toLowerCase().includes(filtroNome.toLowerCase()));
+  if(filtroFone) lista = lista.filter(c=>c.celular.includes(filtroFone));
+
+  // Ordena: primeiro os com atraso, depois por próximo vencimento
+  lista.sort((a,b)=>{
+    if(a.totalAtraso>0 && b.totalAtraso===0) return -1;
+    if(a.totalAtraso===0 && b.totalAtraso>0) return 1;
+    return (a.proximoVencimento||'')>(b.proximoVencimento||'')?1:-1;
+  });
+
+  if(!lista.length){
+    wrap.innerHTML='<div style="padding:24px;text-align:center;color:#e74c3c">Nenhum cliente encontrado.</div>';
+    return;
   }
 
-  // Se só um cliente, carrega automaticamente
-  if(clientes.length === 1) {
-    await carregarParcelasCliente(clientes[0].id, clientes[0].nome, null);
-  } else {
-    tbody.innerHTML='<tr><td colspan="13" style="padding:24px;text-align:center;color:#888">Selecione um cliente acima para ver as parcelas.</td></tr>';
-    const tot=document.getElementById('ac-total'); if(tot) tot.innerHTML='';
-  }
+  wrap.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
+      <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#6b7280">Cliente</th>
+      <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#6b7280">Celular</th>
+      <th style="padding:8px 12px;text-align:center;font-size:11px;font-weight:700;color:#6b7280">Parcelas em Aberto</th>
+      <th style="padding:8px 12px;text-align:center;font-size:11px;font-weight:700;color:#6b7280">Próx. Vencimento</th>
+      <th style="padding:8px 12px;text-align:right;font-size:11px;font-weight:700;color:#6b7280">Total em Aberto</th>
+      <th style="padding:8px 12px;text-align:right;font-size:11px;font-weight:700;color:#dc2626">Em Atraso</th>
+      <th style="padding:8px 12px;text-align:center;font-size:11px;font-weight:700;color:#6b7280">Situação</th>
+      <th style="padding:8px 12px;text-align:center;font-size:11px;font-weight:700;color:#6b7280">Detalhe</th>
+    </tr></thead>
+    <tbody>
+    ${lista.map(c=>{
+      const temAtraso = c.totalAtraso>0;
+      const proxDias = c.proximoVencimento ? Math.ceil((new Date(c.proximoVencimento+'T00:00:00')-new Date())/(1000*60*60*24)) : null;
+      const proxLabel = proxDias===null?'—':proxDias<0?`${Math.abs(proxDias)}d atraso`:proxDias===0?'Hoje':`Em ${proxDias}d`;
+      const proxCor = proxDias!==null && proxDias<=0?'#dc2626':proxDias!==null && proxDias<=3?'#d97706':'#16a34a';
+      return `<tr style="border-bottom:1px solid #f1f5f9;${temAtraso?'background:#fffbfb':''}">
+        <td style="padding:8px 12px;font-weight:600">${c.nome}</td>
+        <td style="padding:8px 12px;color:#6b7280">${c.celular}</td>
+        <td style="padding:8px 12px;text-align:center;font-weight:700;color:#2563eb">${c.parcelas.length}</td>
+        <td style="padding:8px 12px;text-align:center;font-weight:700;color:${proxCor}">${fmtDate(c.proximoVencimento)} <span style="font-size:10px">(${proxLabel})</span></td>
+        <td style="padding:8px 12px;text-align:right;font-weight:700">${fmt(c.totalEmAberto)}</td>
+        <td style="padding:8px 12px;text-align:right;font-weight:700;color:${temAtraso?'#dc2626':'#6b7280'}">${temAtraso?fmt(c.totalAtraso):'—'}</td>
+        <td style="padding:8px 12px;text-align:center">
+          <span style="background:${temAtraso?'#fef2f2':'#f0fdf4'};color:${temAtraso?'#dc2626':'#16a34a'};padding:2px 10px;border-radius:10px;font-size:10px;font-weight:700">
+            ${temAtraso?'Em atraso':'Em dia'}
+          </span>
+        </td>
+        <td style="padding:8px 12px;text-align:center">
+          <button onclick="carregarParcelasCliente('${c.id}','${(c.nome||'').replace(/'/g,"\\'")}',null)"
+            style="padding:4px 12px;background:#2563eb;color:white;border:none;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer">
+            Ver parcelas
+          </button>
+        </td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table>`;
+}
+
+async function buscarAnaliseCliente() {
+  const fone = document.getElementById('ac-fone')?.value.trim() || '';
+  const nome = document.getElementById('ac-nome')?.value.trim() || '';
+  await carregarListaClientesCrediario(nome, fone);
 }
 
 async function carregarParcelasCliente(clienteId, clienteNome, btnEl) {
-  // Destaca o botão selecionado
-  document.querySelectorAll('#ac-clientes-chips button').forEach(b=>{
-    b.style.background='white'; b.style.borderColor='#e2e8f0'; b.style.color='#374151';
-  });
-  if(btnEl) { btnEl.style.background='#eff6ff'; btnEl.style.borderColor='#2563eb'; btnEl.style.color='#2563eb'; }
-
+  const detalhe = document.getElementById('ac-detalhe');
+  const titulo = document.getElementById('ac-detalhe-titulo');
   const tbody = document.getElementById('ac-tbody');
-  if(!tbody) return;
-  tbody.innerHTML='<tr><td colspan="13" style="padding:16px;text-align:center;color:#888">Carregando parcelas...</td></tr>';
+  if(!detalhe||!tbody) return;
+
+  detalhe.style.display='block';
+  if(titulo) titulo.textContent=`Parcelas — ${clienteNome}`;
+  tbody.innerHTML='<tr><td colspan="12" style="padding:16px;text-align:center;color:#888">Carregando parcelas...</td></tr>';
+  detalhe.scrollIntoView({behavior:'smooth',block:'start'});
 
   if(!_crediParams){
     const {data:cfgP}=await sb.from('configuracoes').select('valor').eq('chave','crediario_params').maybeSingle();
@@ -464,16 +503,15 @@ async function carregarParcelasCliente(clienteId, clienteNome, btnEl) {
 
   const {data:creds} = await sb.from('crediario').select('id,total,num_parcelas,status').eq('cliente_id',clienteId);
   if(!creds||!creds.length) {
-    tbody.innerHTML=`<tr><td colspan="13" style="padding:20px;text-align:center;color:#888">Nenhum crediário encontrado para ${clienteNome}.</td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="12" style="padding:20px;text-align:center;color:#888">Nenhum crediário encontrado para ${clienteNome}.</td></tr>`;
     return;
   }
 
   let rows='', totalPagar=0;
   for(const cr of creds) {
     const {data:ps} = await sb.from('crediario_parcelas').select('*').eq('crediario_id',cr.id).order('numero_parcela');
-    // Cabeçalho separador por crediário
     rows += `<tr style="background:#f0f9ff;border-top:2px solid #bfdbfe">
-      <td colspan="13" style="padding:6px 12px;font-size:11px;font-weight:700;color:#2563eb">
+      <td colspan="12" style="padding:6px 12px;font-size:11px;font-weight:700;color:#2563eb">
         Crediário — Total: ${fmt(cr.total)} | ${cr.num_parcelas}x | Status: ${cr.status}
       </td>
     </tr>`;
@@ -482,9 +520,9 @@ async function carregarParcelasCliente(clienteId, clienteNome, btnEl) {
       const multa=dias>0?(p.valor*(params.multa_pct||2)/100):0;
       const juros=dias>0?(p.valor*(params.juros_mes||1)/100*(dias/30)):0;
       const total=Math.max(0, p.valor+multa+juros-(p.valor_pago||0));
-      totalPagar+=total;
+      if(p.status!=='paga') totalPagar+=total;
       const stCor=p.status==='paga'?'#16a34a':p.status==='atrasada'?'#dc2626':'#2563eb';
-      rows+=`<tr style="border-bottom:1px solid #f1f5f9">
+      rows+=`<tr style="border-bottom:1px solid #f1f5f9${p.status==='paga'?';opacity:.7':''}">
         <td style="padding:7px 10px;text-align:center">${p.numero_parcela}</td>
         <td style="padding:7px 10px;text-align:center">${fmtDate(p.vencimento)}</td>
         <td style="padding:7px 10px;text-align:center">${fmt(p.valor)}</td>
@@ -494,14 +532,13 @@ async function carregarParcelasCliente(clienteId, clienteNome, btnEl) {
         <td style="padding:7px 10px;text-align:center">${p.desconto?fmt(p.desconto):'—'}</td>
         <td style="padding:7px 10px;text-align:center">${p.forma_pagamento||'—'}</td>
         <td style="padding:7px 10px;text-align:center;color:#dc2626">${dias>0?dias:0}</td>
-        <td style="padding:7px 10px;text-align:center">${fmt(p.valor)}</td>
         <td style="padding:7px 10px;text-align:center;color:#dc2626">${fmt(multa)}</td>
         <td style="padding:7px 10px;text-align:center;color:#d97706">${fmt(juros)}</td>
-        <td style="padding:7px 10px;text-align:center;font-weight:700;color:#dc2626">${fmt(total)}</td>
+        <td style="padding:7px 10px;text-align:center;font-weight:700;color:${p.status==='paga'?'#16a34a':'#dc2626'}">${p.status==='paga'?'Pago':fmt(total)}</td>
       </tr>`;
     });
   }
-  tbody.innerHTML=rows||`<tr><td colspan="13" style="padding:20px;text-align:center;color:#888">Nenhuma parcela encontrada.</td></tr>`;
+  tbody.innerHTML=rows||`<tr><td colspan="12" style="padding:20px;text-align:center;color:#888">Nenhuma parcela encontrada.</td></tr>`;
   const tot=document.getElementById('ac-total');
   if(tot) tot.innerHTML=`<strong style="color:#dc2626">${fmt(totalPagar)}</strong>`;
 }
