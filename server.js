@@ -150,6 +150,13 @@ function aplicarMigracoes(tdb) {
   ac('produto_grades','preco_venda','REAL'); ac('produto_grades','margem_lucro','REAL');
   ac('vendedores','cpf','TEXT'); ac('vendedores','telefone','TEXT'); ac('vendedores','email','TEXT'); ac('vendedores','meta_mensal','REAL DEFAULT 0');
   ac('categorias','ativo','INTEGER'); ac('colecoes','ativo','INTEGER'); ac('grades','ativo','INTEGER');
+  // Tabela de tamanhos individuais (igual ao Phibo - Cadastrar Grade)
+  sc(`CREATE TABLE IF NOT EXISTS grades_itens (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tamanho TEXT NOT NULL UNIQUE,
+    faixa_etaria TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
   ac('trocas','tipo','TEXT DEFAULT "troca"'); ac('trocas','valor_credito','REAL DEFAULT 0'); ac('trocas','data_troca','DATE');
   ac('bags','numero_bag','INTEGER'); ac('bags','observacoes','TEXT');
   ac('classificacoes','visao_contabil','TEXT');
@@ -530,6 +537,26 @@ function toSQLiteValue(val) {
 // =============================================
 // API ROUTES (multi-tenant via resolveDb)
 // =============================================
+
+// Rota dedicada de busca por EAN — garante comparação como TEXT no SQLite
+app.get('/api/busca/ean', resolveDb, (req, res) => {
+  try {
+    const db = req.db;
+    const ean = (req.query.ean || '').toString().trim();
+    if (!ean) return res.json([]);
+    // CAST garante que EAN armazenado como INTEGER também seja encontrado
+    const rows = db.prepare(`
+      SELECT pg.id, pg.produto_id, pg.tamanho, pg.ean, pg.estoque,
+             pg.preco_venda, pg.cor_hexa, pg.cor_descricao,
+             p.id as prod_id, p.nome as prod_nome, p.codigo as prod_codigo, p.preco_venda as prod_preco
+      FROM produto_grades pg
+      JOIN produtos p ON p.id = pg.produto_id
+      WHERE CAST(pg.ean AS TEXT) = ? AND p.ativo = 1
+      LIMIT 10
+    `).all(ean);
+    res.json(rows);
+  } catch(e) { res.status(500).json({ message: e.message }); }
+});
 
 app.get('/api/:table', resolveDb, (req, res) => {
   try {
