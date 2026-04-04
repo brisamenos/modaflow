@@ -257,13 +257,30 @@ async function executeImportCSV() {
             const vVenda=parseCSVBrMoney(vr[iVenda]);
             const vMargem=vVenda>0?((vVenda-vCusto)/vVenda*100):0;
             const vPayload={produto_id:prodId,tamanho:tam,estoque:qtde,ean:ean||null,cor_hexa:corHex||null,cor_descricao:corDesc||null,custo:vCusto||null,preco_venda:vVenda||null,margem_lucro:parseFloat(vMargem.toFixed(2))||null};
-            // match por produto_id + tamanho + ean para suportar múltiplas cores por tamanho
-            const matchObj = ean
-              ? {produto_id:prodId, tamanho:tam, ean}
-              : {produto_id:prodId, tamanho:tam};
-            const {data:ev}=await sb.from('produto_grades').select('id').match(matchObj).maybeSingle();
-            if(ev){await sb.from('produto_grades').update(vPayload).eq('id',ev.id);}
-            else{await sb.from('produto_grades').insert(vPayload);}
+
+            // Estratégia de match em prioridade:
+            // 1. EAN exato (chave mais confiável — funciona mesmo se grade salva com ean=null antes)
+            // 2. produto_id + tamanho + cor_descricao
+            // 3. produto_id + tamanho (fallback)
+            let ev = null;
+            if(ean){
+              const {data:r1}=await sb.from('produto_grades').select('id').eq('produto_id',prodId).eq('ean',ean).maybeSingle();
+              ev=r1;
+            }
+            if(!ev && corDesc){
+              const {data:r2}=await sb.from('produto_grades').select('id').eq('produto_id',prodId).eq('tamanho',tam).eq('cor_descricao',corDesc).maybeSingle();
+              ev=r2;
+            }
+            if(!ev){
+              const {data:r3}=await sb.from('produto_grades').select('id').eq('produto_id',prodId).eq('tamanho',tam).maybeSingle();
+              ev=r3;
+            }
+
+            if(ev){
+              await sb.from('produto_grades').update(vPayload).eq('id',ev.id);
+            } else {
+              await sb.from('produto_grades').insert(vPayload);
+            }
           }
         }
       } catch(e){ erros++; console.error('Erro na linha',key,e); }
