@@ -654,107 +654,115 @@ async function handleProdInput() {
   const term = document.getElementById('pdv-prod-input')?.value?.trim() || '';
   if(!term) return openProdutoPDVModal('');
   
-  // 1. Tentar buscar por EAN na tabela produto_grades (query simples sem join aninhado)
-  const {data:eanResults} = await sb.from('produto_grades').select('id,produto_id,tamanho,ean,estoque,preco_venda').eq('ean', term);
-  if(eanResults && eanResults.length > 0) {
-    const pg = eanResults[0];
-    const {data:prod} = await sb.from('produtos').select('id,codigo,nome,preco_venda').eq('id', pg.produto_id).maybeSingle();
-    if(prod) {
-      const preco = parseFloat(pg.preco_venda) || parseFloat(prod.preco_venda) || 0;
-      if(eanResults.length === 1) {
-        addCartFromGrade(prod.id, prod.nome, preco, pg.tamanho, prod.codigo, pg.id);
-      } else {
-        openProdutoPDVModal(term);
+  // 1. Buscar por EAN via rota dedicada (garante CAST TEXT no SQLite)
+  try {
+    const token = localStorage.getItem('loja_token');
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+    const res = await fetch(`/api/busca/ean?ean=${encodeURIComponent(term)}`, { headers });
+    if(res.ok) {
+      const rows = await res.json();
+      if(rows && rows.length > 0) {
+        const r = rows[0];
+        const preco = parseFloat(r.preco_venda) || parseFloat(r.prod_preco) || 0;
+        if(rows.length === 1) {
+          addCartFromGrade(r.produto_id, r.prod_nome, preco, r.tamanho, r.prod_codigo, r.id);
+        } else {
+          openProdutoPDVModal(term);
+        }
+        return;
       }
+    }
+  } catch(e) {}
+  
+  // 2. Buscar por código do produto
+  const {data:byCode} = await sb.from('produtos').select('id,codigo,nome,preco_venda').eq('ativo',true).eq('codigo', term);
+  if(byCode && byCode.length === 1) {
+    const {data:pgs} = await sb.from('produto_grades').select('id,tamanho,estoque,preco_venda').eq('produto_id',byCode[0].id);
+    if(pgs && pgs.length === 1) {
+      const preco = parseFloat(pgs[0].preco_venda)||parseFloat(byCode[0].preco_venda)||0;
+      addCartFromGrade(byCode[0].id, byCode[0].nome, preco, pgs[0].tamanho, byCode[0].codigo, pgs[0].id);
       return;
     }
   }
-  
-  // 2. Tentar buscar por codigo do produto
-  const {data} = await sb.from('produtos').select('id,codigo,nome,preco_venda').eq('ativo',true).eq('codigo', term);
-  if(data && data.length === 1) {
-    // Buscar variantes para escolher grade
-    const {data:pgs} = await sb.from('produto_grades').select('id,tamanho,estoque,preco_venda').eq('produto_id',data[0].id);
-    if(pgs && pgs.length === 1) {
-      const preco = parseFloat(pgs[0].preco_venda)||parseFloat(data[0].preco_venda)||0;
-      addCartFromGrade(data[0].id, data[0].nome, preco, pgs[0].tamanho, data[0].codigo, pgs[0].id);
-    } else {
-      addModalItemToCart(data[0].id, data[0].nome, data[0].preco_venda, data[0].codigo);
-    }
-  } else {
-    openProdutoPDVModal(term);
-  }
+
+  // 3. Abrir modal com busca
+  openProdutoPDVModal(term);
 }
 
 async function openProdutoPDVModal(initialTerm) {
-  const term = typeof initialTerm === 'string' ? initialTerm : (document.getElementById('pdv-prod-input').value || '');
+  const term = typeof initialTerm === 'string' ? initialTerm : (document.getElementById('pdv-prod-input')?.value || '');
   const isNumeric = term && /^\d+$/.test(term);
-  const eanValue = isNumeric ? term : '';
-  const descValue = !isNumeric ? term : '';
 
-  const {data} = await sb.from('produtos').select('id,codigo,nome,preco_venda,grade_id,grades(valores)').eq('ativo',true).or(`codigo.ilike.%${term}%,nome.ilike.%${term}%`).limit(50);
-  
   openModal(`
     <div class="modal-header" style="border-bottom:none;padding-bottom:0;">
       <h3 style="color:#2c3e50;font-weight:900;font-size:20px;">Seleção de Produto em Estoque</h3>
       <button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button>
     </div>
     <div class="modal-body" style="padding-top:16px;">
-      
-      <div style="display:flex;justify-content:center;gap:16px;margin-bottom:16px;align-items:flex-end;">
+      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:flex-end;flex-wrap:wrap;">
         <div style="display:flex;flex-direction:column;gap:4px;">
-           <label style="color:#e74c3c;font-weight:900;font-size:12px;text-align:center;">Código de barras (EAN)</label>
-           <input type="text" id="modal-ean-input" value="${eanValue}" style="padding:6px;border:1px solid #3498db;border-radius:4px;width:140px;outline:none;background:#f0f8ff;" onkeypress="if(event.key==='Enter')searchModalProdutos()">
+          <label style="color:#e74c3c;font-weight:900;font-size:12px;">Código de barras (EAN)</label>
+          <input type="text" id="modal-ean-input" value="${isNumeric ? term : ''}"
+            style="padding:6px;border:1px solid #3498db;border-radius:4px;width:160px;outline:none;background:#f0f8ff;"
+            onkeypress="if(event.key==='Enter')searchModalProdutos()">
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;">
-           <label style="color:#e74c3c;font-weight:900;font-size:12px;text-align:center;">Código produto</label>
-           <input type="text" id="modal-cod-input" style="padding:6px;border:1px solid #bdc3c7;border-radius:4px;width:100px;outline:none;" onkeypress="if(event.key==='Enter')searchModalProdutos()">
+          <label style="color:#e74c3c;font-weight:900;font-size:12px;">Código produto</label>
+          <input type="text" id="modal-cod-input"
+            style="padding:6px;border:1px solid #bdc3c7;border-radius:4px;width:110px;outline:none;"
+            onkeypress="if(event.key==='Enter')searchModalProdutos()">
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;">
-           <label style="color:#e74c3c;font-weight:900;font-size:12px;text-align:center;">Descrição produto</label>
-           <input type="text" id="modal-desc-input" value="${descValue}" style="padding:6px;border:1px solid #bdc3c7;border-radius:4px;width:240px;outline:none;" onkeypress="if(event.key==='Enter')searchModalProdutos()">
+          <label style="color:#e74c3c;font-weight:900;font-size:12px;">Descrição produto</label>
+          <input type="text" id="modal-desc-input" value="${!isNumeric ? term : ''}"
+            style="padding:6px;border:1px solid #bdc3c7;border-radius:4px;width:240px;outline:none;"
+            onkeypress="if(event.key==='Enter')searchModalProdutos()">
         </div>
-        <button onclick="searchModalProdutos()" style="background:#2ecc71;color:#fff;border:none;border-radius:4px;padding:8px 16px;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 2px 4px rgba(46,204,113,0.2);margin-bottom:2px;">Buscar</button>
+        <button onclick="searchModalProdutos()" style="background:#2ecc71;color:#fff;border:none;border-radius:4px;padding:8px 16px;font-weight:800;font-size:13px;cursor:pointer;">Buscar</button>
       </div>
-      
-      <div style="border:1px solid #e1e8ed;max-height:350px;overflow-y:auto;border-radius:6px;">
-        <table style="width:100%;border-collapse:collapse;font-size:11px;text-align:center;">
-          <thead style="background:#f4f6f7;border-bottom:1px solid #e1e8ed;">
+      <div style="border:1px solid #e1e8ed;max-height:380px;overflow-y:auto;border-radius:6px;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:center;">
+          <thead style="background:#f4f6f7;border-bottom:1px solid #e1e8ed;position:sticky;top:0;">
             <tr>
-              <th style="padding:10px 8px;font-weight:900;color:#2c3e50;">Fornecedor</th>
-              <th style="padding:10px 8px;font-weight:900;color:#2c3e50;">Cód. Produto</th>
-              <th style="padding:10px 8px;font-weight:900;color:#2c3e50;">Descrição Produto</th>
-              <th style="padding:10px 8px;font-weight:900;color:#2c3e50;">Grade</th>
-              <th style="padding:10px 8px;font-weight:900;color:#2c3e50;">Valor Un</th>
-              <th style="padding:10px 8px;font-weight:900;color:#2c3e50;">Qtde Estoque</th>
-              <th style="padding:10px 8px;font-weight:900;color:#2c3e50;">Ação</th>
+              <th style="padding:8px;font-weight:900;color:#2c3e50;">Cód. Produto</th>
+              <th style="padding:8px;font-weight:900;color:#2c3e50;text-align:left;">Descrição</th>
+              <th style="padding:8px;font-weight:900;color:#2c3e50;">Grade / Cor</th>
+              <th style="padding:8px;font-weight:900;color:#2c3e50;">EAN</th>
+              <th style="padding:8px;font-weight:900;color:#2c3e50;">Valor</th>
+              <th style="padding:8px;font-weight:900;color:#2c3e50;">Estoque</th>
+              <th style="padding:8px;font-weight:900;color:#2c3e50;">Ação</th>
             </tr>
           </thead>
           <tbody id="modal-produtos-tbody">
-            ${renderModalProdRows(data)}
+            <tr><td colspan="7" style="padding:20px;color:#888;">Carregando...</td></tr>
           </tbody>
         </table>
       </div>
     </div>
   `, 'modal-lg');
   lucide.createIcons();
+  // Auto-buscar imediatamente com o termo
+  await searchModalProdutos();
 }
 
 function renderModalProdRows(data) {
-  if(!data || !data.length) return '<tr><td colspan="7" style="padding:20px;font-weight:700;">Nenhum produto encontrado na busca.</td></tr>';
+  // Mantido para compatibilidade com código legado
+  if(!data || !data.length) return '<tr><td colspan="7" style="padding:20px;font-weight:700;">Nenhum produto encontrado.</td></tr>';
   return data.map(p=>`
-    <tr style="border-bottom:1px solid #f1f2f6;background:#fff;">
-      <td style="padding:10px 8px;font-weight:700;">CENTRAL</td>
-      <td style="padding:10px 8px;font-weight:700;">${p.codigo||'-'}</td>
-      <td style="padding:10px 8px;color:#7f8c8d;text-align:left;font-weight:800;">${p.nome}</td>
-      <td style="padding:10px 8px;font-weight:700;">${p.grades?.valores?.[0]||'Único'}</td>
-      <td style="padding:10px 8px;font-weight:800;">${fmt(p.preco_venda)}</td>
-      <td style="padding:10px 8px;font-weight:700;">10,0</td>
-      <td style="padding:10px 8px;">
-         <button onclick="addModalItemToCart('${p.id}', '${p.nome.replace(/'/g,"\\'")}', ${p.preco_venda}, '${p.codigo||''}');closeModalDirect();" style="width:26px;height:26px;border-radius:50%;background:#2ecc71;border:none;color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 4px rgba(46,204,113,0.3);"><i data-lucide="check" style="width:14px;"></i></button>
+    <tr style="border-bottom:1px solid #f1f2f6;">
+      <td style="padding:8px;font-weight:700;">${p.codigo||'—'}</td>
+      <td style="padding:8px;font-weight:800;text-align:left;">${p.nome}</td>
+      <td style="padding:8px;">—</td>
+      <td style="padding:8px;font-size:11px;">—</td>
+      <td style="padding:8px;font-weight:800;">${fmt(p.preco_venda||0)}</td>
+      <td style="padding:8px;">—</td>
+      <td style="padding:8px;">
+        <button onclick="addCartFromGrade('${p.id}','${p.nome.replace(/'/g,"\\'")}',${p.preco_venda||0},'Único','${p.codigo||''}','');closeModalDirect();"
+          style="width:26px;height:26px;border-radius:50%;background:#2ecc71;border:none;color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">
+          <i data-lucide="check" style="width:14px;"></i>
+        </button>
       </td>
-    </tr>
-  `).join('');
+    </tr>`).join('');
 }
 
 async function searchModalProdutos() {
