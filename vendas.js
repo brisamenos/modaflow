@@ -43,7 +43,7 @@ async function loadRelacaoVendas() {
         <td>${badgeStatus(v.status)}</td>
         <td><div class="actions">
           <button class="btn btn-sm btn-secondary" onclick="verVenda('${v.id}')"><i data-lucide="eye"></i></button>
-          ${v.status==='concluida'?`<button class="btn btn-sm btn-danger" onclick="cancelarVenda('${v.id}')"><i data-lucide="x-circle"></i></button>`:''}
+          ${v.status==='concluida'?`<button class="btn btn-sm btn-danger" title="Excluir venda permanentemente" onclick="cancelarVenda('${v.id}')"><i data-lucide="trash-2"></i></button>`:''}
         </div></td>
       </tr>`).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-2)">Nenhuma venda</td></tr>'}
       </tbody>
@@ -103,9 +103,41 @@ async function alterarDataVenda(id) {
 }
 
 async function cancelarVenda(id) {
-  if(!confirm('Cancelar esta venda?')) return;
-  await sb.from('vendas').update({status:'cancelada'}).eq('id',id);
-  toast('Venda cancelada');loadRelacaoVendas();
+  if(!confirm('⚠️ Excluir esta venda permanentemente?\n\nIsso irá:\n• Remover a venda e todos os itens\n• Restaurar o estoque dos produtos\n• Remover crediário vinculado (se houver)\n\nEssa ação não pode ser desfeita.')) return;
+
+  // 1. Buscar itens da venda para restaurar estoque
+  const {data:itens} = await sb.from('venda_itens').select('*').eq('venda_id', id);
+
+  // 2. Restaurar estoque de cada item
+  for(const item of (itens||[])) {
+    if(item.grade_id) {
+      const {data:pg} = await sb.from('produto_grades').select('estoque').eq('id', item.grade_id).maybeSingle();
+      if(pg) await sb.from('produto_grades').update({estoque: (pg.estoque||0) + item.quantidade}).eq('id', item.grade_id);
+    } else {
+      const {data:pg} = await sb.from('produto_grades').select('id,estoque').match({produto_id: item.produto_id, tamanho: item.tamanho}).maybeSingle();
+      if(pg) await sb.from('produto_grades').update({estoque: (pg.estoque||0) + item.quantidade}).eq('id', pg.id);
+    }
+  }
+
+  // 3. Deletar crediário vinculado (parcelas deletadas em cascade)
+  const {data:cred} = await sb.from('crediario').select('id').eq('venda_id', id);
+  for(const c of (cred||[])) {
+    await sb.from('crediario_parcelas').delete().eq('crediario_id', c.id);
+    await sb.from('crediario').delete().eq('id', c.id);
+  }
+
+  // 4. Desvincular trocas (não deleta, apenas remove referência)
+  await sb.from('trocas').update({venda_id: null}).eq('venda_id', id);
+
+  // 5. Deletar itens da venda (também deletados em cascade, mas por segurança)
+  await sb.from('venda_itens').delete().eq('venda_id', id);
+
+  // 6. Deletar a venda
+  const {error} = await sb.from('vendas').delete().eq('id', id);
+  if(error) return toast('Erro ao excluir venda: ' + error.message, 'error');
+
+  toast('Venda excluída e estoque restaurado com sucesso!', 'success');
+  loadRelacaoVendas();
 }
 
 // ===== CONSULTA VENDAS - VISAO GERAL (Layout Phibo) =====
