@@ -546,8 +546,9 @@ app.get('/api/busca/ean', resolveDb, (req, res) => {
     const db = req.db;
     const ean = (req.query.ean || '').toString().trim();
     if (!ean) return res.json([]);
-    // CAST garante que EAN armazenado como INTEGER também seja encontrado
-    const rows = db.prepare(`
+
+    // 1. Busca exata em produto_grades.ean (CAST para funcionar com INTEGER)
+    let rows = db.prepare(`
       SELECT pg.id, pg.produto_id, pg.tamanho, pg.ean, pg.estoque,
              pg.preco_venda, pg.cor_hexa, pg.cor_descricao,
              p.id as prod_id, p.nome as prod_nome, p.codigo as prod_codigo, p.preco_venda as prod_preco
@@ -556,6 +557,33 @@ app.get('/api/busca/ean', resolveDb, (req, res) => {
       WHERE CAST(pg.ean AS TEXT) = ? AND p.ativo = 1
       LIMIT 10
     `).all(ean);
+
+    // 2. Fallback: busca por produtos.codigo (EAN pode estar no código do produto)
+    if (!rows.length) {
+      rows = db.prepare(`
+        SELECT pg.id, pg.produto_id, pg.tamanho, pg.ean, pg.estoque,
+               pg.preco_venda, pg.cor_hexa, pg.cor_descricao,
+               p.id as prod_id, p.nome as prod_nome, p.codigo as prod_codigo, p.preco_venda as prod_preco
+        FROM produto_grades pg
+        JOIN produtos p ON p.id = pg.produto_id
+        WHERE CAST(p.codigo AS TEXT) = ? AND p.ativo = 1
+        LIMIT 10
+      `).all(ean);
+    }
+
+    // 3. Fallback LIKE: EAN armazenado com zeros à esquerda ou espaços extras
+    if (!rows.length) {
+      rows = db.prepare(`
+        SELECT pg.id, pg.produto_id, pg.tamanho, pg.ean, pg.estoque,
+               pg.preco_venda, pg.cor_hexa, pg.cor_descricao,
+               p.id as prod_id, p.nome as prod_nome, p.codigo as prod_codigo, p.preco_venda as prod_preco
+        FROM produto_grades pg
+        JOIN produtos p ON p.id = pg.produto_id
+        WHERE (CAST(pg.ean AS TEXT) LIKE ? OR CAST(p.codigo AS TEXT) LIKE ?) AND p.ativo = 1
+        LIMIT 10
+      `).all(`%${ean}%`, `%${ean}%`);
+    }
+
     res.json(rows);
   } catch(e) { res.status(500).json({ message: e.message }); }
 });
