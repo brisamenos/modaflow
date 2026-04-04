@@ -21,11 +21,30 @@ async function loadRelacaoVendas() {
   const ini=document.getElementById('rv-ini')?.value;
   const fim=document.getElementById('rv-fim')?.value;
   const st=document.getElementById('rv-status')?.value;
-  let q=sb.from('vendas').select('*,clientes(nome),vendedores(nome)').order('created_at',{ascending:false});
+  let q=sb.from('vendas').select('*,clientes!cliente_id(id,nome),vendedores!vendedor_id(id,nome)').order('created_at',{ascending:false});
   if(ini) q=q.gte('created_at',ini);
   if(fim) q=q.lte('created_at',fim+'T23:59:59');
   if(st) q=q.eq('status',st);
   const {data} = await q;
+
+  // Para vendas onde o join não resolveu o nome, busca manualmente pelos IDs únicos
+  const vendasSemCliente = (data||[]).filter(v=>v.cliente_id && !v.clientes?.nome);
+  const vendasSemVendedor = (data||[]).filter(v=>v.vendedor_id && !v.vendedores?.nome);
+  const clienteIds = [...new Set(vendasSemCliente.map(v=>v.cliente_id))];
+  const vendedorIds = [...new Set(vendasSemVendedor.map(v=>v.vendedor_id))];
+
+  const clienteMap = {};
+  const vendedorMap = {};
+
+  if(clienteIds.length) {
+    const {data:clis} = await sb.from('clientes').select('id,nome').in('id', clienteIds);
+    (clis||[]).forEach(c=>{ clienteMap[c.id]=c.nome; });
+  }
+  if(vendedorIds.length) {
+    const {data:vends} = await sb.from('vendedores').select('id,nome').in('id', vendedorIds);
+    (vends||[]).forEach(v=>{ vendedorMap[v.id]=v.nome; });
+  }
+
   const total=(data||[]).filter(v=>v.status==='concluida').reduce((a,v)=>a+parseFloat(v.total||0),0);
   document.getElementById('rv-table').innerHTML = `
     <div style="padding:12px 20px;background:var(--accent-light);border-bottom:1px solid var(--border)">
@@ -33,11 +52,14 @@ async function loadRelacaoVendas() {
     </div>
     <div class="table-wrap"><table class="data-table">
       <thead><tr><th>#</th><th>Data</th><th>Cliente</th><th>Vendedor</th><th>Forma Pag.</th><th>Total</th><th>Status</th><th>Acoes</th></tr></thead>
-      <tbody>${(data||[]).map(v=>`<tr>
+      <tbody>${(data||[]).map(v=>{
+        const nomeCliente = v.clientes?.nome || clienteMap[v.cliente_id] || 'Consumidor';
+        const nomeVendedor = v.vendedores?.nome || vendedorMap[v.vendedor_id] || '\u2014';
+        return `<tr>
         <td><strong>#${v.numero_venda}</strong></td>
         <td>${fmtDatetime(v.created_at)}</td>
-        <td>${v.clientes?.nome||'Consumidor'}</td>
-        <td>${v.vendedores?.nome||'\u2014'}</td>
+        <td>${nomeCliente}</td>
+        <td>${nomeVendedor}</td>
         <td style="text-transform:capitalize">${v.forma_pagamento||'\u2014'}</td>
         <td><strong>${fmt(v.total)}</strong></td>
         <td>${badgeStatus(v.status)}</td>
@@ -45,7 +67,7 @@ async function loadRelacaoVendas() {
           <button class="btn btn-sm btn-secondary" onclick="verVenda('${v.id}')"><i data-lucide="eye"></i></button>
           ${v.status==='concluida'?`<button class="btn btn-sm btn-danger" title="Excluir venda permanentemente" onclick="cancelarVenda('${v.id}')"><i data-lucide="trash-2"></i></button>`:''}
         </div></td>
-      </tr>`).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-2)">Nenhuma venda</td></tr>'}
+      </tr>`;}).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-2)">Nenhuma venda</td></tr>'}
       </tbody>
     </table></div>`;
   lucide.createIcons();
@@ -53,17 +75,29 @@ async function loadRelacaoVendas() {
 
 async function verVenda(id) {
   const [{data:v},{data:itens}] = await Promise.all([
-    sb.from('vendas').select('*,clientes(nome),vendedores(nome)').eq('id',id).single(),
+    sb.from('vendas').select('*,clientes!cliente_id(id,nome),vendedores!vendedor_id(id,nome)').eq('id',id).single(),
     sb.from('venda_itens').select('*').eq('venda_id',id)
   ]);
+
+  // Fallback manual se o join não resolveu
+  let nomeCliente = v?.clientes?.nome;
+  let nomeVendedor = v?.vendedores?.nome;
+  if(!nomeCliente && v?.cliente_id) {
+    const {data:c} = await sb.from('clientes').select('nome').eq('id',v.cliente_id).maybeSingle();
+    nomeCliente = c?.nome;
+  }
+  if(!nomeVendedor && v?.vendedor_id) {
+    const {data:vd} = await sb.from('vendedores').select('nome').eq('id',v.vendedor_id).maybeSingle();
+    nomeVendedor = vd?.nome;
+  }
   // Data atual da venda em formato ISO para o input date
   const dataIso = v?.created_at ? v.created_at.substring(0,10) : new Date().toISOString().split('T')[0];
   openModal(`
     <div class="modal-header"><h3>Venda #${v?.numero_venda}</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
     <div class="modal-body">
       <div class="form-row" style="margin-bottom:16px;flex-wrap:wrap;gap:12px">
-        <div><strong>Cliente:</strong> ${v?.clientes?.nome||'Consumidor'}</div>
-        <div><strong>Vendedor:</strong> ${v?.vendedores?.nome||'\u2014'}</div>
+        <div><strong>Cliente:</strong> ${nomeCliente||'Consumidor'}</div>
+        <div><strong>Vendedor:</strong> ${nomeVendedor||'\u2014'}</div>
         <div><strong>Status:</strong> ${badgeStatus(v?.status)}</div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <strong>Data da Venda:</strong>
