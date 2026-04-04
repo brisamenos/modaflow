@@ -1904,3 +1904,323 @@ function renderFluxoCaixa() {
   `;
   lucide.createIcons();
 }
+
+// ===== CARTÕES =====
+
+function _cartoesShell(subtitulo, conteudo) {
+  document.getElementById('content').innerHTML = `
+    <div style="max-width:1100px;margin:0 auto;padding:4px 0">
+      <div style="background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden">
+        <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:20px 28px;display:flex;align-items:center;gap:12px">
+          <i data-lucide="credit-card" style="width:22px;height:22px;color:#fff"></i>
+          <div>
+            <div style="color:#fff;font-weight:800;font-size:16px">Cartões</div>
+            <div style="color:rgba(255,255,255,0.65);font-size:12px">${subtitulo}</div>
+          </div>
+        </div>
+        <div style="padding:28px">${conteudo}</div>
+      </div>
+    </div>`;
+  lucide.createIcons();
+}
+
+async function renderCartoesVendas() {
+  const {data:vendas} = await sb.from('vendas')
+    .select('numero_venda,total,forma_pagamento,created_at,parcelas')
+    .ilike('forma_pagamento','%cart%').eq('status','concluida').order('created_at',{ascending:false}).limit(100);
+
+  const rows = (vendas||[]).map(v=>`
+    <tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:9px 12px;font-weight:700">#${v.numero_venda||'—'}</td>
+      <td style="padding:9px 12px">${new Date(v.created_at).toLocaleDateString('pt-BR')}</td>
+      <td style="padding:9px 12px">${v.forma_pagamento||'—'}</td>
+      <td style="padding:9px 12px;text-align:center">${v.parcelas||1}x</td>
+      <td style="padding:9px 12px;text-align:right;font-weight:700;color:#16a34a">R$ ${fmt(v.total)}</td>
+    </tr>`).join('') || '<tr><td colspan="5" style="padding:32px;text-align:center;color:var(--text-2)">Nenhuma venda no cartão encontrada</td></tr>';
+
+  const total = (vendas||[]).reduce((a,v)=>a+parseFloat(v.total||0),0);
+  _cartoesShell('Suas vendas no cartão', `
+    <div style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap">
+      <div style="background:#eff6ff;border-radius:8px;padding:14px 20px;flex:1;min-width:160px">
+        <div style="font-size:11px;color:#3b82f6;font-weight:700;text-transform:uppercase">Total vendas</div>
+        <div style="font-size:22px;font-weight:900;color:#1e40af">R$ ${fmt(total)}</div>
+      </div>
+      <div style="background:#f0fdf4;border-radius:8px;padding:14px 20px;flex:1;min-width:160px">
+        <div style="font-size:11px;color:#16a34a;font-weight:700;text-transform:uppercase">Qtde transações</div>
+        <div style="font-size:22px;font-weight:900;color:#15803d">${(vendas||[]).length}</div>
+      </div>
+    </div>
+    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead style="background:#f8fafc">
+          <tr><th style="padding:10px 12px;text-align:left">Nº Venda</th><th style="padding:10px 12px;text-align:left">Data</th><th style="padding:10px 12px;text-align:left">Bandeira/Forma</th><th style="padding:10px 12px;text-align:center">Parcelas</th><th style="padding:10px 12px;text-align:right">Valor</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`);
+}
+
+async function renderCartoesPagamentos() {
+  _cartoesShell('Seus pagamentos recebidos', `
+    <div style="text-align:center;padding:40px;color:var(--text-2)">
+      <i data-lucide="receipt" style="width:48px;height:48px;opacity:0.3;margin-bottom:12px"></i>
+      <div style="font-weight:700">Pagamentos de cartão</div>
+      <div style="font-size:13px;margin-top:6px">Integre com sua operadora de cartão para visualizar os créditos agendados.</div>
+    </div>`);
+}
+
+async function renderCartoesVisaoGeral() {
+  const {data:vendas} = await sb.from('vendas')
+    .select('total,forma_pagamento,parcelas').ilike('forma_pagamento','%cart%').eq('status','concluida');
+
+  const porBandeira = {};
+  (vendas||[]).forEach(v=>{
+    const k = (v.forma_pagamento||'Outros').split('/')[0].trim();
+    porBandeira[k] = (porBandeira[k]||0) + parseFloat(v.total||0);
+  });
+  const total = Object.values(porBandeira).reduce((a,b)=>a+b,0);
+  const cores = ['#3b82f6','#8b5cf6','#ec4899','#f59e0b','#10b981','#ef4444'];
+
+  const bars = Object.entries(porBandeira).map(([k,v],i)=>`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <div style="width:120px;font-size:12px;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${k}</div>
+      <div style="flex:1;height:10px;background:#e8edf3;border-radius:99px;overflow:hidden">
+        <div style="height:100%;background:${cores[i%cores.length]};border-radius:99px;width:${total>0?Math.round(v/total*100):0}%"></div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:12px;font-weight:700">R$ ${fmt(v)}</div>
+      <div style="width:36px;text-align:right;font-size:11px;color:var(--text-2)">${total>0?Math.round(v/total*100):0}%</div>
+    </div>`).join('') || '<div style="color:var(--text-2);text-align:center;padding:24px">Sem dados de cartão</div>';
+
+  _cartoesShell('Visão geral', `
+    <div style="font-weight:800;font-size:15px;margin-bottom:16px">Distribuição por bandeira</div>
+    ${bars}
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-weight:800">
+      <span>Total</span><span style="color:#2563eb">R$ ${fmt(total)}</span>
+    </div>`);
+}
+
+let _maquinas = [];
+async function renderCartoesMaquinas() {
+  const {data} = await sb.from('configuracoes').select('valor').eq('chave','cartoes_maquinas').maybeSingle();
+  _maquinas = data?.valor ? JSON.parse(data.valor) : [];
+
+  const rows = _maquinas.map((m,i)=>`
+    <tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:9px 12px;font-weight:700">${m.nome}</td>
+      <td style="padding:9px 12px">${m.operadora||'—'}</td>
+      <td style="padding:9px 12px">${m.serial||'—'}</td>
+      <td style="padding:9px 12px;text-align:center">
+        <button onclick="_deletarMaquina(${i})" style="background:#fef2f2;border:none;color:#dc2626;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px">Remover</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="4" style="padding:24px;text-align:center;color:var(--text-2)">Nenhuma máquina cadastrada</td></tr>';
+
+  _cartoesShell('Cadastrar máquina', `
+    <div style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:20px">
+      <div style="font-weight:700;margin-bottom:14px">Nova Máquina</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;flex-wrap:wrap">
+        <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Nome / Apelido</label>
+          <input id="maq-nome" class="filter-input" placeholder="Ex: Caixa 1" style="width:100%;padding:8px;border:1px solid var(--border-2);border-radius:6px;font-size:13px;box-sizing:border-box"></div>
+        <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Operadora</label>
+          <input id="maq-op" class="filter-input" placeholder="Ex: Cielo, Rede, Stone" style="width:100%;padding:8px;border:1px solid var(--border-2);border-radius:6px;font-size:13px;box-sizing:border-box"></div>
+        <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Nº Serial / ID</label>
+          <input id="maq-serial" class="filter-input" placeholder="Número de série" style="width:100%;padding:8px;border:1px solid var(--border-2);border-radius:6px;font-size:13px;box-sizing:border-box"></div>
+      </div>
+      <button onclick="_salvarMaquina()" class="btn btn-primary" style="margin-top:14px"><i data-lucide="plus" style="width:14px;height:14px"></i> Adicionar</button>
+    </div>
+    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead style="background:#f8fafc"><tr>
+          <th style="padding:10px 12px;text-align:left">Nome</th>
+          <th style="padding:10px 12px;text-align:left">Operadora</th>
+          <th style="padding:10px 12px;text-align:left">Serial</th>
+          <th style="padding:10px 12px;text-align:center">Ação</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`);
+}
+async function _salvarMaquina(){
+  const nome=document.getElementById('maq-nome')?.value.trim();
+  if(!nome) return toast('Informe o nome da máquina','error');
+  _maquinas.push({nome,operadora:document.getElementById('maq-op')?.value.trim(),serial:document.getElementById('maq-serial')?.value.trim()});
+  await sb.from('configuracoes').upsert({chave:'cartoes_maquinas',valor:JSON.stringify(_maquinas)});
+  toast('Máquina salva!','success'); renderCartoesMaquinas();
+}
+async function _deletarMaquina(i){
+  if(!confirm('Remover esta máquina?')) return;
+  _maquinas.splice(i,1);
+  await sb.from('configuracoes').upsert({chave:'cartoes_maquinas',valor:JSON.stringify(_maquinas)});
+  toast('Removida!'); renderCartoesMaquinas();
+}
+
+let _taxas = [];
+async function renderCartoesTaxas() {
+  const {data} = await sb.from('configuracoes').select('valor').eq('chave','cartoes_taxas').maybeSingle();
+  _taxas = data?.valor ? JSON.parse(data.valor) : [];
+
+  const rows = _taxas.map((t,i)=>`
+    <tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:9px 12px;font-weight:700">${t.bandeira}</td>
+      <td style="padding:9px 12px">${t.tipo}</td>
+      <td style="padding:9px 12px;text-align:center">${t.parcelas}x</td>
+      <td style="padding:9px 12px;text-align:right;color:#dc2626;font-weight:700">${t.taxa}%</td>
+      <td style="padding:9px 12px;text-align:center">
+        <button onclick="_deletarTaxa(${i})" style="background:#fef2f2;border:none;color:#dc2626;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px">Remover</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--text-2)">Nenhuma taxa cadastrada</td></tr>';
+
+  _cartoesShell('Cadastrar taxas', `
+    <div style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:20px">
+      <div style="font-weight:700;margin-bottom:14px">Nova Taxa</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px">
+        <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Bandeira</label>
+          <input id="taxa-band" placeholder="Visa, Master..." style="width:100%;padding:8px;border:1px solid var(--border-2);border-radius:6px;font-size:13px;box-sizing:border-box"></div>
+        <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Tipo</label>
+          <select id="taxa-tipo" style="width:100%;padding:8px;border:1px solid var(--border-2);border-radius:6px;font-size:13px;box-sizing:border-box">
+            <option>Débito</option><option>Crédito à vista</option><option>Crédito parcelado</option>
+          </select></div>
+        <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Parcelas</label>
+          <input id="taxa-parc" type="number" min="1" max="12" value="1" style="width:100%;padding:8px;border:1px solid var(--border-2);border-radius:6px;font-size:13px;box-sizing:border-box"></div>
+        <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Taxa (%)</label>
+          <input id="taxa-val" type="number" step="0.01" placeholder="Ex: 2.50" style="width:100%;padding:8px;border:1px solid var(--border-2);border-radius:6px;font-size:13px;box-sizing:border-box"></div>
+      </div>
+      <button onclick="_salvarTaxa()" class="btn btn-primary" style="margin-top:14px"><i data-lucide="plus" style="width:14px;height:14px"></i> Adicionar</button>
+    </div>
+    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead style="background:#f8fafc"><tr>
+          <th style="padding:10px 12px;text-align:left">Bandeira</th>
+          <th style="padding:10px 12px;text-align:left">Tipo</th>
+          <th style="padding:10px 12px;text-align:center">Parcelas</th>
+          <th style="padding:10px 12px;text-align:right">Taxa</th>
+          <th style="padding:10px 12px;text-align:center">Ação</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`);
+}
+async function _salvarTaxa(){
+  const bandeira=document.getElementById('taxa-band')?.value.trim();
+  const taxa=parseFloat(document.getElementById('taxa-val')?.value||0);
+  if(!bandeira||!taxa) return toast('Preencha bandeira e taxa','error');
+  _taxas.push({bandeira,tipo:document.getElementById('taxa-tipo')?.value,parcelas:document.getElementById('taxa-parc')?.value||1,taxa});
+  await sb.from('configuracoes').upsert({chave:'cartoes_taxas',valor:JSON.stringify(_taxas)});
+  toast('Taxa salva!','success'); renderCartoesTaxas();
+}
+async function _deletarTaxa(i){
+  if(!confirm('Remover esta taxa?')) return;
+  _taxas.splice(i,1);
+  await sb.from('configuracoes').upsert({chave:'cartoes_taxas',valor:JSON.stringify(_taxas)});
+  toast('Removida!'); renderCartoesTaxas();
+}
+
+// ===== ANTECIPAR PARCELAS =====
+
+let _antecipacoes = [];
+async function renderAnteciparParcelas() {
+  const {data:parcelas} = await sb.from('crediario_parcelas')
+    .select('id,numero_parcela,valor,vencimento,status,crediario_id')
+    .eq('status','pendente').order('vencimento').limit(200);
+
+  const rows = (parcelas||[]).map(p=>`
+    <tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:9px 12px;text-align:center"><input type="checkbox" class="antec-chk" data-id="${p.id}" data-val="${p.valor}"></td>
+      <td style="padding:9px 12px">Crediário #${p.crediario_id}</td>
+      <td style="padding:9px 12px;text-align:center">Parcela ${p.numero_parcela}</td>
+      <td style="padding:9px 12px">${new Date(p.vencimento+'T00:00').toLocaleDateString('pt-BR')}</td>
+      <td style="padding:9px 12px;text-align:right;font-weight:700">R$ ${fmt(p.valor)}</td>
+    </tr>`).join('') || '<tr><td colspan="5" style="padding:32px;text-align:center;color:var(--text-2)">Nenhuma parcela pendente</td></tr>';
+
+  document.getElementById('content').innerHTML = `
+    <div style="max-width:1000px;margin:0 auto">
+      <div style="background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden">
+        <div style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);padding:20px 28px;display:flex;align-items:center;gap:12px">
+          <i data-lucide="zap" style="width:22px;height:22px;color:#fff"></i>
+          <div>
+            <div style="color:#fff;font-weight:800;font-size:16px">Antecipar Parcelas</div>
+            <div style="color:rgba(255,255,255,0.65);font-size:12px">Selecione as parcelas a antecipar</div>
+          </div>
+        </div>
+        <div style="padding:20px 28px">
+          <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:8px;padding:16px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+            <div>
+              <div style="font-size:12px;color:#7c3aed;font-weight:700">VALOR SELECIONADO</div>
+              <div id="antec-total" style="font-size:24px;font-weight:900;color:#6d28d9">R$ 0,00</div>
+            </div>
+            <button onclick="_efetuarAntecipacao()" class="btn btn-primary" style="background:#7c3aed;border:none">
+              <i data-lucide="zap" style="width:14px;height:14px"></i> Confirmar Antecipação
+            </button>
+          </div>
+          <div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px">
+            <table style="width:100%;border-collapse:collapse;font-size:13px">
+              <thead style="background:#f8fafc"><tr>
+                <th style="padding:10px 12px;text-align:center"><input type="checkbox" onchange="document.querySelectorAll('.antec-chk').forEach(c=>{c.checked=this.checked;_calcAntecTotal()})"></th>
+                <th style="padding:10px 12px;text-align:left">Crediário</th>
+                <th style="padding:10px 12px;text-align:center">Parcela</th>
+                <th style="padding:10px 12px;text-align:left">Vencimento</th>
+                <th style="padding:10px 12px;text-align:right">Valor</th>
+              </tr></thead>
+              <tbody id="antec-tbody" onchange="_calcAntecTotal()">${rows}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  lucide.createIcons();
+}
+function _calcAntecTotal(){
+  const total = [...document.querySelectorAll('.antec-chk:checked')].reduce((a,c)=>a+parseFloat(c.dataset.val||0),0);
+  const el = document.getElementById('antec-total');
+  if(el) el.textContent = 'R$ ' + fmt(total);
+}
+async function _efetuarAntecipacao(){
+  const selecionados = [...document.querySelectorAll('.antec-chk:checked')].map(c=>c.dataset.id);
+  if(!selecionados.length) return toast('Selecione ao menos uma parcela','error');
+  if(!confirm(`Antecipar ${selecionados.length} parcela(s)?`)) return;
+  for(const id of selecionados){
+    await sb.from('crediario_parcelas').update({status:'pago',data_pagamento:new Date().toISOString().split('T')[0]}).eq('id',id);
+  }
+  // Salvar registro de antecipação
+  const total = [...document.querySelectorAll('.antec-chk:checked')].reduce((a,c)=>a+parseFloat(c.dataset.val||0),0);
+  const {data:atual} = await sb.from('configuracoes').select('valor').eq('chave','antecipacoes_hist').maybeSingle();
+  const hist = atual?.valor ? JSON.parse(atual.valor) : [];
+  hist.unshift({data:new Date().toISOString().split('T')[0],qtd:selecionados.length,valor:total});
+  await sb.from('configuracoes').upsert({chave:'antecipacoes_hist',valor:JSON.stringify(hist.slice(0,100))});
+  toast(`${selecionados.length} parcela(s) antecipada(s)!`,'success');
+  renderAnteciparParcelas();
+}
+
+async function renderListarAntecipacoes() {
+  const {data} = await sb.from('configuracoes').select('valor').eq('chave','antecipacoes_hist').maybeSingle();
+  const hist = data?.valor ? JSON.parse(data.valor) : [];
+
+  const rows = hist.map(h=>`
+    <tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:9px 12px">${new Date(h.data+'T00:00').toLocaleDateString('pt-BR')}</td>
+      <td style="padding:9px 12px;text-align:center">${h.qtd} parcela(s)</td>
+      <td style="padding:9px 12px;text-align:right;font-weight:700;color:#7c3aed">R$ ${fmt(h.valor)}</td>
+    </tr>`).join('') || '<tr><td colspan="3" style="padding:32px;text-align:center;color:var(--text-2)">Nenhuma antecipação realizada</td></tr>';
+
+  document.getElementById('content').innerHTML = `
+    <div style="max-width:800px;margin:0 auto">
+      <div style="background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden">
+        <div style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);padding:20px 28px;display:flex;align-items:center;gap:12px">
+          <i data-lucide="list" style="width:22px;height:22px;color:#fff"></i>
+          <div style="color:#fff;font-weight:800;font-size:16px">Histórico de Antecipações</div>
+        </div>
+        <div style="padding:24px">
+          <div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px">
+            <table style="width:100%;border-collapse:collapse;font-size:13px">
+              <thead style="background:#f8fafc"><tr>
+                <th style="padding:10px 12px;text-align:left">Data</th>
+                <th style="padding:10px 12px;text-align:center">Parcelas</th>
+                <th style="padding:10px 12px;text-align:right">Valor Total</th>
+              </tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  lucide.createIcons();
+}
