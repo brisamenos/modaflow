@@ -224,34 +224,48 @@ async function executeImportCSV() {
           genero, ativo:true
         };
 
-        // Upsert por código — tenta com zero à esquerda e sem zero (CSVs diferentes podem omitir zeros)
-        let prodId=null;
+        // Upsert produto — usa /api/busca/produto com LTRIM para normalizar zeros à esquerda
+        // Ex: CSV='801202401' e DB='0801202401' → LTRIM de ambos = '801202401' → match correto
+        let prodId = null;
+        const _token = localStorage.getItem('loja_token');
+        const _hdr = _token ? { 'Authorization': `Bearer ${_token}` } : {};
+
         if(cod){
-          let {data:ep}=await sb.from('produtos').select('id').eq('codigo',cod).eq('ativo',true).limit(1);
-          // Fallback: mesmo código sem leading zeros (ex: '0801' vs '801')
-          if(!ep||!ep[0]){
-            const codAlt = cod.replace(/^0+/,'');
-            if(codAlt !== cod){
-              let {data:ep2}=await sb.from('produtos').select('id').eq('codigo',codAlt).eq('ativo',true).limit(1);
-              if(ep2&&ep2[0]) ep=ep2;
+          try {
+            const _r = await fetch(`/api/busca/produto?q=${encodeURIComponent(cod)}`, { headers: _hdr });
+            if(_r.ok){
+              const _found = await _r.json();
+              if(_found && _found.length){
+                const normCod = cod.replace(/^0+/,'') || cod;
+                const match = _found.find(f => {
+                  const fc = (f.codigo||'').replace(/^0+/,'') || f.codigo;
+                  return f.codigo === cod || fc === normCod;
+                });
+                if(match) prodId = match.id;
+              }
             }
+          } catch(e){}
+        }
+
+        // Fallback por nome se código não encontrou
+        if(!prodId && nome){
+          const {data:epN}=await sb.from('produtos').select('id').ilike('nome',nome).eq('ativo',true).limit(1);
+          if(epN&&epN[0]) prodId=epN[0].id;
+        }
+
+        if(prodId){
+          // Atualiza sem sobrescrever o código existente (evita trocar '0801202401' por '801202401')
+          const {data:prodAtual}=await sb.from('produtos').select('codigo').eq('id',prodId).maybeSingle();
+          const updatePayload = {...payload};
+          if(prodAtual?.codigo && prodAtual.codigo !== cod){
+            // Mantém o código que já está no banco
+            updatePayload.codigo = prodAtual.codigo;
           }
-          if(ep&&ep[0]){
-            await sb.from('produtos').update(payload).eq('id',ep[0].id);
-            prodId=ep[0].id; atualizados++;
-          } else {
-            const {data:np}=await sb.from('produtos').insert(payload).select('id').single();
-            prodId=np?.id; criados++;
-          }
+          await sb.from('produtos').update(updatePayload).eq('id',prodId);
+          atualizados++;
         } else {
-          let {data:ep}=await sb.from('produtos').select('id').ilike('nome',nome).eq('ativo',true).limit(1);
-          if(ep&&ep[0]){
-            await sb.from('produtos').update(payload).eq('id',ep[0].id);
-            prodId=ep[0].id; atualizados++;
-          } else {
-            const {data:np}=await sb.from('produtos').insert(payload).select('id').single();
-            prodId=np?.id; criados++;
-          }
+          const {data:np}=await sb.from('produtos').insert(payload).select('id').single();
+          prodId=np?.id; criados++;
         }
 
         // Inserir/atualizar variantes (produto_grades)
