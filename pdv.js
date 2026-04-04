@@ -203,7 +203,7 @@ async function renderPDV() {
         </div>
 
         <!-- TAB: RECEBIMENTO -->
-        <div id="pdv-tab-recebimento" style="display:none;flex-direction:column;flex:1;overflow:hidden;background:#fff;padding:20px;">
+        <div id="pdv-tab-recebimento" style="display:none;flex-direction:column;flex:1;overflow-y:auto;background:#fff;padding:20px;">
           
           <div class="pdv-rec-top-flex">
             <!-- Desconto e Frete -->
@@ -238,7 +238,7 @@ async function renderPDV() {
                 <option value="Cartão Débito">💳 Cartão Débito</option>
                 <option value="Crediário">📋 Crediário</option>
               </select>
-              <div id="rec-cartao-extra" style="display:none;margin-top:8px;display:none">
+              <div id="rec-cartao-extra" style="display:none;margin-top:8px">
                 <select id="rec-maquineta" onchange="_pdvMaquinetaChange()" style="padding:8px;border:1px solid #3498db;border-radius:6px;font-size:12px;width:100%;box-sizing:border-box;margin-bottom:6px">
                   <option value="">— Selecione a maquineta —</option>
                 </select>
@@ -542,6 +542,7 @@ function updateCartTotals() {
 }
 
 function switchPdvTab(tab) {
+  if(tab==='recebimento') { setTimeout(()=>{ const f=document.getElementById('rec-forma'); if(f && (f.value.includes('Cartão'))) _pdvFormaChange(); },50); }
   pdvTab = tab;
   const btnItens = document.getElementById('pdv-tab-btn-itens');
   const btnReceb = document.getElementById('pdv-tab-btn-receb');
@@ -560,14 +561,9 @@ function switchPdvTab(tab) {
 async function _pdvLoadMaquinetas() {
   if(window._pdvMaqCache) return window._pdvMaqCache;
   try {
-    const token = localStorage.getItem('loja_token');
-    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-    const r = await fetch('/api/configuracoes?select=valor&chave=eq.cartoes_maquinetas_v2', { headers });
-    if(r.ok) {
-      const d = await r.json();
-      window._pdvMaqCache = d?.[0]?.valor ? JSON.parse(d[0].valor) : [];
-    }
-  } catch(e) {}
+    const {data} = await sb.from('configuracoes').select('valor').eq('chave','cartoes_maquinetas_v2').maybeSingle();
+    window._pdvMaqCache = data?.valor ? JSON.parse(data.valor) : [];
+  } catch(e) { window._pdvMaqCache = []; }
   return window._pdvMaqCache || [];
 }
 
@@ -580,17 +576,22 @@ async function _pdvFormaChange() {
   if(isCard) {
     const maq = await _pdvLoadMaquinetas();
     const sel = document.getElementById('rec-maquineta');
+    const lastMaq = localStorage.getItem('pdv_last_maquineta') || '';
     if(sel) {
       sel.innerHTML = '<option value="">— Selecione a maquineta —</option>' +
-        maq.map(m=>`<option value="${m.nome}">${m.nome}</option>`).join('');
+        maq.map(m=>`<option value="${m.nome}"${m.nome===lastMaq?' selected':''}>${m.nome}</option>`).join('');
     }
     document.getElementById('rec-bandeira').innerHTML = '<option value="">— Bandeira —</option>';
     const ti = document.getElementById('rec-taxa-info');
     if(ti) { ti.style.display='none'; ti.textContent=''; ti.dataset.taxa=''; }
+    // Auto-trigger maquineta change if last one is remembered
+    if(lastMaq && maq.find(m=>m.nome===lastMaq)) _pdvMaquinetaChange();
   }
 }
 
 async function _pdvMaquinetaChange() {
+  const maqNome = document.getElementById('rec-maquineta')?.value;
+  if(maqNome) localStorage.setItem('pdv_last_maquineta', maqNome);
   const forma   = document.getElementById('rec-forma')?.value;
   const maqNome = document.getElementById('rec-maquineta')?.value;
   const maq     = await _pdvLoadMaquinetas();
