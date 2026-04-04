@@ -296,23 +296,114 @@ async function loadVisaoGeral() {
   }).join('');
 }
 
-// ===== RELACAO DE TROCAS (sub-page) =====
+// ===== RELACAO DE TROCAS (sub-page - Layout Phibo) =====
 async function renderRelacaoTrocas() {
+  const now = new Date();
+  const anoAtual = now.getFullYear();
+  const mesAtual = now.getMonth()+1;
+  const mesesNomes = ['','Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
   document.getElementById('topbar-actions').innerHTML = '';
-  const {data:trocasD}=await sb.from('trocas').select('*,clientes(nome)').order('created_at',{ascending:false}).limit(50);
   document.getElementById('content').innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <span style="font-size:13px;font-weight:600;color:var(--text-1)">Informe o Ano / Mes:</span>
+      <select id="rt-ano" onchange="loadRelacaoTrocas()" style="padding:7px 14px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;background:white;font-family:inherit;min-width:90px">
+        ${[anoAtual-2,anoAtual-1,anoAtual].map(y=>`<option value="${y}" ${y===anoAtual?'selected':''}>${y}</option>`).join('')}
+      </select>
+      <select id="rt-mes" onchange="loadRelacaoTrocas()" style="padding:7px 14px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;background:white;font-family:inherit;min-width:120px">
+        ${mesesNomes.slice(1).map((m,i)=>`<option value="${i+1}" ${(i+1)===mesAtual?'selected':''}>${m}</option>`).join('')}
+      </select>
+    </div>
+    <div id="rt-content"><div class="loading">Carregando...</div></div>`;
+  await loadRelacaoTrocas();
+}
+
+async function loadRelacaoTrocas() {
+  const ano = parseInt(document.getElementById('rt-ano')?.value||new Date().getFullYear());
+  const mes = parseInt(document.getElementById('rt-mes')?.value||(new Date().getMonth()+1));
+  const mesStr = String(mes).padStart(2,'0');
+  const ini = `${ano}-${mesStr}-01`;
+  const lastDay = new Date(ano,mes,0).getDate();
+  const fim = `${ano}-${mesStr}-${lastDay}T23:59:59`;
+
+  const {data:trocas} = await sb.from('trocas').select('*,clientes(nome)').gte('created_at',ini).lte('created_at',fim).order('created_at',{ascending:false});
+
+  // Separar: produtos trocados vs cashback/creditos
+  const produtos = (trocas||[]).filter(t=>t.produto_nome || t.produto_id);
+  const cashbacks = (trocas||[]).filter(t=>parseFloat(t.valor_credito||0)>0);
+
+  const totalQtd = produtos.length;
+  const totalVlrVenda = produtos.reduce((a,t)=>a+parseFloat(t.valor||0),0);
+  const totalDesconto = 0;
+  const totalVlrTotal = produtos.reduce((a,t)=>a+parseFloat(t.valor||0),0);
+  const totalCashback = cashbacks.reduce((a,t)=>a+parseFloat(t.valor_credito||0),0);
+  const totalGeral = totalVlrTotal + totalCashback;
+
+  const container = document.getElementById('rt-content');
+  if(!container) return;
+
+  container.innerHTML = `
+    <!-- Tabela 1: Relação de produtos trocados -->
     <div class="card">
-      <div class="card-header"><h3>Relacao de Trocas</h3></div>
-      <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>Data</th><th>Cliente</th><th>Tipo</th><th>Motivo</th><th>Credito</th><th>Status</th></tr></thead>
-        <tbody>${(trocasD||[]).map(t=>`<tr>
-          <td>${fmtDate((t.data_troca||t.created_at)?.split('T')[0])}</td>
+      <div class="card-header" style="text-align:center;background:var(--bg-2)">
+        <h3 style="font-size:14px;margin:0">Relacao de produtos trocados</h3>
+      </div>
+      <div class="table-wrap"><table class="data-table" style="font-size:12px">
+        <thead><tr>
+          <th>EAN</th><th>Fornecedor</th><th>Descricao Produto</th><th>Grade</th><th>Cor</th><th>Qtde</th><th>Vlr Un Venda</th><th>Descto Un</th><th>Vlr Total</th>
+        </tr></thead>
+        <tbody>${produtos.length ? produtos.map(t=>{
+          const vlr = parseFloat(t.valor||0);
+          return `<tr>
+            <td>${t.ean||'\u2014'}</td>
+            <td>${t.fornecedor||'\u2014'}</td>
+            <td>${t.produto_nome||'\u2014'}</td>
+            <td>${t.tamanho||'\u2014'}</td>
+            <td>${t.cor||'\u2014'}</td>
+            <td style="text-align:center">1</td>
+            <td style="text-align:right">${fmtNum(vlr)}</td>
+            <td style="text-align:right">0,00</td>
+            <td style="text-align:right">${fmtNum(vlr)}</td>
+          </tr>`;
+        }).join('') : '<tr><td colspan="9" style="text-align:left;color:var(--text-2);padding:10px 14px">Nenhuma troca foi identificada no periodo.</td></tr>'}</tbody>
+        <tfoot>
+          <tr style="font-weight:700;background:var(--bg-2)">
+            <td colspan="5" style="text-align:right">Total de produtos:</td>
+            <td style="text-align:center">${totalQtd}</td>
+            <td style="text-align:right">${fmtNum(totalVlrVenda)}</td>
+            <td style="text-align:right">0,00</td>
+            <td style="text-align:right">${fmtNum(totalVlrTotal)}</td>
+          </tr>
+        </tfoot>
+      </table></div>
+    </div>
+
+    <!-- Tabela 2: Relação de cashback utilizados na troca -->
+    <div class="card" style="margin-top:16px">
+      <div class="card-header" style="text-align:center;background:var(--bg-2)">
+        <h3 style="font-size:14px;margin:0">Relacao de cashback utilizados na troca</h3>
+      </div>
+      <div class="table-wrap"><table class="data-table" style="font-size:12px">
+        <thead><tr>
+          <th>Data / Hora</th><th>Cupom de troca</th><th>Cliente</th><th>Origem do cashback</th><th>Valor</th>
+        </tr></thead>
+        <tbody>${cashbacks.length ? cashbacks.map(t=>`<tr>
+          <td>${fmtDatetime(t.created_at)}</td>
+          <td>${t.id||'\u2014'}</td>
           <td>${t.clientes?.nome||'\u2014'}</td>
-          <td><span class="badge badge-${t.tipo==='troca'?'blue':'yellow'}" style="text-transform:capitalize">${t.tipo||'troca'}</span></td>
-          <td>${t.motivo||'\u2014'}</td>
-          <td>${fmt(t.valor_credito||t.valor||0)}</td>
-          <td>${badgeStatus(t.status)}</td>
-        </tr>`).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--text-2)">Nenhuma troca encontrada</td></tr>'}</tbody>
+          <td>${t.tipo==='devolucao'?'Devolucao':'Troca de produto'}</td>
+          <td style="text-align:right">${fmtNum(parseFloat(t.valor_credito||0))}</td>
+        </tr>`).join('') : '<tr><td colspan="5" style="text-align:left;color:var(--text-2);padding:10px 14px">Nenhum cashback de devolucao foi usado no periodo.</td></tr>'}</tbody>
+        <tfoot>
+          <tr style="font-weight:600;background:var(--bg-2)">
+            <td colspan="4" style="text-align:right">Total cashback:</td>
+            <td style="text-align:right">${fmtNum(totalCashback)}</td>
+          </tr>
+          <tr style="font-weight:700;background:var(--bg-2)">
+            <td colspan="4" style="text-align:right"><strong>Total geral:</strong></td>
+            <td style="text-align:right"><strong>${fmtNum(totalGeral)}</strong></td>
+          </tr>
+        </tfoot>
       </table></div>
     </div>`;
   lucide.createIcons();
