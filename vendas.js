@@ -395,3 +395,17 @@ async function renderComissoes() {
     </div>`;
   lucide.createIcons();
 }
+
+// ===== METAS DE VENDAS =====
+async function renderMetas() {
+  document.getElementById('topbar-actions').innerHTML = '';
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-body" style="text-align:center;padding:48px 24px">
+        <i data-lucide="target" style="width:48px;height:48px;color:var(--accent);margin-bottom:16px"></i>
+        <h3 style="margin-bottom:8px;color:var(--text-1)">Metas de Vendas</h3>
+        <p style="color:var(--text-2)">Modulo de metas em desenvolvimento.</p>
+      </div>
+    </div>`;
+  lucide.createIcons();
+}
