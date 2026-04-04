@@ -1293,9 +1293,11 @@ async function finalizarVenda() {
   const parcPrincipal = parseInt(pdvPayments[0]?.parcelas || 1);
   const troco = Math.max(0, totalPago - total);
 
-  // Lê cliente e vendedor: prioriza variável global, com fallback para o elemento DOM
-  const clienteId = cartClient || document.getElementById('pdv-client')?.value || null;
-  const vendedorId = cartSeller || document.getElementById('pdv-seller')?.value || null;
+  // Lê cliente e vendedor com múltiplas fontes de fallback; converte string vazia em null
+  const _clienteRaw = cartClient || document.getElementById('pdv-client')?.value || '';
+  const _vendedorRaw = cartSeller || document.getElementById('pdv-seller')?.value || '';
+  const clienteId = (_clienteRaw && _clienteRaw !== '') ? _clienteRaw : null;
+  const vendedorId = (_vendedorRaw && _vendedorRaw !== '') ? _vendedorRaw : null;
 
   const vendaData = {
     cliente_id: clienteId||null,
