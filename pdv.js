@@ -745,6 +745,7 @@ async function handleProdInputLive(val) {
     // Se EAN completo e só 1 resultado → adiciona direto ao carrinho
     if((/^\d{8}$/.test(term) || /^\d{13}$/.test(term)) && items.length === 1) {
       drop.style.display = 'none';
+      window._eanJustAutoAdded = true; // Impede que o Enter do scanner duplique o item
       selecionarItemEAN(0);
     }
   }, delay);
@@ -774,6 +775,8 @@ document.addEventListener('click', function(e) {
 });
 
 async function handleProdInput() {
+  clearTimeout(_eanSearchTimer); // Cancela auto-add pendente do live handler
+  if(window._eanJustAutoAdded) { window._eanJustAutoAdded = false; return; } // Enter do scanner após auto-add: ignora
   const term = document.getElementById('pdv-prod-input')?.value?.trim() || '';
   if(!term) return openProdutoPDVModal('');
   
