@@ -1,19 +1,6 @@
 let pdvCaixaAberto = false;
 let pdvFundoValor = 0;
-
-try {
-  const _dtFundo = new Date().toLocaleDateString('pt-BR');
-  const _storedFundo = localStorage.getItem('storeos_fundo_caixa');
-  if (_storedFundo) {
-    const _parsed = JSON.parse(_storedFundo);
-    if (_parsed.data === _dtFundo) {
-      pdvCaixaAberto = true;
-      pdvFundoValor = _parsed.valor;
-    } else {
-      localStorage.removeItem('storeos_fundo_caixa');
-    }
-  }
-} catch(e) {}
+let pdvCaixaId = null; // ID do caixa aberto no banco
 
 let pdvTab = 'itens';
 let pdvPayments = [];
@@ -22,7 +9,21 @@ let pdvPayments = [];
 async function renderPDV() {
   document.getElementById('topbar-actions').innerHTML = ''; // Botões do topbar removidos, a UI mudou para a sidebar esquerda
   document.getElementById('content').classList.add('pdv-active');
-  
+
+  // Verifica caixa aberto no banco (não localStorage)
+  if(!pdvCaixaAberto) {
+    try {
+      const hoje = new Date().toISOString().split('T')[0];
+      const {data:cxArr} = await sb.from('caixas').select('id,saldo_inicial,created_at')
+        .eq('status','aberto').gte('created_at', hoje+'T00:00:00').order('created_at',{ascending:false}).limit(1);
+      if(cxArr && cxArr[0]) {
+        pdvCaixaAberto = true;
+        pdvFundoValor = parseFloat(cxArr[0].saldo_inicial||0);
+        pdvCaixaId = cxArr[0].id;
+      }
+    } catch(e) {}
+  }
+
   if (!pdvCaixaAberto) {
     // TELA 1: Abertura do Fundo de Caixa (Estilo Phibo)
     document.getElementById('content').innerHTML = `
@@ -137,7 +138,7 @@ async function renderPDV() {
       </div>
 
       <!-- Tabs + Table -->
-      <div style="background:#fff;border-radius:12px;border:1px solid #e1e8ed;flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:350px;margin-bottom:10px;">
+      <div style="background:#fff;border-radius:12px;border:1px solid #e1e8ed;flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;margin-bottom:10px;">
         
         <!-- Tabs Row -->
         <div style="background:#f4f6f7;display:flex;flex-direction:column;border-bottom:1px solid #e1e8ed;">
@@ -203,7 +204,7 @@ async function renderPDV() {
         </div>
 
         <!-- TAB: RECEBIMENTO -->
-        <div id="pdv-tab-recebimento" style="display:none;flex-direction:column;flex:1;overflow-y:auto;background:#fff;padding:20px;">
+        <div id="pdv-tab-recebimento" style="display:none;flex-direction:column;flex:1;overflow-y:auto;min-height:0;background:#fff;padding:20px;">
           
           <div class="pdv-rec-top-flex">
             <!-- Desconto e Frete -->
@@ -238,14 +239,16 @@ async function renderPDV() {
                 <option value="Cartão Débito">💳 Cartão Débito</option>
                 <option value="Crediário">📋 Crediário</option>
               </select>
-              <div id="rec-cartao-extra" style="display:none;margin-top:8px">
-                <select id="rec-maquineta" onchange="_pdvMaquinetaChange()" style="padding:8px;border:1px solid #3498db;border-radius:6px;font-size:12px;width:100%;box-sizing:border-box;margin-bottom:6px">
-                  <option value="">— Selecione a maquineta —</option>
-                </select>
-                <select id="rec-bandeira" onchange="_pdvBandeiraChange()" style="padding:8px;border:1px solid #3498db;border-radius:6px;font-size:12px;width:100%;box-sizing:border-box">
-                  <option value="">— Bandeira —</option>
-                </select>
-                <div id="rec-taxa-info" style="font-size:11px;color:#7c3aed;font-weight:700;margin-top:4px;display:none"></div>
+              <div id="rec-cartao-extra" style="display:none;margin-top:6px">
+                <div style="display:flex;gap:6px;margin-bottom:4px">
+                  <select id="rec-maquineta" onchange="_pdvMaquinetaChange()" style="flex:1;padding:6px;border:1px solid #3498db;border-radius:6px;font-size:12px;box-sizing:border-box">
+                    <option value="">— Maquineta —</option>
+                  </select>
+                  <select id="rec-bandeira" onchange="_pdvBandeiraChange()" style="flex:1;padding:6px;border:1px solid #3498db;border-radius:6px;font-size:12px;box-sizing:border-box">
+                    <option value="">— Bandeira —</option>
+                  </select>
+                </div>
+                <div id="rec-taxa-info" style="font-size:11px;color:#7c3aed;font-weight:700;display:none"></div>
               </div>
             </div>
             <div class="pdv-rec-form-item">
@@ -327,19 +330,8 @@ async function confirmarFundoPDV() {
       saldo_inicial: pdvFundoValor,
       status: 'aberto'
     }).select().single();
-    if(cx) {
-      localStorage.setItem('storeos_fundo_caixa', JSON.stringify({
-        data: new Date().toLocaleDateString('pt-BR'),
-        valor: pdvFundoValor,
-        caixa_id: cx.id
-      }));
-    }
-  } catch(e) {
-    localStorage.setItem('storeos_fundo_caixa', JSON.stringify({
-      data: new Date().toLocaleDateString('pt-BR'),
-      valor: pdvFundoValor
-    }));
-  }
+    if(cx) pdvCaixaId = cx.id;
+  } catch(e) {}
 
   toast('O Fundo de Caixa foi cadastrado corretamente! Obrigado.');
   renderPDV();
@@ -559,11 +551,16 @@ function switchPdvTab(tab) {
 
 
 async function _pdvLoadMaquinetas() {
-  if(window._pdvMaqCache) return window._pdvMaqCache;
+  if(window._pdvMaqCache && window._pdvMaqCache.length) return window._pdvMaqCache;
   try {
     const {data} = await sb.from('configuracoes').select('valor').eq('chave','cartoes_maquinetas_v2').maybeSingle();
-    window._pdvMaqCache = data?.valor ? JSON.parse(data.valor) : [];
-  } catch(e) { window._pdvMaqCache = []; }
+    // Se não houver dado salvo, usa o padrão definido em financeiro.js
+    window._pdvMaqCache = data?.valor
+      ? JSON.parse(data.valor)
+      : (typeof _MAQUINETAS_DEFAULT !== 'undefined' ? JSON.parse(JSON.stringify(_MAQUINETAS_DEFAULT)) : []);
+  } catch(e) {
+    window._pdvMaqCache = typeof _MAQUINETAS_DEFAULT !== 'undefined' ? JSON.parse(JSON.stringify(_MAQUINETAS_DEFAULT)) : [];
+  }
   return window._pdvMaqCache || [];
 }
 
@@ -576,7 +573,7 @@ async function _pdvFormaChange() {
   if(isCard) {
     const maq = await _pdvLoadMaquinetas();
     const sel = document.getElementById('rec-maquineta');
-    const lastMaq = localStorage.getItem('pdv_last_maquineta') || '';
+    const lastMaq = window._pdvLastMaq || '';
     if(sel) {
       sel.innerHTML = '<option value="">— Selecione a maquineta —</option>' +
         maq.map(m=>`<option value="${m.nome}"${m.nome===lastMaq?' selected':''}>${m.nome}</option>`).join('');
@@ -591,7 +588,7 @@ async function _pdvFormaChange() {
 
 async function _pdvMaquinetaChange() {
   const maqNome = document.getElementById('rec-maquineta')?.value;
-  if(maqNome) localStorage.setItem('pdv_last_maquineta', maqNome);
+  if(maqNome) window._pdvLastMaq = maqNome;
   const forma   = document.getElementById('rec-forma')?.value;
   const maq     = await _pdvLoadMaquinetas();
   const m       = maq.find(x=>x.nome===maqNome);
@@ -600,16 +597,20 @@ async function _pdvMaquinetaChange() {
   const tipo = forma==='Cartão Débito' ? 'Débito' : 'Crédito';
   const taxas = m.taxas.filter(t=>t.tipo.toLowerCase().includes(tipo.toLowerCase()));
   const bandeiras = [...new Set(taxas.map(t=>t.bandeira))];
+  const lastBand = window._pdvLastBand || '';
   selBand.innerHTML = '<option value="">— Bandeira —</option>' +
-    bandeiras.map(b=>`<option value="${b}">${b}</option>`).join('');
+    bandeiras.map(b=>`<option value="${b}"${b===lastBand?' selected':''}>${b}</option>`).join('');
   const ti = document.getElementById('rec-taxa-info');
   if(ti) { ti.style.display='none'; ti.textContent=''; ti.dataset.taxa=''; }
+  // Auto-trigger taxa info if bandeira remembered
+  if(lastBand && bandeiras.includes(lastBand)) _pdvBandeiraChange();
 }
 
 async function _pdvBandeiraChange() {
+  const band = document.getElementById('rec-bandeira')?.value;
+  if(band) window._pdvLastBand = band;
   const forma   = document.getElementById('rec-forma')?.value;
   const maqNome = document.getElementById('rec-maquineta')?.value;
-  const band    = document.getElementById('rec-bandeira')?.value;
   const parc    = parseInt(document.getElementById('rec-parc')?.value||1);
   const ti      = document.getElementById('rec-taxa-info');
   if(!maqNome || !band || !ti) return;
@@ -1326,6 +1327,7 @@ async function finalizarVenda() {
   pdvPayments = [];
   cartClient = null;
   cartSeller = null;
+  window._pdvMaqCache = null; // limpa cache para recarregar taxas se mudar
   renderCart();
 }
 
@@ -1334,8 +1336,7 @@ async function fecharCaixaPDV() {
   // Buscar dados do caixa atual
   let caixaId = null;
   try {
-    const stored = JSON.parse(localStorage.getItem('storeos_fundo_caixa') || '{}');
-    caixaId = stored.caixa_id || null;
+    caixaId = pdvCaixaId || null;
   } catch(e) {}
 
   // Buscar o caixa aberto no banco
@@ -1346,7 +1347,7 @@ async function fecharCaixaPDV() {
     if(!confirm('Fechar o caixa do PDV?\n\nIsso encerrará a sessão atual.')) return;
     pdvCaixaAberto = false;
     pdvFundoValor = 0;
-    localStorage.removeItem('storeos_fundo_caixa');
+    pdvCaixaAberto = false; pdvFundoValor = 0; pdvCaixaId = null;
     toast('Caixa fechado!');
     renderPDV();
     return;
@@ -1493,7 +1494,7 @@ async function confirmarFechamentoCaixaPDV(caixaId, saldoEsperado) {
   pdvPayments = [];
   cartClient = null;
   cartSeller = null;
-  localStorage.removeItem('storeos_fundo_caixa');
+  pdvCaixaAberto = false; pdvFundoValor = 0; pdvCaixaId = null;
 
   closeModalDirect();
 
