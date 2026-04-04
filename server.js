@@ -567,6 +567,21 @@ app.get('/api/debug/ean', resolveDb, (req, res) => {
   } catch(e) { res.status(500).json({ message: e.message }); }
 });
 
+// Zera estoque: apaga variantes e opcionalmente produtos
+app.post('/api/manutencao/zerar-estoque', resolveDb, (req, res) => {
+  try {
+    const db = req.db;
+    const apagarProdutos = req.query.apagar_produtos === '1';
+    db.prepare(`DELETE FROM produto_grades`).run();
+    let msg = 'Todas as variantes foram apagadas.';
+    if(apagarProdutos) {
+      db.prepare(`DELETE FROM produtos`).run();
+      msg = 'Todos os produtos e variantes foram apagados.';
+    }
+    res.json({ ok: true, message: msg });
+  } catch(e) { res.status(500).json({ message: e.message }); }
+});
+
 // Remove produtos duplicados criados por importação com/sem zeros no código
 // GET /api/manutencao/deduplicar-produtos  → dry-run (só lista)
 // POST /api/manutencao/deduplicar-produtos → executa a limpeza
