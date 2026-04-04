@@ -541,6 +541,24 @@ function toSQLiteValue(val) {
 // =============================================
 
 // Rota dedicada de busca por EAN — garante comparação como TEXT no SQLite
+// Rota de diagnóstico — mostra o que há no banco sobre um EAN
+app.get('/api/debug/ean', resolveDb, (req, res) => {
+  try {
+    const db = req.db;
+    const ean = (req.query.ean || '').toString().trim();
+    const totalGrades = db.prepare(`SELECT COUNT(*) as c FROM produto_grades`).get();
+    const totalProdutos = db.prepare(`SELECT COUNT(*) as c FROM produtos WHERE ativo=1`).get();
+    const comEan = db.prepare(`SELECT COUNT(*) as c FROM produto_grades WHERE ean IS NOT NULL AND ean != ''`).get();
+    const amostra = db.prepare(`SELECT id, produto_id, tamanho, ean, typeof(ean) as tipo_ean FROM produto_grades WHERE ean IS NOT NULL LIMIT 5`).all();
+    let buscaExata = [], buscaLike = [];
+    if (ean) {
+      buscaExata = db.prepare(`SELECT pg.id, pg.ean, typeof(pg.ean) as tipo, p.nome, p.codigo FROM produto_grades pg JOIN produtos p ON p.id=pg.produto_id WHERE CAST(pg.ean AS TEXT)=? LIMIT 5`).all(ean);
+      buscaLike  = db.prepare(`SELECT pg.id, pg.ean, typeof(pg.ean) as tipo, p.nome, p.codigo FROM produto_grades pg JOIN produtos p ON p.id=pg.produto_id WHERE CAST(pg.ean AS TEXT) LIKE ? LIMIT 5`).all(`%${ean}%`);
+    }
+    res.json({ totalGrades: totalGrades.c, totalProdutos: totalProdutos.c, comEan: comEan.c, amostra, buscaExata, buscaLike });
+  } catch(e) { res.status(500).json({ message: e.message }); }
+});
+
 app.get('/api/busca/ean', resolveDb, (req, res) => {
   try {
     const db = req.db;
