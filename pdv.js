@@ -683,31 +683,53 @@ async function handleProdInputLive(val) {
 
   _eanSearchTimer = setTimeout(async () => {
     const items = [];
+    const isExactEAN = /^\d{8}$/.test(term) || /^\d{13}$/.test(term);
 
-    // 1. Buscar por EAN em produto_grades (ilike com % para resolver type mismatch SQLite)
-    const {data:pgRows} = await sb.from('produto_grades')
-      .select('id,produto_id,tamanho,ean,estoque,preco_venda,cor_descricao')
-      .ilike('ean', `%${term}%`).limit(20);
-
-    if(pgRows && pgRows.length) {
-      const pids = [...new Set(pgRows.map(r=>r.produto_id))];
-      const prodMap = {};
-      for(const pid of pids) {
-        const {data:p} = await sb.from('produtos').select('id,codigo,nome,preco_venda').eq('id',pid).maybeSingle();
-        if(p) prodMap[pid] = p;
-      }
-      pgRows.forEach(pg => {
-        const p = prodMap[pg.produto_id];
-        if(!p) return;
-        const preco = parseFloat(pg.preco_venda)||parseFloat(p.preco_venda)||0;
-        const cor = pg.cor_descricao ? ` — ${pg.cor_descricao}` : '';
-        items.push({ prodId:p.id, nome:p.nome, preco, tamanho:pg.tamanho, codigo:p.codigo, gradeId:pg.id,
-          label:`${p.nome}`, grade:`${pg.tamanho||''}${cor}`, estoque:pg.estoque||0 });
-      });
+    // 1. EAN exato (8 ou 13 dígitos) → usa rota dedicada com CAST para funcionar com INTEGER
+    if (isExactEAN) {
+      try {
+        const token = localStorage.getItem('loja_token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        const res = await fetch(`/api/busca/ean?ean=${encodeURIComponent(term)}`, { headers });
+        if (res.ok) {
+          const rows = await res.json();
+          rows.forEach(r => {
+            const preco = parseFloat(r.preco_venda) || parseFloat(r.prod_preco) || 0;
+            const cor = r.cor_descricao ? ` — ${r.cor_descricao}` : '';
+            items.push({ prodId: r.produto_id, nome: r.prod_nome, preco, tamanho: r.tamanho,
+              codigo: r.prod_codigo, gradeId: r.id,
+              label: r.prod_nome, grade: `${r.tamanho||''}${cor}`, estoque: r.estoque||0 });
+          });
+        }
+      } catch(e) {}
     }
 
-    // 2. Buscar por nome/código em produtos (só se não encontrou por EAN ou busca não é numérica)
-    if(!items.length || !/^\d+$/.test(term)) {
+    // 2. EAN parcial ou não-numérico → ilike em produto_grades
+    if (!items.length && !isExactEAN) {
+      const {data:pgRows} = await sb.from('produto_grades')
+        .select('id,produto_id,tamanho,ean,estoque,preco_venda,cor_descricao')
+        .ilike('ean', `%${term}%`).limit(20);
+
+      if(pgRows && pgRows.length) {
+        const pids = [...new Set(pgRows.map(r=>r.produto_id))];
+        const prodMap = {};
+        for(const pid of pids) {
+          const {data:p} = await sb.from('produtos').select('id,codigo,nome,preco_venda').eq('id',pid).maybeSingle();
+          if(p) prodMap[pid] = p;
+        }
+        pgRows.forEach(pg => {
+          const p = prodMap[pg.produto_id];
+          if(!p) return;
+          const preco = parseFloat(pg.preco_venda)||parseFloat(p.preco_venda)||0;
+          const cor = pg.cor_descricao ? ` — ${pg.cor_descricao}` : '';
+          items.push({ prodId:p.id, nome:p.nome, preco, tamanho:pg.tamanho, codigo:p.codigo, gradeId:pg.id,
+            label:`${p.nome}`, grade:`${pg.tamanho||''}${cor}`, estoque:pg.estoque||0 });
+        });
+      }
+    }
+
+    // 3. Buscar por nome/código em produtos (só se não é EAN exato e não achou ainda)
+    if(!items.length && !isExactEAN) {
       const {data:prods} = await sb.from('produtos').select('id,codigo,nome,preco_venda').eq('ativo',true)
         .or(`nome.ilike.%${term}%,codigo.ilike.%${term}%`).limit(10);
       if(prods) {
