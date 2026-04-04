@@ -310,91 +310,200 @@ function openFiltrarPeriodosCredi() {
 // =============================================
 async function renderAnaliseCliente() {
   document.getElementById('topbar-actions').innerHTML='';
-  const hoje=new Date(),ano=hoje.getFullYear(),m=String(hoje.getMonth()+1).padStart(2,'0');
   document.getElementById('content').innerHTML=`
     <div style="background:white;border:1px solid #e2e8f0;border-radius:8px">
-      <div style="padding:10px 16px;border-bottom:1px solid #e2e8f0;font-size:12px;color:#16a34a;font-weight:600">✓ últimos 12 meses — de ${m}/04/${ano-1} a ${m}/04/${ano}</div>
       <div style="padding:12px 16px;border-bottom:1px solid #e2e8f0">
-        <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:10px">Cliente</div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <input id="ac-fone" placeholder="Número Celular" style="padding:7px 12px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;width:160px;font-family:inherit">
-          <input id="ac-nome" placeholder="Nome abreviado ou completo" style="padding:7px 12px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;flex:1;min-width:200px;font-family:inherit">
-          <input id="ac-abrev" placeholder="Nome abreviado" style="padding:7px 12px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;width:160px;font-family:inherit">
-          <button onclick="buscarAnaliseCliente()" style="padding:7px 14px;background:#2563eb;color:white;border:none;border-radius:6px;cursor:pointer;display:flex;align-items:center"><i data-lucide="search" style="width:16px;height:16px"></i></button>
+        <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:10px">Buscar Cliente</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end">
+          <div>
+            <label style="font-size:11px;color:#6b7280;font-weight:600;display:block;margin-bottom:4px">Celular</label>
+            <input id="ac-fone" placeholder="Número do celular" style="width:100%;padding:8px 12px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box"
+              onkeypress="if(event.key==='Enter')buscarAnaliseCliente()">
+          </div>
+          <div>
+            <label style="font-size:11px;color:#6b7280;font-weight:600;display:block;margin-bottom:4px">Nome</label>
+            <input id="ac-nome" placeholder="Nome completo ou abreviado" style="width:100%;padding:8px 12px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box"
+              onkeypress="if(event.key==='Enter')buscarAnaliseCliente()">
+          </div>
+          <div style="display:flex;gap:6px">
+            <button onclick="buscarAnaliseCliente()" title="Buscar" style="padding:8px 16px;background:#2563eb;color:white;border:none;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;white-space:nowrap">
+              <i data-lucide="search" style="width:15px;height:15px"></i> Buscar
+            </button>
+            <button onclick="buscarAnaliseCliente(true)" title="Ver todos" style="padding:8px 12px;background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">
+              Ver todos
+            </button>
+          </div>
         </div>
       </div>
+
+      <!-- Lista de clientes com crediário -->
+      <div id="ac-clientes-lista" style="padding:12px 16px;border-bottom:1px solid #e2e8f0;display:none">
+        <div style="font-size:11px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Clientes encontrados — clique para ver parcelas</div>
+        <div id="ac-clientes-chips" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      </div>
+
       <div style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse;font-size:12px">
           <thead>
             <tr style="background:#f8fafc;border-bottom:1px solid #e2e8f0">
               <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280" rowspan="2">PN</th>
-              <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280" rowspan="2">Data Util Vencto</th>
+              <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280" rowspan="2">Vencimento</th>
               <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280" rowspan="2">Valor Parcela</th>
-              <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280" rowspan="2">Parcela Status</th>
-              <th colspan="4" style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280;border-left:2px solid #e2e8f0">Recebimento das Parcelas</th>
-              <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280" rowspan="2">Dias em Atraso</th>
-              <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280" rowspan="2">Valor a Pagar Parcela</th>
-              <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280" rowspan="2">Valor a Pagar Multa</th>
-              <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280" rowspan="2">Valor a Pagar Juros</th>
-              <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280" rowspan="2">Valor a Pagar Total</th>
+              <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280" rowspan="2">Status</th>
+              <th colspan="4" style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280;border-left:2px solid #e2e8f0">Recebimento</th>
+              <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280" rowspan="2">Dias Atraso</th>
+              <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280" rowspan="2">Parcela</th>
+              <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280" rowspan="2">Multa</th>
+              <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280" rowspan="2">Juros</th>
+              <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#6b7280" rowspan="2">Total</th>
             </tr>
             <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
               <th style="padding:6px 8px;text-align:center;font-size:10px;font-weight:700;color:#6b7280;border-left:2px solid #e2e8f0">Data Pagto</th>
               <th style="padding:6px 8px;text-align:center;font-size:10px;font-weight:700;color:#6b7280">Valor Pago</th>
-              <th style="padding:6px 8px;text-align:center;font-size:10px;font-weight:700;color:#6b7280">Valor Descto</th>
-              <th style="padding:6px 8px;text-align:center;font-size:10px;font-weight:700;color:#6b7280">FormaPagto</th>
+              <th style="padding:6px 8px;text-align:center;font-size:10px;font-weight:700;color:#6b7280">Desconto</th>
+              <th style="padding:6px 8px;text-align:center;font-size:10px;font-weight:700;color:#6b7280">Forma</th>
             </tr>
           </thead>
-          <tbody id="ac-tbody"><tr><td colspan="13" style="padding:24px;text-align:center;color:#888">Nenhuma venda encontrada.</td></tr></tbody>
+          <tbody id="ac-tbody"><tr><td colspan="13" style="padding:24px;text-align:center;color:#888">Pesquise um cliente ou clique em "Ver todos".</td></tr></tbody>
           <tfoot><tr style="border-top:2px solid #e2e8f0;background:#f8fafc">
-            <td colspan="9" style="padding:8px 10px;text-align:right;font-size:12px;font-weight:700">Total:</td>
+            <td colspan="9" style="padding:8px 10px;text-align:right;font-size:12px;font-weight:700">Total a pagar:</td>
             <td colspan="4" id="ac-total" style="padding:8px 10px"></td>
           </tr></tfoot>
         </table>
       </div>
     </div>`;
   lucide.createIcons();
+  // Carrega automaticamente todos os clientes com crediário aberto
+  await buscarAnaliseCliente(true);
 }
 
-async function buscarAnaliseCliente() {
-  const fone=document.getElementById('ac-fone')?.value.trim(),nome=document.getElementById('ac-nome')?.value.trim();
-  const tbody=document.getElementById('ac-tbody'); if(!fone&&!nome) return;
-  tbody.innerHTML='<tr><td colspan="13" style="padding:16px;text-align:center;color:#888">Buscando...</td></tr>';
-  let q=sb.from('clientes').select('id,nome,celular').eq('ativo',true);
-  if(fone)q=q.ilike('celular',`%${fone}%`);if(nome)q=q.ilike('nome',`%${nome}%`);
-  const {data:clientes}=await q.limit(5);
-  if(!clientes||!clientes.length){tbody.innerHTML='<tr><td colspan="13" style="padding:16px;text-align:center;color:#e74c3c">Nenhum cliente encontrado</td></tr>';return;}
-  const params=_crediParams||{multa_pct:2,juros_mes:1};
-  let rows='',totalPagar=0;
-  for(const cli of clientes){
-    const {data:creds}=await sb.from('crediario').select('id').eq('cliente_id',cli.id);
-    if(!creds||!creds.length) continue;
-    for(const cr of creds){
-      const {data:ps}=await sb.from('crediario_parcelas').select('*').eq('crediario_id',cr.id).order('numero_parcela');
-      (ps||[]).forEach(p=>{
-        const dias=diasAtraso(p.vencimento),multa=dias>0?(p.valor*(params.multa_pct||2)/100):0,juros=dias>0?(p.valor*(params.juros_mes||1)/100*(dias/30)):0,total=p.valor+multa+juros-(p.valor_pago||0);
-        totalPagar+=total;
-        const stCor=p.status==='paga'?'#16a34a':p.status==='atrasada'?'#dc2626':'#2563eb';
-        rows+=`<tr style="border-bottom:1px solid #f1f5f9">
-          <td style="padding:7px 10px;text-align:center">${p.numero_parcela}</td>
-          <td style="padding:7px 10px;text-align:center">${fmtDate(p.vencimento)}</td>
-          <td style="padding:7px 10px;text-align:center">${fmt(p.valor)}</td>
-          <td style="padding:7px 10px;text-align:center"><span style="background:${stCor}22;color:${stCor};padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700">${p.status}</span></td>
-          <td style="padding:7px 10px;text-align:center;border-left:2px solid #e2e8f0">${p.data_pagamento?fmtDate(p.data_pagamento):'—'}</td>
-          <td style="padding:7px 10px;text-align:center">${p.valor_pago?fmt(p.valor_pago):'—'}</td>
-          <td style="padding:7px 10px;text-align:center">${p.desconto?fmt(p.desconto):'—'}</td>
-          <td style="padding:7px 10px;text-align:center">${p.forma_pagamento||'—'}</td>
-          <td style="padding:7px 10px;text-align:center;color:#dc2626">${dias}</td>
-          <td style="padding:7px 10px;text-align:center">${fmt(p.valor)}</td>
-          <td style="padding:7px 10px;text-align:center;color:#dc2626">${fmt(multa)}</td>
-          <td style="padding:7px 10px;text-align:center;color:#d97706">${fmt(juros)}</td>
-          <td style="padding:7px 10px;text-align:center;font-weight:700;color:#dc2626">${fmt(total)}</td>
-        </tr>`;
-      });
-    }
+async function buscarAnaliseCliente(todos) {
+  const fone = document.getElementById('ac-fone')?.value.trim() || '';
+  const nome = document.getElementById('ac-nome')?.value.trim() || '';
+  const tbody = document.getElementById('ac-tbody');
+  if(!tbody) return;
+
+  // Se não é "todos" e não tem filtro, mostra instrução
+  if(!todos && !fone && !nome) {
+    tbody.innerHTML='<tr><td colspan="13" style="padding:24px;text-align:center;color:#888">Digite celular ou nome para pesquisar.</td></tr>';
+    return;
   }
-  tbody.innerHTML=rows||'<tr><td colspan="13" style="padding:20px;text-align:center;color:#888">Nenhuma venda encontrada.</td></tr>';
-  const tot=document.getElementById('ac-total');if(tot)tot.innerHTML=`<strong style="color:#dc2626">${fmt(totalPagar)}</strong>`;
+
+  tbody.innerHTML='<tr><td colspan="13" style="padding:16px;text-align:center;color:#888">Buscando...</td></tr>';
+
+  if(!_crediParams){
+    const {data:cfgP}=await sb.from('configuracoes').select('valor').eq('chave','crediario_params').maybeSingle();
+    try{_crediParams=cfgP?JSON.parse(cfgP.valor):{multa_pct:2,juros_mes:1};}catch(e){_crediParams={multa_pct:2,juros_mes:1};}
+  }
+  const params = _crediParams||{multa_pct:2,juros_mes:1};
+
+  let clientes = [];
+
+  if(todos) {
+    // Busca todos os clientes que têm crediário (aberto, atrasado ou quitado)
+    const {data:creds} = await sb.from('crediario').select('cliente_id').not('cliente_id','is',null);
+    const ids = [...new Set((creds||[]).map(c=>c.cliente_id))];
+    if(ids.length) {
+      const {data:clis} = await sb.from('clientes').select('id,nome,celular').in('id', ids);
+      clientes = clis||[];
+    }
+  } else {
+    let q = sb.from('clientes').select('id,nome,celular').eq('ativo',true);
+    if(fone) q = q.ilike('celular',`%${fone}%`);
+    if(nome) q = q.ilike('nome',`%${nome}%`);
+    const {data:clis} = await q.limit(10);
+    clientes = clis||[];
+  }
+
+  if(!clientes.length) {
+    tbody.innerHTML='<tr><td colspan="13" style="padding:16px;text-align:center;color:#e74c3c">Nenhum cliente com crediário encontrado.</td></tr>';
+    const lista = document.getElementById('ac-clientes-lista');
+    if(lista) lista.style.display='none';
+    return;
+  }
+
+  // Mostra chips de clientes para seleção rápida
+  const lista = document.getElementById('ac-clientes-lista');
+  const chips = document.getElementById('ac-clientes-chips');
+  if(lista && chips) {
+    lista.style.display = 'block';
+    chips.innerHTML = clientes.map(c=>`
+      <button onclick="carregarParcelasCliente('${c.id}','${(c.nome||'').replace(/'/g,"\\'")}',this)"
+        style="padding:6px 14px;border:1.5px solid #e2e8f0;border-radius:20px;background:white;cursor:pointer;font-size:12px;font-weight:600;color:#374151;display:flex;align-items:center;gap:6px">
+        <i data-lucide="user" style="width:12px;height:12px;color:#6b7280"></i>
+        ${c.nome} ${c.celular?`<span style="color:#94a3b8;font-weight:400">${c.celular}</span>`:''}
+      </button>`).join('');
+    lucide.createIcons();
+  }
+
+  // Se só um cliente, carrega automaticamente
+  if(clientes.length === 1) {
+    await carregarParcelasCliente(clientes[0].id, clientes[0].nome, null);
+  } else {
+    tbody.innerHTML='<tr><td colspan="13" style="padding:24px;text-align:center;color:#888">Selecione um cliente acima para ver as parcelas.</td></tr>';
+    const tot=document.getElementById('ac-total'); if(tot) tot.innerHTML='';
+  }
+}
+
+async function carregarParcelasCliente(clienteId, clienteNome, btnEl) {
+  // Destaca o botão selecionado
+  document.querySelectorAll('#ac-clientes-chips button').forEach(b=>{
+    b.style.background='white'; b.style.borderColor='#e2e8f0'; b.style.color='#374151';
+  });
+  if(btnEl) { btnEl.style.background='#eff6ff'; btnEl.style.borderColor='#2563eb'; btnEl.style.color='#2563eb'; }
+
+  const tbody = document.getElementById('ac-tbody');
+  if(!tbody) return;
+  tbody.innerHTML='<tr><td colspan="13" style="padding:16px;text-align:center;color:#888">Carregando parcelas...</td></tr>';
+
+  if(!_crediParams){
+    const {data:cfgP}=await sb.from('configuracoes').select('valor').eq('chave','crediario_params').maybeSingle();
+    try{_crediParams=cfgP?JSON.parse(cfgP.valor):{multa_pct:2,juros_mes:1};}catch(e){_crediParams={multa_pct:2,juros_mes:1};}
+  }
+  const params = _crediParams||{multa_pct:2,juros_mes:1};
+
+  const {data:creds} = await sb.from('crediario').select('id,total,num_parcelas,status').eq('cliente_id',clienteId);
+  if(!creds||!creds.length) {
+    tbody.innerHTML=`<tr><td colspan="13" style="padding:20px;text-align:center;color:#888">Nenhum crediário encontrado para ${clienteNome}.</td></tr>`;
+    return;
+  }
+
+  let rows='', totalPagar=0;
+  for(const cr of creds) {
+    const {data:ps} = await sb.from('crediario_parcelas').select('*').eq('crediario_id',cr.id).order('numero_parcela');
+    // Cabeçalho separador por crediário
+    rows += `<tr style="background:#f0f9ff;border-top:2px solid #bfdbfe">
+      <td colspan="13" style="padding:6px 12px;font-size:11px;font-weight:700;color:#2563eb">
+        Crediário — Total: ${fmt(cr.total)} | ${cr.num_parcelas}x | Status: ${cr.status}
+      </td>
+    </tr>`;
+    (ps||[]).forEach(p=>{
+      const dias=diasAtraso(p.vencimento);
+      const multa=dias>0?(p.valor*(params.multa_pct||2)/100):0;
+      const juros=dias>0?(p.valor*(params.juros_mes||1)/100*(dias/30)):0;
+      const total=Math.max(0, p.valor+multa+juros-(p.valor_pago||0));
+      totalPagar+=total;
+      const stCor=p.status==='paga'?'#16a34a':p.status==='atrasada'?'#dc2626':'#2563eb';
+      rows+=`<tr style="border-bottom:1px solid #f1f5f9">
+        <td style="padding:7px 10px;text-align:center">${p.numero_parcela}</td>
+        <td style="padding:7px 10px;text-align:center">${fmtDate(p.vencimento)}</td>
+        <td style="padding:7px 10px;text-align:center">${fmt(p.valor)}</td>
+        <td style="padding:7px 10px;text-align:center"><span style="background:${stCor}22;color:${stCor};padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700">${p.status}</span></td>
+        <td style="padding:7px 10px;text-align:center;border-left:2px solid #e2e8f0">${p.data_pagamento?fmtDate(p.data_pagamento):'—'}</td>
+        <td style="padding:7px 10px;text-align:center">${p.valor_pago?fmt(p.valor_pago):'—'}</td>
+        <td style="padding:7px 10px;text-align:center">${p.desconto?fmt(p.desconto):'—'}</td>
+        <td style="padding:7px 10px;text-align:center">${p.forma_pagamento||'—'}</td>
+        <td style="padding:7px 10px;text-align:center;color:#dc2626">${dias>0?dias:0}</td>
+        <td style="padding:7px 10px;text-align:center">${fmt(p.valor)}</td>
+        <td style="padding:7px 10px;text-align:center;color:#dc2626">${fmt(multa)}</td>
+        <td style="padding:7px 10px;text-align:center;color:#d97706">${fmt(juros)}</td>
+        <td style="padding:7px 10px;text-align:center;font-weight:700;color:#dc2626">${fmt(total)}</td>
+      </tr>`;
+    });
+  }
+  tbody.innerHTML=rows||`<tr><td colspan="13" style="padding:20px;text-align:center;color:#888">Nenhuma parcela encontrada.</td></tr>`;
+  const tot=document.getElementById('ac-total');
+  if(tot) tot.innerHTML=`<strong style="color:#dc2626">${fmt(totalPagar)}</strong>`;
 }
 
 // =============================================
