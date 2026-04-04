@@ -868,22 +868,72 @@ async function loadFluxoRecebimento() {
   lucide.createIcons();
 }
 
-// ===== HISTORICO POR DATA VENDA (stub) =====
+// ===== HISTORICO POR DATA VENDA (Layout Phibo) =====
 async function renderHistoricoDataVenda() {
   document.getElementById('topbar-actions').innerHTML = '';
-  const hoje = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const anoAtual = now.getFullYear();
+  const mesAtual = now.getMonth()+1;
+  const mesesNomes = ['','Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
   document.getElementById('content').innerHTML = `
     <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-      <span style="font-size:13px;font-weight:600;color:var(--text-1)">Informe o dia:</span>
-      <input type="date" id="hdv-data" value="${hoje}" style="padding:7px 14px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;background:white;font-family:inherit;min-width:160px">
+      <span style="font-size:13px;font-weight:600;color:var(--text-1)">Informe o Ano/Mes:</span>
+      <select id="hdv-ano" onchange="loadHistoricoDataVenda()" style="padding:7px 14px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;background:white;font-family:inherit;min-width:90px">
+        ${[anoAtual-1,anoAtual].map(y=>`<option value="${y}" ${y===anoAtual?'selected':''}>${y}</option>`).join('')}
+      </select>
+      <select id="hdv-mes" onchange="loadHistoricoDataVenda()" style="padding:7px 14px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;background:white;font-family:inherit;min-width:120px">
+        ${mesesNomes.slice(1).map((m,i)=>`<option value="${i+1}" ${(i+1)===mesAtual?'selected':''}>${m}</option>`).join('')}
+      </select>
     </div>
+    <div id="hdv-content"><div class="loading">Carregando...</div></div>`;
+  lucide.createIcons();
+  await loadHistoricoDataVenda();
+}
+
+async function loadHistoricoDataVenda() {
+  const ano = parseInt(document.getElementById('hdv-ano')?.value||new Date().getFullYear());
+  const mes = parseInt(document.getElementById('hdv-mes')?.value||(new Date().getMonth()+1));
+  const mesStr = String(mes).padStart(2,'0');
+  const ini = `${ano}-${mesStr}-01`;
+  const lastDay = new Date(ano,mes,0).getDate();
+  const fim = `${ano}-${mesStr}-${lastDay}T23:59:59`;
+
+  const {data:vendas} = await sb.from('vendas').select('id,numero_venda,total,forma_pagamento,created_at,status').gte('created_at',ini).lte('created_at',fim).eq('status','concluida').order('created_at',{ascending:true});
+
+  const totalReceber = (vendas||[]).reduce((a,v)=>a+parseFloat(v.total||0),0);
+  const totalPago = totalReceber; // vendas concluidas = ja pagas
+
+  const container = document.getElementById('hdv-content');
+  if(!container) return;
+
+  container.innerHTML = `
     <div class="card">
-      <div class="card-body" style="text-align:center;padding:48px 24px">
-        <i data-lucide="calendar" style="width:48px;height:48px;color:var(--accent);margin-bottom:16px"></i>
-        <h3 style="margin-bottom:8px;color:var(--text-1)">Historico por Data Venda</h3>
-        <p style="color:var(--text-2)">Modulo em desenvolvimento.</p>
-      </div>
+      <div class="table-wrap"><table class="data-table" style="font-size:12px">
+        <thead><tr>
+          <th>Data Venda</th><th>N</th><th>Data Vencto</th><th style="text-align:center">Forma Pagto</th><th style="text-align:right">Valor a Receber</th><th style="text-align:right">Valor Pago</th>
+        </tr></thead>
+        <tbody>${(vendas||[]).length ? (vendas||[]).map(v=>{
+          const dataVenda = fmtDate(v.created_at?.split('T')[0]);
+          const val = parseFloat(v.total||0);
+          return `<tr>
+            <td>${dataVenda}</td>
+            <td>${v.numero_venda||'\u2014'}</td>
+            <td>${dataVenda}</td>
+            <td style="text-align:center;text-transform:capitalize">${v.forma_pagamento||'outros'}</td>
+            <td style="text-align:right">${fmtNum(val)}</td>
+            <td style="text-align:right">${fmtNum(val)}</td>
+          </tr>`;
+        }).join('') : '<tr><td colspan="6" style="color:var(--text-2);padding:10px 14px">Nenhum valor encontrado.</td></tr>'}</tbody>
+        <tfoot>
+          <tr style="font-weight:700;background:var(--bg-2)">
+            <td colspan="3"></td>
+            <td style="text-align:right;font-size:11px">Total Geral (R$):</td>
+            <td style="text-align:right">${fmtNum(totalReceber)}</td>
+            <td style="text-align:right">${fmtNum(totalPago)}</td>
+          </tr>
+        </tfoot>
+      </table></div>
     </div>`;
   lucide.createIcons();
 }
