@@ -449,7 +449,8 @@ function selectSize(id, nome, preco, size) {
 }
 
 function pushCartItem(id, nome, preco, tamanho) {
-  const existing = cart.find(i=>i.id===id&&i.tamanho===tamanho);
+  // Sem grade_id, agrupa por produto+tamanho
+  const existing = cart.find(i=>i.id===id&&i.tamanho===tamanho&&!i.grade_id);
   if(existing){existing.qty++;} else {cart.push({id,nome,preco:parseFloat(preco),tamanho,qty:1});}
   renderCart();
 }
@@ -1202,7 +1203,10 @@ async function renderModalProdRowsWithGrades(prods) {
 function addCartFromGrade(prodId, nome, preco, tamanho, codigo, gradeId) {
   const qtyInput = document.getElementById('pdv-qty-input');
   const qty = parseInt(qtyInput?.value || 1);
-  const existing = cart.find(i => i.id === prodId && i.tamanho === tamanho);
+  // Chave única: usa grade_id quando disponível (garante que EANs diferentes = itens separados)
+  const existing = gradeId
+    ? cart.find(i => i.grade_id === gradeId)
+    : cart.find(i => i.id === prodId && i.tamanho === tamanho && !i.grade_id);
   if(existing) { existing.qty += qty; }
   else { cart.push({ id: prodId, nome, preco: parseFloat(preco), tamanho: tamanho||'Único', qty, codigo, grade_id: gradeId }); }
   if(qtyInput) qtyInput.value = 1;
