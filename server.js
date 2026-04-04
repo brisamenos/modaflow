@@ -567,6 +567,42 @@ app.get('/api/debug/ean', resolveDb, (req, res) => {
   } catch(e) { res.status(500).json({ message: e.message }); }
 });
 
+// Remove produtos duplicados criados por importação com/sem zeros no código
+// GET /api/manutencao/deduplicar-produtos  → dry-run (só lista)
+// POST /api/manutencao/deduplicar-produtos → executa a limpeza
+app.all('/api/manutencao/deduplicar-produtos', resolveDb, (req, res) => {
+  try {
+    const db = req.db;
+    const dryRun = req.method === 'GET';
+    // Encontra pares de produtos com mesmo LTRIM(codigo,'0') e mesmo nome
+    const dups = db.prepare(`
+      SELECT a.id as id_manter, b.id as id_remover,
+             a.codigo as cod_manter, b.codigo as cod_remover, a.nome
+      FROM produtos a
+      JOIN produtos b ON (
+        a.id < b.id
+        AND a.ativo = 1 AND b.ativo = 1
+        AND LOWER(TRIM(a.nome)) = LOWER(TRIM(b.nome))
+        AND LTRIM(CAST(a.codigo AS TEXT),'0') = LTRIM(CAST(b.codigo AS TEXT),'0')
+      )
+    `).all();
+
+    if(dryRun) return res.json({ total: dups.length, pares: dups });
+
+    let removidos = 0;
+    for(const dup of dups) {
+      // Move grades do duplicado para o original
+      db.prepare(`UPDATE produto_grades SET produto_id=? WHERE produto_id=? AND NOT EXISTS (
+        SELECT 1 FROM produto_grades g2 WHERE g2.produto_id=? AND g2.tamanho=produto_grades.tamanho AND g2.ean=produto_grades.ean
+      )`).run(dup.id_manter, dup.id_remover, dup.id_manter);
+      // Desativa o duplicado
+      db.prepare(`UPDATE produtos SET ativo=0 WHERE id=?`).run(dup.id_remover);
+      removidos++;
+    }
+    res.json({ removidos, detalhes: dups });
+  } catch(e) { res.status(500).json({ message: e.message }); }
+});
+
 app.get('/api/busca/ean', resolveDb, (req, res) => {
   try {
     const db = req.db;
