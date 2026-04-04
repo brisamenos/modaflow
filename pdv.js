@@ -593,7 +593,6 @@ async function _pdvMaquinetaChange() {
   const maqNome = document.getElementById('rec-maquineta')?.value;
   if(maqNome) localStorage.setItem('pdv_last_maquineta', maqNome);
   const forma   = document.getElementById('rec-forma')?.value;
-  const maqNome = document.getElementById('rec-maquineta')?.value;
   const maq     = await _pdvLoadMaquinetas();
   const m       = maq.find(x=>x.nome===maqNome);
   const selBand = document.getElementById('rec-bandeira');
