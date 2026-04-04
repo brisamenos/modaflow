@@ -2903,46 +2903,157 @@ async function renderColecoes() {
 }
 
 async function renderGrades() {
-  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary" onclick="openGradeModal()"><i data-lucide="plus"></i>Nova Grade</button>`;
-  const {data} = await sb.from('grades').select('*').eq('ativo',true);
+  document.getElementById('topbar-actions').innerHTML = '';
+  document.getElementById('content').innerHTML = `<div class="loading" style="padding:48px;text-align:center">Carregando...</div>`;
+
+  // Buscar tamanhos cadastrados na tabela grades_itens (individual)
+  // E também os tamanhos reais de produto_grades para mostrar os importados
+  const [{data:gradeItens}, {data:pgTams}] = await Promise.all([
+    sb.from('grades_itens').select('id,tamanho,faixa_etaria').order('tamanho'),
+    sb.from('produto_grades').select('tamanho').not('tamanho','is',null)
+  ]);
+
+  // Montar set de tamanhos já cadastrados
+  const cadastrados = new Map();
+  (gradeItens||[]).forEach(g => cadastrados.set(g.tamanho, g));
+
+  // Tamanhos do backup que não estão cadastrados ainda
+  const tamsBD = [...new Set((pgTams||[]).map(r=>r.tamanho?.trim()).filter(Boolean))];
+  const naoImportados = tamsBD.filter(t => !cadastrados.has(t));
+
+  const rows = [...cadastrados.values()].map(g => `
+    <tr>
+      <td style="padding:10px 14px;text-align:center;font-weight:600">${g.tamanho}</td>
+      <td style="padding:10px 14px;text-align:center;color:#555">${g.faixa_etaria||'—'}</td>
+      <td style="padding:10px 14px;text-align:center">
+        <button onclick="editarGradeItem('${g.id}','${g.tamanho}','${g.faixa_etaria||''}')"
+          style="width:28px;height:28px;border:1px solid #d1d5db;border-radius:4px;background:white;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:#6b7280;margin-right:4px"
+          onmouseover="this.style.color='#2563eb'" onmouseout="this.style.color='#6b7280'">
+          <i data-lucide="square-pen" style="width:13px;height:13px"></i>
+        </button>
+        <button onclick="excluirGradeItem('${g.id}')"
+          style="width:28px;height:28px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:#dc2626">
+          <i data-lucide="trash-2" style="width:13px;height:13px"></i>
+        </button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="3" style="padding:24px;text-align:center;color:#9ca3af">Nenhum tamanho cadastrado</td></tr>';
+
   document.getElementById('content').innerHTML = `
-    <div class="card">
-      <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>Nome</th><th>Tipo</th><th>Valores</th><th>Ações</th></tr></thead>
-        <tbody>${(data||[]).map(g=>`<tr>
-          <td><strong>${g.nome}</strong></td><td>${g.tipo||'—'}</td>
-          <td><div style="display:flex;flex-wrap:wrap;gap:4px">${(g.valores||[]).map(v=>`<span class="badge badge-blue">${v}</span>`).join('')}</div></td>
-          <td><button class="btn btn-sm btn-danger" onclick="deleteRecord('grades','${g.id}',renderGrades)"><i data-lucide="trash-2"></i></button></td>
-        </tr>`).join('')}
-        </tbody>
-      </table></div>
+    <div style="max-width:700px;margin:0 auto">
+
+      <!-- Formulário igual ao Phibo -->
+      <div style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin-bottom:16px">
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end">
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px">Tamanho</label>
+            <input id="gr-tamanho" placeholder="" style="width:100%;padding:8px 10px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;font-family:inherit">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px">Faixa etária</label>
+            <input id="gr-faixa" placeholder="" style="width:100%;padding:8px 10px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;font-family:inherit">
+          </div>
+          <div style="display:flex;gap:8px">
+            <button onclick="limparFormGrade()" style="padding:8px 16px;background:#6b7280;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
+              <i data-lucide="eraser" style="width:13px;height:13px"></i>Limpar
+            </button>
+            <button onclick="salvarGradeItem()" style="padding:8px 20px;background:#2563eb;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+              Salvar
+            </button>
+          </div>
+        </div>
+        <input type="hidden" id="gr-edit-id" value="">
+      </div>
+
+      ${naoImportados.length ? `
+      <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;color:#92400e"><strong>${naoImportados.length} tamanhos</strong> do backup ainda não cadastrados como grade</span>
+        <button onclick="importarTamanhosBackup()" style="padding:7px 14px;background:#d97706;color:white;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">
+          Importar todos
+        </button>
+      </div>` : ''}
+
+      <!-- Tabela igual ao Phibo -->
+      <div style="background:white;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
+              <th style="padding:10px 14px;text-align:center;font-size:12px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.4px">Tamanho</th>
+              <th style="padding:10px 14px;text-align:center;font-size:12px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.4px">Faixa Etária</th>
+              <th style="padding:10px 14px;text-align:center;font-size:12px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.4px">Ação</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
     </div>`;
   lucide.createIcons();
 }
 
-function openGradeModal() {
-  openModal(`
-    <div class="modal-header"><h3>Nova Grade</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
-    <div class="modal-body">
-      <div class="form-grid">
-        <div class="form-group"><label>Nome *</label><input id="gr-nome"></div>
-        <div class="form-group"><label>Tipo</label><select id="gr-tipo"><option value="tamanho">Tamanho</option><option value="numeracao">Numeração</option><option value="unico">único</option></select></div>
-        <div class="form-group"><label>Valores (separados por vírgula)</label><input id="gr-vals" placeholder="PP,P,M,G,GG,XGG"></div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModalDirect()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveGrade()"><i data-lucide="save"></i>Salvar</button>
-    </div>`,'modal-md');
+async function salvarGradeItem() {
+  const id = document.getElementById('gr-edit-id')?.value;
+  const tamanho = document.getElementById('gr-tamanho')?.value?.trim();
+  const faixa = document.getElementById('gr-faixa')?.value?.trim() || null;
+  if(!tamanho) return toast('Tamanho obrigatório','error');
+
+  if(id) {
+    await sb.from('grades_itens').update({tamanho, faixa_etaria:faixa}).eq('id',id);
+    toast('Tamanho atualizado');
+  } else {
+    // Verificar duplicata
+    const {data:ex} = await sb.from('grades_itens').select('id').eq('tamanho',tamanho).maybeSingle();
+    if(ex) return toast('Tamanho já cadastrado','error');
+    await sb.from('grades_itens').insert({tamanho, faixa_etaria:faixa});
+    toast('Tamanho salvo');
+  }
+  limparFormGrade();
+  renderGrades();
 }
 
-async function saveGrade() {
-  const nome=document.getElementById('gr-nome').value.trim();
-  if(!nome) return toast('Nome obrigatório','error');
-  const vals=document.getElementById('gr-vals').value.split(',').map(v=>v.trim()).filter(Boolean);
-  await sb.from('grades').insert({nome,tipo:document.getElementById('gr-tipo').value,valores:vals});
-  closeModalDirect();toast('Grade salva');renderGrades();
+function limparFormGrade() {
+  const t = document.getElementById('gr-tamanho'); if(t) t.value='';
+  const f = document.getElementById('gr-faixa'); if(f) f.value='';
+  const i = document.getElementById('gr-edit-id'); if(i) i.value='';
 }
+
+function editarGradeItem(id, tamanho, faixa) {
+  const t = document.getElementById('gr-tamanho'); if(t) t.value=tamanho;
+  const f = document.getElementById('gr-faixa'); if(f) f.value=faixa||'';
+  const i = document.getElementById('gr-edit-id'); if(i) i.value=id;
+  t?.focus();
+}
+
+async function excluirGradeItem(id) {
+  if(!confirm('Excluir este tamanho?')) return;
+  await sb.from('grades_itens').delete().eq('id',id);
+  toast('Tamanho excluído');
+  renderGrades();
+}
+
+async function importarTamanhosBackup() {
+  const {data:pgTams} = await sb.from('produto_grades').select('tamanho').not('tamanho','is',null);
+  const tams = [...new Set((pgTams||[]).map(r=>r.tamanho?.trim()).filter(Boolean))];
+  const {data:exist} = await sb.from('grades_itens').select('tamanho');
+  const existSet = new Set((exist||[]).map(r=>r.tamanho));
+  const novos = tams.filter(t => !existSet.has(t));
+  if(!novos.length) return toast('Todos os tamanhos já estão cadastrados');
+
+  // Detectar faixa etária automaticamente
+  const getFaixa = (t) => {
+    const n = parseFloat(t);
+    if(/infantil/i.test(t) || (!isNaN(n) && n <= 16)) return 'INFANTIL';
+    if(/ano/i.test(t)) return 'ANOS';
+    if(!isNaN(n) && n <= 12) return 'ANOS';
+    return 'Adulto';
+  };
+
+  for(const tam of novos) {
+    await sb.from('grades_itens').insert({tamanho:tam, faixa_etaria:getFaixa(tam)});
+  }
+  toast(`${novos.length} tamanhos importados com sucesso`);
+  renderGrades();
+}
+
+
 
 async function loadSimple(table, label, fields) {
   const {data} = await sb.from(table).select('*').eq('ativo',true).order('nome');
