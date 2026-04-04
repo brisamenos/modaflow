@@ -600,6 +600,219 @@ function switchTab(id) {
   });
 }
 
+// ===== LISTAR CONTAS A RECEBER (Layout Phibo) =====
+async function renderListarContasReceber() {
+  const hoje = new Date().toISOString().split('T')[0];
+  document.getElementById('topbar-actions').innerHTML = '';
+  document.getElementById('content').innerHTML = `
+    <div class="tabs" id="lcr-tabs">
+      <div class="tab active" data-tab="lcr-dia" onclick="switchLCRTab('lcr-dia')">Contas a receber do dia</div>
+      <div class="tab" data-tab="lcr-mes" onclick="switchLCRTab('lcr-mes')">Contas a receber do mes</div>
+    </div>
+    <div id="lcr-dia-panel" class="tab-panel active">
+      <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin:16px 0;flex-wrap:wrap">
+        <span style="font-size:13px;font-weight:600;color:var(--text-1)">Informe o dia:</span>
+        <input type="date" id="lcr-data" value="${hoje}" onchange="loadContasReceberDia()" style="padding:7px 14px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;background:white;font-family:inherit;min-width:160px">
+      </div>
+      <div id="lcr-dia-content"><div class="loading">Carregando...</div></div>
+    </div>
+    <div id="lcr-mes-panel" class="tab-panel">
+      <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin:16px 0;flex-wrap:wrap">
+        <span style="font-size:13px;font-weight:600;color:var(--text-1)">Informe o Ano / Mes:</span>
+        <select id="lcr-ano" onchange="loadContasReceberMes()" style="padding:7px 14px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;background:white;font-family:inherit;min-width:90px">
+          ${[new Date().getFullYear()-1,new Date().getFullYear()].map(y=>`<option value="${y}" ${y===new Date().getFullYear()?'selected':''}>${y}</option>`).join('')}
+        </select>
+        <select id="lcr-mes" onchange="loadContasReceberMes()" style="padding:7px 14px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;background:white;font-family:inherit;min-width:120px">
+          ${['Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'].map((m,i)=>`<option value="${i+1}" ${(i+1)===(new Date().getMonth()+1)?'selected':''}>${m}</option>`).join('')}
+        </select>
+      </div>
+      <div id="lcr-mes-content"><div class="loading">Carregando...</div></div>
+    </div>`;
+  lucide.createIcons();
+  await loadContasReceberDia();
+}
+
+function switchLCRTab(id) {
+  document.querySelectorAll('#lcr-tabs .tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===id));
+  ['lcr-dia-panel','lcr-mes-panel'].forEach(pid=>{
+    const el = document.getElementById(pid);
+    if(el) el.classList.toggle('active', pid===id+'-panel');
+  });
+  if(id==='lcr-mes') loadContasReceberMes();
+}
+
+async function loadContasReceberDia() {
+  const data = document.getElementById('lcr-data')?.value || new Date().toISOString().split('T')[0];
+  const ini = data+'T00:00:00';
+  const fim = data+'T23:59:59';
+
+  const {data:vendas} = await sb.from('vendas').select('total,forma_pagamento,status').gte('created_at',ini).lte('created_at',fim).eq('status','concluida');
+
+  // Agrupar por forma de pagamento
+  const porForma = {};
+  (vendas||[]).forEach(v=>{
+    const fp = v.forma_pagamento || 'outros';
+    if(!porForma[fp]) porForma[fp]={forma:fp, receber:0, pago:0};
+    porForma[fp].receber += parseFloat(v.total||0);
+    porForma[fp].pago += parseFloat(v.total||0);
+  });
+  const lista = Object.values(porForma);
+  const totalReceber = lista.reduce((a,f)=>a+f.receber,0);
+  const totalPago = lista.reduce((a,f)=>a+f.pago,0);
+
+  const container = document.getElementById('lcr-dia-content');
+  if(!container) return;
+
+  container.innerHTML = `
+    <div class="card">
+      <div class="table-wrap"><table class="data-table" style="font-size:12px">
+        <thead><tr>
+          <th>Forma Pagto</th><th style="text-align:right">Valor a Receber</th><th style="text-align:right">Valor Pago</th><th>Acao</th>
+        </tr></thead>
+        <tbody>${lista.length ? lista.map(f=>`<tr>
+          <td style="text-transform:capitalize">${f.forma}</td>
+          <td style="text-align:right">${fmtNum(f.receber)}</td>
+          <td style="text-align:right">${fmtNum(f.pago)}</td>
+          <td><button class="btn btn-sm btn-secondary" onclick="toast('Detalhes em desenvolvimento')"><i data-lucide="eye" style="width:14px;height:14px"></i></button></td>
+        </tr>`).join('') : '<tr><td colspan="4" style="color:var(--text-2);padding:10px 14px">Nenhum valor encontrado.</td></tr>'}</tbody>
+        <tfoot>
+          <tr style="font-weight:700;background:var(--bg-2)">
+            <td style="text-align:right">Total do dia R$</td>
+            <td style="text-align:right">${fmtNum(totalReceber)}</td>
+            <td style="text-align:right">${fmtNum(totalPago)}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table></div>
+    </div>`;
+  lucide.createIcons();
+}
+
+async function loadContasReceberMes() {
+  const ano = parseInt(document.getElementById('lcr-ano')?.value||new Date().getFullYear());
+  const mes = parseInt(document.getElementById('lcr-mes')?.value||(new Date().getMonth()+1));
+  const mesStr = String(mes).padStart(2,'0');
+  const ini = `${ano}-${mesStr}-01`;
+  const lastDay = new Date(ano,mes,0).getDate();
+  const fim = `${ano}-${mesStr}-${lastDay}T23:59:59`;
+
+  const {data:vendas} = await sb.from('vendas').select('total,forma_pagamento,status').gte('created_at',ini).lte('created_at',fim).eq('status','concluida');
+
+  const porForma = {};
+  (vendas||[]).forEach(v=>{
+    const fp = v.forma_pagamento || 'outros';
+    if(!porForma[fp]) porForma[fp]={forma:fp, receber:0, pago:0};
+    porForma[fp].receber += parseFloat(v.total||0);
+    porForma[fp].pago += parseFloat(v.total||0);
+  });
+  const lista = Object.values(porForma);
+  const totalReceber = lista.reduce((a,f)=>a+f.receber,0);
+  const totalPago = lista.reduce((a,f)=>a+f.pago,0);
+
+  const container = document.getElementById('lcr-mes-content');
+  if(!container) return;
+
+  container.innerHTML = `
+    <div class="card">
+      <div class="table-wrap"><table class="data-table" style="font-size:12px">
+        <thead><tr>
+          <th>Forma Pagto</th><th style="text-align:right">Valor a Receber</th><th style="text-align:right">Valor Pago</th><th>Acao</th>
+        </tr></thead>
+        <tbody>${lista.length ? lista.map(f=>`<tr>
+          <td style="text-transform:capitalize">${f.forma}</td>
+          <td style="text-align:right">${fmtNum(f.receber)}</td>
+          <td style="text-align:right">${fmtNum(f.pago)}</td>
+          <td><button class="btn btn-sm btn-secondary" onclick="toast('Detalhes em desenvolvimento')"><i data-lucide="eye" style="width:14px;height:14px"></i></button></td>
+        </tr>`).join('') : '<tr><td colspan="4" style="color:var(--text-2);padding:10px 14px">Nenhum valor encontrado.</td></tr>'}</tbody>
+        <tfoot>
+          <tr style="font-weight:700;background:var(--bg-2)">
+            <td style="text-align:right">Total do mes R$</td>
+            <td style="text-align:right">${fmtNum(totalReceber)}</td>
+            <td style="text-align:right">${fmtNum(totalPago)}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table></div>
+    </div>`;
+  lucide.createIcons();
+}
+
+// ===== FLUXO RECEBIMENTO (stub) =====
+async function renderFluxoRecebimento() {
+  document.getElementById('topbar-actions').innerHTML = '';
+  const now = new Date();
+  const anoAtual = now.getFullYear();
+  const mesAtual = now.getMonth()+1;
+  const mesesNomes = ['','Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  document.getElementById('content').innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <span style="font-size:13px;font-weight:600;color:var(--text-1)">Informe o Ano / Mes:</span>
+      <select id="fr-ano" style="padding:7px 14px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;background:white;font-family:inherit;min-width:90px">
+        ${[anoAtual-1,anoAtual].map(y=>`<option value="${y}" ${y===anoAtual?'selected':''}>${y}</option>`).join('')}
+      </select>
+      <select id="fr-mes" style="padding:7px 14px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;background:white;font-family:inherit;min-width:120px">
+        ${mesesNomes.slice(1).map((m,i)=>`<option value="${i+1}" ${(i+1)===mesAtual?'selected':''}>${m}</option>`).join('')}
+      </select>
+    </div>
+    <div class="card">
+      <div class="card-body" style="text-align:center;padding:48px 24px">
+        <i data-lucide="arrow-down-circle" style="width:48px;height:48px;color:var(--accent);margin-bottom:16px"></i>
+        <h3 style="margin-bottom:8px;color:var(--text-1)">Fluxo de Recebimento</h3>
+        <p style="color:var(--text-2)">Modulo em desenvolvimento.</p>
+      </div>
+    </div>`;
+  lucide.createIcons();
+}
+
+// ===== HISTORICO POR DATA VENDA (stub) =====
+async function renderHistoricoDataVenda() {
+  document.getElementById('topbar-actions').innerHTML = '';
+  const hoje = new Date().toISOString().split('T')[0];
+
+  document.getElementById('content').innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <span style="font-size:13px;font-weight:600;color:var(--text-1)">Informe o dia:</span>
+      <input type="date" id="hdv-data" value="${hoje}" style="padding:7px 14px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;background:white;font-family:inherit;min-width:160px">
+    </div>
+    <div class="card">
+      <div class="card-body" style="text-align:center;padding:48px 24px">
+        <i data-lucide="calendar" style="width:48px;height:48px;color:var(--accent);margin-bottom:16px"></i>
+        <h3 style="margin-bottom:8px;color:var(--text-1)">Historico por Data Venda</h3>
+        <p style="color:var(--text-2)">Modulo em desenvolvimento.</p>
+      </div>
+    </div>`;
+  lucide.createIcons();
+}
+
+// ===== RELACAO DE RECEBIMENTO (stub) =====
+async function renderRelacaoRecebimento() {
+  document.getElementById('topbar-actions').innerHTML = '';
+  const now = new Date();
+  const anoAtual = now.getFullYear();
+  const mesAtual = now.getMonth()+1;
+  const mesesNomes = ['','Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  document.getElementById('content').innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <span style="font-size:13px;font-weight:600;color:var(--text-1)">Informe o Ano / Mes:</span>
+      <select id="rr-ano" style="padding:7px 14px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;background:white;font-family:inherit;min-width:90px">
+        ${[anoAtual-1,anoAtual].map(y=>`<option value="${y}" ${y===anoAtual?'selected':''}>${y}</option>`).join('')}
+      </select>
+      <select id="rr-mes" style="padding:7px 14px;border:1.5px solid #d1d5db;border-radius:6px;font-size:13px;background:white;font-family:inherit;min-width:120px">
+        ${mesesNomes.slice(1).map((m,i)=>`<option value="${i+1}" ${(i+1)===mesAtual?'selected':''}>${m}</option>`).join('')}
+      </select>
+    </div>
+    <div class="card">
+      <div class="card-body" style="text-align:center;padding:48px 24px">
+        <i data-lucide="file-check" style="width:48px;height:48px;color:var(--accent);margin-bottom:16px"></i>
+        <h3 style="margin-bottom:8px;color:var(--text-1)">Relacao de Recebimento</h3>
+        <p style="color:var(--text-2)">Modulo em desenvolvimento.</p>
+      </div>
+    </div>`;
+  lucide.createIcons();
+}
+
 // ===== BAG =====
 async function renderBAG() {
   document.getElementById('topbar-actions').innerHTML=`<button class="btn btn-primary" onclick="openBagModal()"><i data-lucide="plus"></i>Montar BAG</button>`;

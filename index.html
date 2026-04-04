@@ -101,6 +101,17 @@
                   <div class="nav-dd-item" onclick="navigate('parametros-crediario');closeNGs()"><i data-lucide="settings"></i> Parâmetros</div>
                 </div>
               </div>
+
+              <!-- Contas a receber como submenu flyout igual ao Phibo -->
+              <div class="nav-dd-item-sub">
+                <div class="nav-dd-item"><i data-lucide="banknote"></i> Contas a receber</div>
+                <div class="nav-submenu">
+                  <div class="nav-dd-item" onclick="navigate('listar-contas-receber');closeNGs()"><i data-lucide="list"></i> Listar Contas a Receber</div>
+                  <div class="nav-dd-item" onclick="navigate('fluxo-recebimento');closeNGs()"><i data-lucide="arrow-down-circle"></i> Fluxo recebimento</div>
+                  <div class="nav-dd-item" onclick="navigate('historico-data-venda');closeNGs()"><i data-lucide="calendar"></i> Histórico por data venda</div>
+                  <div class="nav-dd-item" onclick="navigate('relacao-recebimento');closeNGs()"><i data-lucide="file-check"></i> Relação de recebimento</div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -549,11 +560,17 @@
 
   <div class="mobile-menu-section">Crediário</div>
   <div class="mobile-menu-item" onclick="navigate('efetuar-recebimento');closeMobileMenu()"><i data-lucide="circle-dollar-sign"></i> Efetuar recebimento</div>
-  <div class="mobile-menu-item" onclick="navigate('crediario');closeMobileMenu()"><i data-lucide="credit-card"></i> Gestão crediário</div>
-  <div class="mobile-menu-item" onclick="navigate('analise-cliente');closeMobileMenu()"><i data-lucide="user-search"></i> Análise por cliente</div>
-  <div class="mobile-menu-item" onclick="navigate('credito-atraso');closeMobileMenu()"><i data-lucide="alert-circle"></i> Crédito em atraso</div>
+  <div class="mobile-menu-item" onclick="navigate('crediario');closeMobileMenu()"><i data-lucide="credit-card"></i> Gestao crediario</div>
+  <div class="mobile-menu-item" onclick="navigate('analise-cliente');closeMobileMenu()"><i data-lucide="user-search"></i> Analise por cliente</div>
+  <div class="mobile-menu-item" onclick="navigate('credito-atraso');closeMobileMenu()"><i data-lucide="alert-circle"></i> Credito em atraso</div>
   <div class="mobile-menu-item" onclick="navigate('contas-receber');closeMobileMenu()"><i data-lucide="receipt"></i> Recebimento efetuado</div>
-  <div class="mobile-menu-item" onclick="navigate('parametros-crediario');closeMobileMenu()"><i data-lucide="settings"></i> Parâmetros</div>
+  <div class="mobile-menu-item" onclick="navigate('parametros-crediario');closeMobileMenu()"><i data-lucide="settings"></i> Parametros</div>
+
+  <div class="mobile-menu-section">Contas a Receber</div>
+  <div class="mobile-menu-item" onclick="navigate('listar-contas-receber');closeMobileMenu()"><i data-lucide="list"></i> Listar Contas a Receber</div>
+  <div class="mobile-menu-item" onclick="navigate('fluxo-recebimento');closeMobileMenu()"><i data-lucide="arrow-down-circle"></i> Fluxo recebimento</div>
+  <div class="mobile-menu-item" onclick="navigate('historico-data-venda');closeMobileMenu()"><i data-lucide="calendar"></i> Historico por data venda</div>
+  <div class="mobile-menu-item" onclick="navigate('relacao-recebimento');closeMobileMenu()"><i data-lucide="file-check"></i> Relacao de recebimento</div>
 
   <div class="mobile-menu-section">Vendedores</div>
   <div class="mobile-menu-item" onclick="navigate('comissoes');closeMobileMenu()"><i data-lucide="award"></i> Comissões</div>
