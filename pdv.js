@@ -10,12 +10,11 @@ async function renderPDV() {
   document.getElementById('topbar-actions').innerHTML = ''; // Botões do topbar removidos, a UI mudou para a sidebar esquerda
   document.getElementById('content').classList.add('pdv-active');
 
-  // Verifica caixa aberto no banco (não localStorage)
+  // Verifica caixa aberto no banco — qualquer caixa com status='aberto' (independente do dia)
   if(!pdvCaixaAberto) {
     try {
-      const hoje = new Date().toISOString().split('T')[0];
       const {data:cxArr} = await sb.from('caixas').select('id,saldo_inicial,created_at')
-        .eq('status','aberto').gte('created_at', hoje+'T00:00:00').order('created_at',{ascending:false}).limit(1);
+        .eq('status','aberto').order('created_at',{ascending:false}).limit(1);
       if(cxArr && cxArr[0]) {
         pdvCaixaAberto = true;
         pdvFundoValor = parseFloat(cxArr[0].saldo_inicial||0);
