@@ -486,6 +486,7 @@ body {
    ============================================================ */
 .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .content { flex: 1; overflow-y: auto; padding: 24px 28px; }
+.content.pdv-active { padding: 0; overflow: hidden; }
 
 /* Page entry animation */
 .page-enter { animation: pageIn 0.28s var(--ease) both; }
@@ -1461,16 +1462,19 @@ body {
    ============================================================ */
 .pdv-mobile-layout {
   display: flex; gap: 20px; padding: 10px;
-  height: calc(100vh - 80px); background: #fcfcfc;
+  height: 100%; background: #fcfcfc;
+  box-sizing: border-box; overflow: hidden;
 }
 .pdv-sidebar-actions {
   width: 170px; display: flex; flex-direction: column;
   gap: 10px; padding: 10px 10px 10px 0;
   border-right: 1px solid #e1e8ed; flex-shrink: 0;
+  overflow-y: auto; min-height: 0;
 }
 .pdv-main-area {
   flex: 1; display: flex; flex-direction: column;
   gap: 16px; overflow-y: auto; padding-right: 10px;
+  min-height: 0;
 }
 .pdv-top-section { display: flex; gap: 16px; }
 .pdv-filters-area {
@@ -1488,13 +1492,15 @@ body {
   box-shadow: 0 4px 10px rgba(0,230,0,0.2); flex-shrink: 0;
 }
 .pdv-prod-input-wrap { display: flex; align-items: center; gap: 8px; }
-.pdv-prod-input-wrap input { width: 100%; max-width: 360px; }
+.pdv-prod-input-wrap input { width: 100%; max-width: 100%; }
 .pdv-qty-prod-row {
   padding: 16px 20px; display: flex; gap: 40px;
   justify-content: center; background: #fff;
   border-bottom: 1px solid #e1e8ed; flex-wrap: wrap;
 }
 .pdv-rec-top-flex { display: flex; gap: 20px; margin-bottom: 24px; }
+.pdv-cart-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.pdv-cart-table-wrap table { min-width: 700px; }
 .pdv-rec-form-row {
   display: flex; gap: 12px; align-items: flex-end;
   margin-bottom: 12px; flex-wrap: wrap;

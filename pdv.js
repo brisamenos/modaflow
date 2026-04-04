@@ -21,6 +21,7 @@ let pdvPayments = [];
 // ===== PDV =====
 async function renderPDV() {
   document.getElementById('topbar-actions').innerHTML = ''; // Botões do topbar removidos, a UI mudou para a sidebar esquerda
+  document.getElementById('content').classList.add('pdv-active');
   
   if (!pdvCaixaAberto) {
     // TELA 1: Abertura do Fundo de Caixa (Estilo Phibo)
@@ -476,13 +477,21 @@ function renderCart() {
       <td style="padding:10px 16px;font-weight:600;color:#7f8c8d;">${item.codigo||'-'}</td>
       <td style="padding:10px 16px;font-weight:800;color:#2c3e50;">${item.nome}</td>
       <td style="padding:10px 16px;text-align:center;font-weight:700;color:#2c3e50;">${item.tamanho}</td>
-      <td style="padding:10px 16px;text-align:center;font-weight:700;color:#2c3e50;">-</td>
-      <td style="padding:10px 16px;text-align:center;font-weight:800;color:#3498db;">${item.qty}</td>
+      <td style="padding:10px 16px;text-align:center;font-weight:700;color:#2c3e50;">${item.cor_descricao||'-'}</td>
+      <td style="padding:6px 10px;text-align:center;">
+        <div style="display:inline-flex;align-items:center;gap:4px;background:#f4f6f7;border-radius:8px;padding:3px 4px;">
+          <button onclick="changeQty(${i},-1)" style="width:26px;height:26px;border-radius:6px;border:none;background:#e74c3c;color:#fff;font-size:16px;font-weight:900;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;">−</button>
+          <span style="min-width:28px;text-align:center;font-weight:900;font-size:14px;color:#2c3e50;">${item.qty}</span>
+          <button onclick="changeQty(${i},1)" style="width:26px;height:26px;border-radius:6px;border:none;background:#2ecc71;color:#fff;font-size:16px;font-weight:900;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;">+</button>
+        </div>
+      </td>
       <td style="padding:10px 16px;text-align:right;font-weight:700;color:#2c3e50;">${fmt(item.preco)}</td>
       <td style="padding:10px 16px;text-align:right;font-weight:700;color:#e74c3c;">0,00</td>
       <td style="padding:10px 16px;text-align:right;font-weight:800;color:#2c3e50;">${fmt(item.preco*item.qty)}</td>
-      <td style="padding:10px 16px;text-align:center;">
-        <i data-lucide="trash-2" style="color:#e74c3c;cursor:pointer;width:16px;height:16px;display:inline-block;" onclick="removeCartItem(${i})"></i>
+      <td style="padding:6px 10px;text-align:center;">
+        <button onclick="removeCartItem(${i})" title="Remover item" style="width:30px;height:30px;border-radius:6px;border:none;background:#fef2f2;color:#e74c3c;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;">
+          <i data-lucide="trash-2" style="width:15px;height:15px;"></i>
+        </button>
       </td>
     </tr>`).join('');
   updateCartTotals();
