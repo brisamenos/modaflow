@@ -150,6 +150,8 @@ function aplicarMigracoes(tdb) {
   ac('produto_grades','preco_venda','REAL'); ac('produto_grades','margem_lucro','REAL');
   ac('vendedores','cpf','TEXT'); ac('vendedores','telefone','TEXT'); ac('vendedores','email','TEXT'); ac('vendedores','meta_mensal','REAL DEFAULT 0');
   ac('categorias','ativo','INTEGER'); ac('colecoes','ativo','INTEGER'); ac('grades','ativo','INTEGER');
+  ac('crediario_parcelas','forma_pagamento','TEXT');
+  ac('crediario_parcelas','desconto','REAL DEFAULT 0');
   // Tabela de tamanhos individuais (igual ao Phibo - Cadastrar Grade)
   sc(`CREATE TABLE IF NOT EXISTS grades_itens (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -724,3 +726,44 @@ app.post('/api/admin/repair-birthdays', adminAuth, (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`StoreOS Multi-Tenant rodando na porta ${PORT}`));
+
+// =============================================
+// JOB: Atualizar parcelas vencidas para "atrasada"
+// Roda 1x ao iniciar e depois a cada hora
+// =============================================
+function marcarParcelasAtrasadas(db) {
+  try {
+    const hoje = new Date().toISOString().split('T')[0];
+    // Marcar parcelas pendentes vencidas como atrasadas
+    const r1 = db.prepare(`
+      UPDATE crediario_parcelas
+      SET status = 'atrasada'
+      WHERE status = 'pendente'
+        AND vencimento < ?
+    `).run(hoje);
+    // Atualizar status do crediário pai para atrasado
+    db.prepare(`
+      UPDATE crediario SET status = 'atrasado'
+      WHERE id IN (
+        SELECT DISTINCT crediario_id FROM crediario_parcelas WHERE status = 'atrasada'
+      ) AND status = 'aberto'
+    `).run();
+    if(r1.changes > 0) console.log(`[Crediário] ${r1.changes} parcela(s) marcada(s) como atrasada`);
+  } catch(e) { console.error('[Crediário job]', e.message); }
+}
+
+// Roda ao iniciar
+setTimeout(() => {
+  marcarParcelasAtrasadas(legacyDb);
+  for(const g of adminDb.prepare('SELECT slug FROM gestores WHERE ativo=1').all()) {
+    try { marcarParcelasAtrasadas(getTenantDb(g.slug)); } catch(e){}
+  }
+}, 2000);
+
+// Roda a cada hora
+setInterval(() => {
+  marcarParcelasAtrasadas(legacyDb);
+  for(const g of adminDb.prepare('SELECT slug FROM gestores WHERE ativo=1').all()) {
+    try { marcarParcelasAtrasadas(getTenantDb(g.slug)); } catch(e){}
+  }
+}, 3600000);
