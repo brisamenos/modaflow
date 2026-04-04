@@ -923,66 +923,63 @@ function renderModalProdRows(data) {
 }
 
 async function searchModalProdutos() {
-  const ean = document.getElementById('modal-ean-input')?.value?.trim() || '';
-  const cod = document.getElementById('modal-cod-input')?.value?.trim() || '';
+  const ean  = document.getElementById('modal-ean-input')?.value?.trim()  || '';
+  const cod  = document.getElementById('modal-cod-input')?.value?.trim()  || '';
   const desc = document.getElementById('modal-desc-input')?.value?.trim() || '';
-  
+
   const tbody = document.getElementById('modal-produtos-tbody');
   if(!tbody) return;
 
   tbody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;font-weight:700;">Buscando...</td></tr>';
 
-  // Se buscou por EAN, busca em produto_grades primeiro
+  // 1. EAN — usa /api/busca/ean (CAST TEXT + fallback produtos.codigo)
   if(ean) {
-    const {data:pgRows} = await sb.from('produto_grades')
-      .select('id,produto_id,tamanho,ean,estoque,preco_venda,cor_descricao')
-      .ilike('ean', `%${ean}%`).limit(50);
-    
-    if(pgRows && pgRows.length) {
-      // Buscar produtos pai
-      const pids = [...new Set(pgRows.map(r=>r.produto_id))];
-      const prodMap = {};
-      for(const pid of pids) {
-        const {data:p} = await sb.from('produtos').select('id,codigo,nome,preco_venda').eq('id',pid).maybeSingle();
-        if(p) prodMap[pid] = p;
+    try {
+      const token = localStorage.getItem('loja_token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await fetch(`/api/busca/ean?ean=${encodeURIComponent(ean)}`, { headers });
+      if(res.ok) {
+        const rows = await res.json();
+        if(rows && rows.length) {
+          tbody.innerHTML = rows.map(r => {
+            const preco = parseFloat(r.preco_venda) || parseFloat(r.prod_preco) || 0;
+            const corLabel = r.cor_descricao ? ` / ${r.cor_descricao}` : '';
+            return `<tr style="border-bottom:1px solid #f1f2f6;background:#fff;">
+              <td style="padding:8px;font-weight:700;">${r.prod_codigo||'—'}</td>
+              <td style="padding:8px;font-weight:800;">${r.prod_nome}</td>
+              <td style="padding:8px;font-weight:700;">${r.tamanho||'Único'}${corLabel}</td>
+              <td style="padding:8px;font-family:monospace;font-size:11px;">${r.ean||'—'}</td>
+              <td style="padding:8px;font-weight:800;">${fmt(preco)}</td>
+              <td style="padding:8px;text-align:center;">${r.estoque||0}</td>
+              <td style="padding:8px;">
+                <button onclick="addCartFromGrade('${r.produto_id}','${(r.prod_nome||'').replace(/'/g,'\\\'')}',${preco},'${r.tamanho||''}','${r.prod_codigo||''}','${r.id}');closeModalDirect();"
+                  style="width:26px;height:26px;border-radius:50%;background:#2ecc71;border:none;color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">
+                  <i data-lucide="check" style="width:14px;"></i>
+                </button>
+              </td>
+            </tr>`;
+          }).join('');
+          lucide.createIcons();
+          return;
+        }
       }
-      tbody.innerHTML = pgRows.map(pg => {
-        const p = prodMap[pg.produto_id];
-        if(!p) return '';
-        const preco = parseFloat(pg.preco_venda) || parseFloat(p.preco_venda) || 0;
-        const corLabel = pg.cor_descricao ? ` / ${pg.cor_descricao}` : '';
-        return `<tr style="border-bottom:1px solid #f1f2f6;background:#fff;">
-          <td style="padding:8px;font-weight:700;">${p.codigo||'—'}</td>
-          <td style="padding:8px;font-weight:800;">${p.nome}</td>
-          <td style="padding:8px;font-weight:700;">${pg.tamanho||'Único'}${corLabel}</td>
-          <td style="padding:8px;font-family:monospace;font-size:11px;">${pg.ean||'—'}</td>
-          <td style="padding:8px;font-weight:800;">${fmt(preco)}</td>
-          <td style="padding:8px;text-align:center;">${pg.estoque||0}</td>
-          <td style="padding:8px;">
-            <button onclick="addCartFromGrade('${pg.produto_id}','${p.nome.replace(/'/g,"\\'")}',${preco},'${pg.tamanho||''}','${p.codigo||''}','${pg.id}');closeModalDirect();"
-              style="width:26px;height:26px;border-radius:50%;background:#2ecc71;border:none;color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">
-              <i data-lucide="check" style="width:14px;"></i>
-            </button>
-          </td>
-        </tr>`;
-      }).join('');
-      lucide.createIcons();
-      return;
-    }
+    } catch(e) {}
+    tbody.innerHTML = `<tr><td colspan="7" style="padding:20px;text-align:center;color:#e74c3c;font-weight:700;">Nenhum produto encontrado para EAN: ${ean}</td></tr>`;
+    return;
   }
 
-  // Busca por código ou descrição em produtos
-  if(!ean && !cod && !desc) {
+  // 2. Sem filtro — lista os 50 primeiros
+  if(!cod && !desc) {
     const {data} = await sb.from('produtos').select('id,codigo,nome,preco_venda').eq('ativo',true).limit(50);
     tbody.innerHTML = await renderModalProdRowsWithGrades(data||[]);
     lucide.createIcons();
     return;
   }
 
+  // 3. Busca por código ou descrição
   let q = sb.from('produtos').select('id,codigo,nome,preco_venda').eq('ativo',true);
   if(cod)  q = q.ilike('codigo', `%${cod}%`);
-  if(desc) q = q.ilike('nome', `%${desc}%`);
-  
+  if(desc) q = q.ilike('nome',   `%${desc}%`);
   const {data} = await q.limit(50);
   tbody.innerHTML = await renderModalProdRowsWithGrades(data||[]);
   lucide.createIcons();
