@@ -265,7 +265,7 @@ async function renderPDV() {
             </div>
             <div class="pdv-pay-field pdv-pay-field-sm">
               <label class="pdv-label">1º Vencimento</label>
-              <input type="text" id="rec-vencto" value="${dtHoje}" disabled class="pdv-input" style="background:#f8fafc;text-align:center">
+              <input type="date" id="rec-vencto" value="${new Date().toISOString().split('T')[0]}" class="pdv-input" style="text-align:center;cursor:pointer">
             </div>
             <div class="pdv-pay-field">
               <label class="pdv-label">Valor (R$)</label>
@@ -642,7 +642,11 @@ function addPdvPayment() {
   const forma = document.getElementById('rec-forma')?.value;
   const parc  = document.getElementById('rec-parc')?.value || '1';
   const val   = parseFloat(document.getElementById('rec-valor')?.value);
-  const dt    = document.getElementById('rec-vencto')?.value || new Date().toLocaleDateString('pt-BR');
+  const dtRaw = document.getElementById('rec-vencto')?.value || new Date().toISOString().split('T')[0];
+  // Converte yyyy-MM-dd para dd/MM/yyyy para exibição
+  const dt = dtRaw.includes('-') && dtRaw.length === 10
+    ? dtRaw.split('-').reverse().join('/')
+    : dtRaw;
 
   if(!val || val <= 0) return toast('Informe um valor válido','error');
 
@@ -1258,9 +1262,21 @@ async function searchClientePDV() {
 }
 
 async function finalizarVenda() {
+  if(window._pdvFinalizando) return toast('Venda já está sendo registrada...','info');
   if(!cart.length) return toast('Carrinho vazio','error');
-  if(!pdvPayments.length) return toast('Adicione pelo menos uma forma de pagamento na aba Recebimento','error');
-  
+
+  // Se nenhum pagamento foi adicionado ainda, tenta adicionar automaticamente com os valores atuais do formulário
+  if(!pdvPayments.length) {
+    const recValor = document.getElementById('rec-valor');
+    const sub0 = cart.reduce((a,i)=>a+i.preco*i.qty,0);
+    const disc0 = parseFloat(document.getElementById('pdv-desc-val')?.value||0);
+    const frete0 = parseFloat(document.getElementById('pdv-frete-val')?.value||0);
+    const total0 = Math.max(0, sub0 - disc0 + frete0);
+    if(recValor && (!recValor.value || parseFloat(recValor.value) <= 0)) recValor.value = total0.toFixed(2);
+    addPdvPayment();
+    if(!pdvPayments.length) return; // addPdvPayment já mostra o toast de erro se falhar
+  }
+
   const sub = cart.reduce((a,i)=>a+i.preco*i.qty,0);
   const disc = parseFloat(document.getElementById('pdv-desc-val')?.value||0);
   const frete = parseFloat(document.getElementById('pdv-frete-val')?.value||0);
@@ -1273,17 +1289,22 @@ async function finalizarVenda() {
   const parcPrincipal = parseInt(pdvPayments[0]?.parcelas || 1);
   const troco = Math.max(0, totalPago - total);
 
+  // Lê cliente e vendedor: prioriza variável global, com fallback para o elemento DOM
+  const clienteId = cartClient || document.getElementById('pdv-client')?.value || null;
+  const vendedorId = cartSeller || document.getElementById('pdv-seller')?.value || null;
+
   const vendaData = {
-    cliente_id: cartClient||null,
-    vendedor_id: cartSeller||null,
+    cliente_id: clienteId||null,
+    vendedor_id: vendedorId||null,
     subtotal: sub, desconto: disc, total,
     forma_pagamento: formaPrincipal, parcelas: parcPrincipal,
     valor_pago: totalPago, troco,
     status: 'concluida'
   };
 
+  window._pdvFinalizando = true;
   const {data:venda,error} = await sb.from('vendas').insert(vendaData).select().single();
-  if(error) return toast('Erro ao salvar venda: '+error.message,'error');
+  if(error) { window._pdvFinalizando = false; return toast('Erro ao salvar venda: '+error.message,'error'); }
 
   // Itens
   const itens = cart.map(i=>({
@@ -1294,10 +1315,10 @@ async function finalizarVenda() {
   await sb.from('venda_itens').insert(itens);
 
   // Crediário
-  if(formaPrincipal==='Crediário' && cartClient) {
+  if(formaPrincipal==='Crediário' && clienteId) {
     const valParc = total/parcPrincipal;
     const {data:cred} = await sb.from('crediario').insert({
-      venda_id:venda.id, cliente_id:cartClient, total, num_parcelas:parcPrincipal,
+      venda_id:venda.id, cliente_id:clienteId, total, num_parcelas:parcPrincipal,
       valor_parcela:valParc, saldo_devedor:total, status:'aberto'
     }).select().single();
     if(cred){
@@ -1321,17 +1342,37 @@ async function finalizarVenda() {
   }
 
   // Atualizar ultima_compra do cliente
-  if(cartClient) {
-    try { await sb.from('clientes').update({ultima_compra: new Date().toISOString().split('T')[0]}).eq('id',cartClient); } catch(e) {}
+  if(clienteId) {
+    try { await sb.from('clientes').update({ultima_compra: new Date().toISOString().split('T')[0]}).eq('id',clienteId); } catch(e) {}
   }
 
   toast(`Venda #${venda.numero_venda} concluída com sucesso!${troco>0?' Troco: '+fmt(troco):''}`, 'success');
+  
+  // Resetar estado completamente
   cart = [];
   pdvPayments = [];
   cartClient = null;
   cartSeller = null;
-  window._pdvMaqCache = null; // limpa cache para recarregar taxas se mudar
+  window._pdvMaqCache = null;
+  window._pdvFinalizando = false;
+
+  // Resetar campos da UI para evitar que próxima venda herde dados antigos
+  const selSeller = document.getElementById('pdv-seller');
+  if(selSeller) selSeller.value = '';
+  const selClient = document.getElementById('pdv-client');
+  if(selClient) { selClient.innerHTML = ''; selClient.value = ''; }
+  const inpName = document.getElementById('pdv-client-name');
+  if(inpName) inpName.value = '';
+  const inpPhone = document.getElementById('pdv-client-phone');
+  if(inpPhone) inpPhone.value = '';
+  const inpDesc = document.getElementById('pdv-desc-val');
+  if(inpDesc) inpDesc.value = '';
+  const inpFrete = document.getElementById('pdv-frete-val');
+  if(inpFrete) inpFrete.value = '';
+
   renderCart();
+  renderPdvPayments();
+  switchPdvTab('itens');
 }
 
 // ===== FECHAR / ABRIR CAIXA NO PDV =====
