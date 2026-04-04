@@ -1999,120 +1999,7 @@ async function renderCartoesVisaoGeral() {
     </div>`);
 }
 
-let _maquinas = [];
-async function renderCartoesMaquinas() {
-  const {data} = await sb.from('configuracoes').select('valor').eq('chave','cartoes_maquinas').maybeSingle();
-  _maquinas = data?.valor ? JSON.parse(data.valor) : [];
 
-  const rows = _maquinas.map((m,i)=>`
-    <tr style="border-bottom:1px solid var(--border)">
-      <td style="padding:9px 12px;font-weight:700">${m.nome}</td>
-      <td style="padding:9px 12px">${m.operadora||'—'}</td>
-      <td style="padding:9px 12px">${m.serial||'—'}</td>
-      <td style="padding:9px 12px;text-align:center">
-        <button onclick="_deletarMaquina(${i})" style="background:#fef2f2;border:none;color:#dc2626;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px">Remover</button>
-      </td>
-    </tr>`).join('') || '<tr><td colspan="4" style="padding:24px;text-align:center;color:var(--text-2)">Nenhuma máquina cadastrada</td></tr>';
-
-  _cartoesShell('Cadastrar máquina', `
-    <div style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:20px">
-      <div style="font-weight:700;margin-bottom:14px">Nova Máquina</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;flex-wrap:wrap">
-        <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Nome / Apelido</label>
-          <input id="maq-nome" class="filter-input" placeholder="Ex: Caixa 1" style="width:100%;padding:8px;border:1px solid var(--border-2);border-radius:6px;font-size:13px;box-sizing:border-box"></div>
-        <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Operadora</label>
-          <input id="maq-op" class="filter-input" placeholder="Ex: Cielo, Rede, Stone" style="width:100%;padding:8px;border:1px solid var(--border-2);border-radius:6px;font-size:13px;box-sizing:border-box"></div>
-        <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Nº Serial / ID</label>
-          <input id="maq-serial" class="filter-input" placeholder="Número de série" style="width:100%;padding:8px;border:1px solid var(--border-2);border-radius:6px;font-size:13px;box-sizing:border-box"></div>
-      </div>
-      <button onclick="_salvarMaquina()" class="btn btn-primary" style="margin-top:14px"><i data-lucide="plus" style="width:14px;height:14px"></i> Adicionar</button>
-    </div>
-    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px">
-      <table style="width:100%;border-collapse:collapse;font-size:13px">
-        <thead style="background:#f8fafc"><tr>
-          <th style="padding:10px 12px;text-align:left">Nome</th>
-          <th style="padding:10px 12px;text-align:left">Operadora</th>
-          <th style="padding:10px 12px;text-align:left">Serial</th>
-          <th style="padding:10px 12px;text-align:center">Ação</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`);
-}
-async function _salvarMaquina(){
-  const nome=document.getElementById('maq-nome')?.value.trim();
-  if(!nome) return toast('Informe o nome da máquina','error');
-  _maquinas.push({nome,operadora:document.getElementById('maq-op')?.value.trim(),serial:document.getElementById('maq-serial')?.value.trim()});
-  await sb.from('configuracoes').upsert({chave:'cartoes_maquinas',valor:JSON.stringify(_maquinas)});
-  toast('Máquina salva!','success'); renderCartoesMaquinas();
-}
-async function _deletarMaquina(i){
-  if(!confirm('Remover esta máquina?')) return;
-  _maquinas.splice(i,1);
-  await sb.from('configuracoes').upsert({chave:'cartoes_maquinas',valor:JSON.stringify(_maquinas)});
-  toast('Removida!'); renderCartoesMaquinas();
-}
-
-let _taxas = [];
-async function renderCartoesTaxas() {
-  const {data} = await sb.from('configuracoes').select('valor').eq('chave','cartoes_taxas').maybeSingle();
-  _taxas = data?.valor ? JSON.parse(data.valor) : [];
-
-  const rows = _taxas.map((t,i)=>`
-    <tr style="border-bottom:1px solid var(--border)">
-      <td style="padding:9px 12px;font-weight:700">${t.bandeira}</td>
-      <td style="padding:9px 12px">${t.tipo}</td>
-      <td style="padding:9px 12px;text-align:center">${t.parcelas}x</td>
-      <td style="padding:9px 12px;text-align:right;color:#dc2626;font-weight:700">${t.taxa}%</td>
-      <td style="padding:9px 12px;text-align:center">
-        <button onclick="_deletarTaxa(${i})" style="background:#fef2f2;border:none;color:#dc2626;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px">Remover</button>
-      </td>
-    </tr>`).join('') || '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--text-2)">Nenhuma taxa cadastrada</td></tr>';
-
-  _cartoesShell('Cadastrar taxas', `
-    <div style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:20px">
-      <div style="font-weight:700;margin-bottom:14px">Nova Taxa</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px">
-        <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Bandeira</label>
-          <input id="taxa-band" placeholder="Visa, Master..." style="width:100%;padding:8px;border:1px solid var(--border-2);border-radius:6px;font-size:13px;box-sizing:border-box"></div>
-        <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Tipo</label>
-          <select id="taxa-tipo" style="width:100%;padding:8px;border:1px solid var(--border-2);border-radius:6px;font-size:13px;box-sizing:border-box">
-            <option>Débito</option><option>Crédito à vista</option><option>Crédito parcelado</option>
-          </select></div>
-        <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Parcelas</label>
-          <input id="taxa-parc" type="number" min="1" max="12" value="1" style="width:100%;padding:8px;border:1px solid var(--border-2);border-radius:6px;font-size:13px;box-sizing:border-box"></div>
-        <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Taxa (%)</label>
-          <input id="taxa-val" type="number" step="0.01" placeholder="Ex: 2.50" style="width:100%;padding:8px;border:1px solid var(--border-2);border-radius:6px;font-size:13px;box-sizing:border-box"></div>
-      </div>
-      <button onclick="_salvarTaxa()" class="btn btn-primary" style="margin-top:14px"><i data-lucide="plus" style="width:14px;height:14px"></i> Adicionar</button>
-    </div>
-    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px">
-      <table style="width:100%;border-collapse:collapse;font-size:13px">
-        <thead style="background:#f8fafc"><tr>
-          <th style="padding:10px 12px;text-align:left">Bandeira</th>
-          <th style="padding:10px 12px;text-align:left">Tipo</th>
-          <th style="padding:10px 12px;text-align:center">Parcelas</th>
-          <th style="padding:10px 12px;text-align:right">Taxa</th>
-          <th style="padding:10px 12px;text-align:center">Ação</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`);
-}
-async function _salvarTaxa(){
-  const bandeira=document.getElementById('taxa-band')?.value.trim();
-  const taxa=parseFloat(document.getElementById('taxa-val')?.value||0);
-  if(!bandeira||!taxa) return toast('Preencha bandeira e taxa','error');
-  _taxas.push({bandeira,tipo:document.getElementById('taxa-tipo')?.value,parcelas:document.getElementById('taxa-parc')?.value||1,taxa});
-  await sb.from('configuracoes').upsert({chave:'cartoes_taxas',valor:JSON.stringify(_taxas)});
-  toast('Taxa salva!','success'); renderCartoesTaxas();
-}
-async function _deletarTaxa(i){
-  if(!confirm('Remover esta taxa?')) return;
-  _taxas.splice(i,1);
-  await sb.from('configuracoes').upsert({chave:'cartoes_taxas',valor:JSON.stringify(_taxas)});
-  toast('Removida!'); renderCartoesTaxas();
-}
 
 // ===== ANTECIPAR PARCELAS =====
 
@@ -2223,4 +2110,281 @@ async function renderListarAntecipacoes() {
       </div>
     </div>`;
   lucide.createIcons();
+}
+
+
+// ===== CARTÕES — MAQUINETAS & TAXAS =====
+
+const _MAQUINETAS_DEFAULT = [
+  { id:'cielo',       nome:'Cielo',       cor:'#003087', taxas:[
+    {bandeira:'Todas',tipo:'Débito',parc:1,taxa:1.99},
+    {bandeira:'Todas',tipo:'Crédito à vista',parc:1,taxa:2.99},
+    {bandeira:'Todas',tipo:'Crédito parcelado',parc:6,taxa:3.59},
+    {bandeira:'Todas',tipo:'Crédito parcelado',parc:12,taxa:4.59},
+  ]},
+  { id:'rede',        nome:'Rede',        cor:'#FF6600', taxas:[
+    {bandeira:'Todas',tipo:'Débito',parc:1,taxa:1.69},
+    {bandeira:'Todas',tipo:'Crédito à vista',parc:1,taxa:2.79},
+    {bandeira:'Todas',tipo:'Crédito parcelado',parc:6,taxa:3.49},
+    {bandeira:'Todas',tipo:'Crédito parcelado',parc:12,taxa:4.49},
+  ]},
+  { id:'stone',       nome:'Stone',       cor:'#00B14F', taxas:[
+    {bandeira:'Todas',tipo:'Débito',parc:1,taxa:1.59},
+    {bandeira:'Todas',tipo:'Crédito à vista',parc:1,taxa:2.69},
+    {bandeira:'Todas',tipo:'Crédito parcelado',parc:6,taxa:3.49},
+    {bandeira:'Todas',tipo:'Crédito parcelado',parc:12,taxa:4.49},
+  ]},
+  { id:'ton',         nome:'Ton',         cor:'#00B14F', taxas:[
+    {bandeira:'Todas',tipo:'Débito',parc:1,taxa:1.59},
+    {bandeira:'Todas',tipo:'Crédito à vista',parc:1,taxa:2.69},
+    {bandeira:'Todas',tipo:'Crédito parcelado',parc:6,taxa:3.59},
+    {bandeira:'Todas',tipo:'Crédito parcelado',parc:12,taxa:4.89},
+  ]},
+  { id:'pagseguro',   nome:'PagSeguro',   cor:'#0db800', taxas:[
+    {bandeira:'Todas',tipo:'Débito',parc:1,taxa:1.99},
+    {bandeira:'Todas',tipo:'Crédito à vista',parc:1,taxa:3.19},
+    {bandeira:'Todas',tipo:'Crédito parcelado',parc:6,taxa:4.49},
+    {bandeira:'Todas',tipo:'Crédito parcelado',parc:12,taxa:5.49},
+  ]},
+  { id:'mercadopago', nome:'Mercado Pago',cor:'#009ee3', taxas:[
+    {bandeira:'Todas',tipo:'Débito',parc:1,taxa:1.58},
+    {bandeira:'Todas',tipo:'Crédito à vista',parc:1,taxa:2.98},
+    {bandeira:'Todas',tipo:'Crédito parcelado',parc:6,taxa:3.49},
+    {bandeira:'Todas',tipo:'Crédito parcelado',parc:12,taxa:4.49},
+  ]},
+  { id:'sumup',       nome:'SumUp',       cor:'#1A1A2E', taxas:[
+    {bandeira:'Todas',tipo:'Débito',parc:1,taxa:1.90},
+    {bandeira:'Todas',tipo:'Crédito à vista',parc:1,taxa:2.90},
+    {bandeira:'Todas',tipo:'Crédito parcelado',parc:6,taxa:3.90},
+    {bandeira:'Todas',tipo:'Crédito parcelado',parc:12,taxa:4.90},
+  ]},
+  { id:'infinitepay', nome:'InfinitePay', cor:'#6C3CE1', taxas:[
+    {bandeira:'Todas',tipo:'Débito',parc:1,taxa:1.38},
+    {bandeira:'Todas',tipo:'Crédito à vista',parc:1,taxa:2.68},
+    {bandeira:'Todas',tipo:'Crédito parcelado',parc:6,taxa:2.99},
+    {bandeira:'Todas',tipo:'Crédito parcelado',parc:12,taxa:3.49},
+  ]},
+  { id:'getnet',      nome:'Getnet',      cor:'#EC0000', taxas:[
+    {bandeira:'Todas',tipo:'Débito',parc:1,taxa:1.99},
+    {bandeira:'Todas',tipo:'Crédito à vista',parc:1,taxa:2.99},
+    {bandeira:'Todas',tipo:'Crédito parcelado',parc:6,taxa:3.79},
+    {bandeira:'Todas',tipo:'Crédito parcelado',parc:12,taxa:4.79},
+  ]},
+  { id:'picpay',      nome:'PicPay',      cor:'#11C76F', taxas:[
+    {bandeira:'Todas',tipo:'Débito',parc:1,taxa:1.99},
+    {bandeira:'Todas',tipo:'Crédito à vista',parc:1,taxa:3.49},
+    {bandeira:'Todas',tipo:'Crédito parcelado',parc:6,taxa:4.49},
+    {bandeira:'Todas',tipo:'Crédito parcelado',parc:12,taxa:5.49},
+  ]},
+  { id:'safra',       nome:'Safra Pay',   cor:'#F26522', taxas:[
+    {bandeira:'Todas',tipo:'Débito',parc:1,taxa:1.79},
+    {bandeira:'Todas',tipo:'Crédito à vista',parc:1,taxa:2.89},
+    {bandeira:'Todas',tipo:'Crédito parcelado',parc:6,taxa:3.69},
+    {bandeira:'Todas',tipo:'Crédito parcelado',parc:12,taxa:4.69},
+  ]},
+];
+
+let _maqData = null; // cache
+
+async function _loadMaqData() {
+  if(_maqData) return _maqData;
+  const {data} = await sb.from('configuracoes').select('valor').eq('chave','cartoes_maquinetas_v2').maybeSingle();
+  _maqData = data?.valor ? JSON.parse(data.valor) : JSON.parse(JSON.stringify(_MAQUINETAS_DEFAULT));
+  return _maqData;
+}
+
+async function _saveMaqData() {
+  await sb.from('configuracoes').upsert({chave:'cartoes_maquinetas_v2', valor:JSON.stringify(_maqData)});
+}
+
+async function renderCartoesMaquinas() {
+  const maq = await _loadMaqData();
+  _renderMaquinetasPage(maq, null);
+}
+
+async function renderCartoesTaxas() { renderCartoesMaquinas(); }
+
+function _renderMaquinetasPage(maq, editKey) {
+  // editKey = "maqIdx:taxaIdx" or null
+  const cards = maq.map((m, mi) => {
+    const taxaRows = m.taxas.map((t, ti) => {
+      const key = `${mi}:${ti}`;
+      if(editKey === key) {
+        return `<tr style="background:#faf5ff;border-bottom:1px solid #e9d5ff">
+          <td style="padding:6px 10px">
+            <input id="ed-band" value="${t.bandeira}" style="width:90px;padding:4px 6px;border:1px solid #c4b5fd;border-radius:4px;font-size:12px">
+          </td>
+          <td style="padding:6px 10px">
+            <select id="ed-tipo" style="padding:4px 6px;border:1px solid #c4b5fd;border-radius:4px;font-size:12px">
+              ${['Débito','Crédito à vista','Crédito parcelado'].map(o=>`<option${o===t.tipo?' selected':''}>${o}</option>`).join('')}
+            </select>
+          </td>
+          <td style="padding:6px 10px;text-align:center">
+            <input id="ed-parc" type="number" min="1" max="12" value="${t.parc}" style="width:48px;padding:4px 6px;border:1px solid #c4b5fd;border-radius:4px;font-size:12px;text-align:center">
+          </td>
+          <td style="padding:6px 10px;text-align:right">
+            <input id="ed-taxa" type="number" step="0.01" value="${t.taxa}" style="width:64px;padding:4px 6px;border:1px solid #c4b5fd;border-radius:4px;font-size:12px;text-align:right">%
+          </td>
+          <td style="padding:6px 10px;text-align:center;white-space:nowrap">
+            <button onclick="_saveTaxaEdit(${mi},${ti})" style="background:#7c3aed;color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;margin-right:4px">✓ Salvar</button>
+            <button onclick="_renderMaquinetasPage(window._maqData,null)" style="background:#f1f5f9;color:#64748b;border:none;border-radius:4px;padding:4px 8px;font-size:11px;cursor:pointer">✕</button>
+          </td>
+        </tr>`;
+      }
+      const cor = t.tipo==='Débito'?'#0369a1':t.tipo==='Crédito à vista'?'#15803d':'#7c3aed';
+      return `<tr style="border-bottom:1px solid #f1f5f9">
+        <td style="padding:7px 10px;font-size:12px">${t.bandeira}</td>
+        <td style="padding:7px 10px"><span style="font-size:11px;font-weight:700;color:${cor};background:${cor}15;padding:2px 8px;border-radius:10px">${t.tipo}</span></td>
+        <td style="padding:7px 10px;text-align:center;font-size:12px">${t.parc}x</td>
+        <td style="padding:7px 10px;text-align:right;font-weight:800;font-size:13px;color:#dc2626">${t.taxa}%</td>
+        <td style="padding:7px 10px;text-align:center;white-space:nowrap">
+          <button onclick="_renderMaquinetasPage(window._maqData,'${key}')" title="Editar" style="background:#eff6ff;color:#2563eb;border:none;border-radius:4px;width:26px;height:26px;cursor:pointer;font-size:12px">✏</button>
+          <button onclick="_delTaxa(${mi},${ti})" title="Remover" style="background:#fef2f2;color:#dc2626;border:none;border-radius:4px;width:26px;height:26px;cursor:pointer;margin-left:2px;font-size:12px">✕</button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    return `<div style="background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px">
+      <div style="background:${m.cor};padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
+        <div style="color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;gap:8px">
+          <i data-lucide="credit-card" style="width:16px;height:16px"></i>${m.nome}
+        </div>
+        <div style="display:flex;gap:6px">
+          <button onclick="_addTaxaForm(${mi})" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);border-radius:4px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">+ Taxa</button>
+          <button onclick="_delMaquineta(${mi})" style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:4px;padding:4px 8px;font-size:11px;cursor:pointer">Remover</button>
+        </div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead style="background:#f8fafc"><tr>
+          <th style="padding:7px 10px;text-align:left;color:var(--text-2)">Bandeira</th>
+          <th style="padding:7px 10px;text-align:left;color:var(--text-2)">Tipo</th>
+          <th style="padding:7px 10px;text-align:center;color:var(--text-2)">Parcelas</th>
+          <th style="padding:7px 10px;text-align:right;color:var(--text-2)">Taxa</th>
+          <th style="padding:7px 10px;text-align:center;color:var(--text-2)">Ação</th>
+        </tr></thead>
+        <tbody>${taxaRows}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+
+  document.getElementById('content').innerHTML = `
+    <div style="max-width:1000px;margin:0 auto">
+      <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:20px 28px;border-radius:12px;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <i data-lucide="credit-card" style="width:22px;height:22px;color:#fff"></i>
+          <div>
+            <div style="color:#fff;font-weight:800;font-size:16px">Maquinetas & Taxas</div>
+            <div style="color:rgba(255,255,255,0.65);font-size:12px">Clique em ✏ para editar qualquer taxa</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button onclick="_addMaquinetaForm()" class="btn" style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.4);font-size:12px">
+            <i data-lucide="plus" style="width:13px;height:13px"></i> Nova maquineta
+          </button>
+          <button onclick="_resetMaquinetas()" class="btn" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.2);font-size:12px">
+            <i data-lucide="rotate-ccw" style="width:13px;height:13px"></i> Restaurar padrão
+          </button>
+        </div>
+      </div>
+      <div id="maq-add-form"></div>
+      ${cards}
+    </div>`;
+  window._maqData = maq;
+  lucide.createIcons();
+}
+
+async function _saveTaxaEdit(mi, ti) {
+  _maqData[mi].taxas[ti] = {
+    bandeira: document.getElementById('ed-band')?.value.trim()||'Todas',
+    tipo:     document.getElementById('ed-tipo')?.value||'Débito',
+    parc:     parseInt(document.getElementById('ed-parc')?.value||1),
+    taxa:     parseFloat(document.getElementById('ed-taxa')?.value||0),
+  };
+  await _saveMaqData();
+  toast('Taxa atualizada!','success');
+  _renderMaquinetasPage(_maqData, null);
+}
+
+async function _delTaxa(mi, ti) {
+  if(!confirm('Remover esta taxa?')) return;
+  _maqData[mi].taxas.splice(ti,1);
+  await _saveMaqData();
+  _renderMaquinetasPage(_maqData, null);
+}
+
+async function _delMaquineta(mi) {
+  if(!confirm(`Remover ${_maqData[mi].nome} e todas suas taxas?`)) return;
+  _maqData.splice(mi,1);
+  await _saveMaqData();
+  _renderMaquinetasPage(_maqData, null);
+}
+
+function _addTaxaForm(mi) {
+  openModal(`
+    <div class="modal-header"><h3>Nova Taxa — ${_maqData[mi].nome}</h3>
+      <button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
+    <div class="modal-body" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Bandeira</label>
+        <input id="nt-band" value="Todas" style="width:100%;padding:8px;border:1px solid var(--border-2);border-radius:6px;font-size:13px;box-sizing:border-box"></div>
+      <div><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Tipo</label>
+        <select id="nt-tipo" style="width:100%;padding:8px;border:1px solid var(--border-2);border-radius:6px;font-size:13px;box-sizing:border-box">
+          <option>Débito</option><option>Crédito à vista</option><option>Crédito parcelado</option></select></div>
+      <div><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Até parcela</label>
+        <input id="nt-parc" type="number" min="1" max="12" value="1" style="width:100%;padding:8px;border:1px solid var(--border-2);border-radius:6px;font-size:13px;box-sizing:border-box"></div>
+      <div><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Taxa (%)</label>
+        <input id="nt-taxa" type="number" step="0.01" placeholder="Ex: 2.99" style="width:100%;padding:8px;border:1px solid var(--border-2);border-radius:6px;font-size:13px;box-sizing:border-box"></div>
+    </div>
+    <div style="padding:16px 24px;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--border)">
+      <button onclick="closeModalDirect()" class="btn btn-secondary">Cancelar</button>
+      <button onclick="_confirmAddTaxa(${mi})" class="btn btn-primary">Adicionar</button>
+    </div>`,'modal-sm');
+  lucide.createIcons();
+}
+async function _confirmAddTaxa(mi) {
+  const taxa = parseFloat(document.getElementById('nt-taxa')?.value||0);
+  if(!taxa) return toast('Informe a taxa','error');
+  _maqData[mi].taxas.push({
+    bandeira: document.getElementById('nt-band')?.value.trim()||'Todas',
+    tipo:     document.getElementById('nt-tipo')?.value,
+    parc:     parseInt(document.getElementById('nt-parc')?.value||1),
+    taxa
+  });
+  await _saveMaqData();
+  closeModalDirect();
+  toast('Taxa adicionada!','success');
+  _renderMaquinetasPage(_maqData, null);
+}
+
+function _addMaquinetaForm() {
+  openModal(`
+    <div class="modal-header"><h3>Nova Maquineta</h3>
+      <button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
+    <div class="modal-body" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div style="grid-column:1/-1"><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Nome da Maquineta</label>
+        <input id="nm-nome" placeholder="Ex: Vero, GetPay..." style="width:100%;padding:8px;border:1px solid var(--border-2);border-radius:6px;font-size:13px;box-sizing:border-box"></div>
+      <div><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Cor (hex)</label>
+        <input id="nm-cor" type="color" value="#3b82f6" style="width:100%;height:38px;border:1px solid var(--border-2);border-radius:6px;cursor:pointer"></div>
+    </div>
+    <div style="padding:16px 24px;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--border)">
+      <button onclick="closeModalDirect()" class="btn btn-secondary">Cancelar</button>
+      <button onclick="_confirmAddMaquineta()" class="btn btn-primary">Criar</button>
+    </div>`,'modal-sm');
+  lucide.createIcons();
+}
+async function _confirmAddMaquineta() {
+  const nome = document.getElementById('nm-nome')?.value.trim();
+  if(!nome) return toast('Informe o nome','error');
+  _maqData.push({id: nome.toLowerCase().replace(/\s+/g,''), nome, cor: document.getElementById('nm-cor')?.value||'#3b82f6', taxas:[]});
+  await _saveMaqData();
+  closeModalDirect();
+  toast('Maquineta criada!','success');
+  _renderMaquinetasPage(_maqData, null);
+}
+
+async function _resetMaquinetas() {
+  if(!confirm('Restaurar todas as maquinetas e taxas para o padrão? Suas edições serão perdidas.')) return;
+  _maqData = JSON.parse(JSON.stringify(_MAQUINETAS_DEFAULT));
+  await _saveMaqData();
+  toast('Taxas restauradas para o padrão!','success');
+  _renderMaquinetasPage(_maqData, null);
 }
