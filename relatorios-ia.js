@@ -1,3 +1,19 @@
+// ── helpers de fetch (usa token do localStorage) ──
+function iaHeader() {
+  const t = localStorage.getItem('loja_token') || '';
+  return { 'Authorization': 'Bearer ' + t, 'Content-Type': 'application/json' };
+}
+async function apiGet(url) {
+  const r = await fetch(url, { headers: iaHeader() });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function apiPost(url, body) {
+  const r = await fetch(url, { method: 'POST', headers: iaHeader(), body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
 // ═══════════════════════════════════════════════════════
 //  RELATÓRIOS IA — ModaFlow
 //  Configuração de notificações WhatsApp + IA Assistente
@@ -844,7 +860,7 @@ IAR.loadHistorico = async function() {
 IAR.limparHistorico = async function() {
   if (!confirm('Limpar todo o histórico de conversa com a IA?')) return;
   try {
-    await fetch('/api/ia/historico', { method:'DELETE', headers: { 'Authorization':'Bearer '+_token } });
+    await fetch('/api/ia/historico', { method:'DELETE', headers: iaHeader() });
     document.getElementById('ia-feed').innerHTML = '<div class="ia-feed-empty"><div class="ia-feed-empty-icon">📭</div>Histórico limpo</div>';
     toast('Histórico apagado', 'info');
   } catch(e) { toast('Erro: '+e.message,'error'); }
