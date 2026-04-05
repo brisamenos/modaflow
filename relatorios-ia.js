@@ -35,6 +35,11 @@ const IAR = {
     try {
       const r = await apiGet('/api/ia/config');
       _iaConfig = r;
+      // Popula campos Evolution se existirem
+      const f = (id,v) => { const el=document.getElementById(id); if(el) el.value=v||''; };
+      f('ia-evo-url', r.evo_url);
+      f('ia-evo-key', r.evo_key);
+      f('ia-evo-instance', r.evo_instance);
     } catch(e) { _iaConfig = {}; }
   },
 
@@ -97,6 +102,9 @@ const IAR = {
 
     const payload = {
       numero:              num,
+      evo_url:             (document.getElementById('ia-evo-url')?.value||'').trim().replace(/\/$/,''),
+      evo_key:             (document.getElementById('ia-evo-key')?.value||'').trim(),
+      evo_instance:        (document.getElementById('ia-evo-instance')?.value||'').trim(),
       notify_nova_venda:   document.getElementById('ia-n-venda')?.checked ? '1':'0',
       notify_estoque:      document.getElementById('ia-n-estoque')?.checked ? '1':'0',
       notify_novo_cliente: document.getElementById('ia-n-cliente')?.checked ? '1':'0',
@@ -196,6 +204,7 @@ async function renderRelatoriosIA() {
   await Promise.all([IAR.loadConfig(), IAR.loadResumo()]);
   IAR.connectSSE();
   setTimeout(() => IAR.loadHistorico(), 300);
+  setTimeout(() => IAR.checkPollingStatus(), 800);
 
   const c = document.getElementById('content');
   const on = _iaConfig.ia_enabled === '1';
@@ -614,6 +623,31 @@ async function renderRelatoriosIA() {
           <strong>🔒 Número exclusivo:</strong> apenas este número poderá conversar com a IA e receber notificações. Outros números serão ignorados automaticamente.
         </div>
 
+        <!-- Evolution API da instância do cliente -->
+        <div style="border-top:1px solid rgba(255,255,255,.06);margin:16px 0;padding-top:16px">
+          <div class="ia-label" style="margin-bottom:12px">⚡ Sua Instância Evolution API</div>
+
+          <div id="ia-polling-status" style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)">
+            <div id="ia-poll-dot" style="width:8px;height:8px;border-radius:50%;background:#64748b;flex-shrink:0"></div>
+            <span id="ia-poll-label" style="font-size:12px;color:#64748b">Verificando...</span>
+          </div>
+
+          <div class="ia-field">
+            <label class="ia-label">URL da Evolution API</label>
+            <input class="ia-input" id="ia-evo-url" placeholder="https://evolution.seuservidor.com">
+          </div>
+          <div class="ia-row">
+            <div class="ia-field" style="margin-bottom:0">
+              <label class="ia-label">API Key</label>
+              <input class="ia-input" id="ia-evo-key" type="password" placeholder="sua-api-key">
+            </div>
+            <div class="ia-field" style="margin-bottom:0">
+              <label class="ia-label">Nome da Instância</label>
+              <input class="ia-input" id="ia-evo-instance" placeholder="minha-instancia">
+            </div>
+          </div>
+        </div>
+
         <div class="ia-btn-row">
           <button class="ia-btn ia-btn-primary" id="ia-save-btn" onclick="IAR.save()">
             💾 Salvar configuração
@@ -793,6 +827,40 @@ async function renderRelatoriosIA() {
   </div>
 
 </div>`;
+
+  // checkPollingStatus function
+  IAR.checkPollingStatus = async function() {
+    const dot   = document.getElementById('ia-poll-dot');
+    const label = document.getElementById('ia-poll-label');
+    if (!dot) return;
+    try {
+      const d = await apiGet('/api/ia/polling-status');
+      if (!d.campos.evo_url || !d.campos.evo_key || !d.campos.evo_instance) {
+        dot.style.background = '#f59e0b';
+        label.style.color = '#fbbf24';
+        label.textContent = '⚠️ Preencha URL, API Key e Instância acima e salve';
+      } else if (!d.campos.numero) {
+        dot.style.background = '#f59e0b';
+        label.style.color = '#fbbf24';
+        label.textContent = '⚠️ Cadastre o número WhatsApp acima e salve';
+      } else if (!d.campos.ia_enabled) {
+        dot.style.background = '#64748b';
+        label.style.color = '#64748b';
+        label.textContent = '⏸ IA desativada — ligue o toggle para começar';
+      } else if (d.errors > 5) {
+        dot.style.background = '#ef4444';
+        label.style.color = '#f87171';
+        label.textContent = '❌ Erro ao conectar na Evolution API — verifique URL e Key';
+      } else {
+        dot.style.background = '#10b981';
+        dot.style.boxShadow = '0 0 8px #10b981';
+        label.style.color = '#34d399';
+        label.textContent = '✅ Polling ativo — IA respondendo mensagens a cada 5 segundos';
+      }
+    } catch(e) {
+      label.textContent = 'Erro ao verificar status';
+    }
+  };
 
   // sendRelatorio function
   IAR.sendRelatorio = async function(tipo) {
