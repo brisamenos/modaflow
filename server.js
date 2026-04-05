@@ -1211,7 +1211,7 @@ function salvarMensagem(db, numero, role, content) {
 async function enviarWhatsApp(db, numero, texto) {
   const evoUrl  = tenantIaGet(db,'evo_url')  || iaConfigGet('evo_url');
   const evoKey  = tenantIaGet(db,'evo_key')  || iaConfigGet('evo_key');
-  const evoInst = tenantIaGet(db,'evo_inst') || iaConfigGet('evo_instance');
+  const evoInst = tenantIaGet(db,'evo_instance') || iaConfigGet('evo_instance');
 
   if (!evoUrl || !evoKey || !evoInst) throw new Error('Evolution API não configurada');
 
@@ -1510,18 +1510,41 @@ async function pollTenant(slug) {
     const iaOn    = tenantIaGet(db,'ia_enabled') === '1';
     const openai_key = iaConfigGet('openai_key');
 
-    if (!iaOn || !evoUrl || !evoKey || !evoInst || !numero || !openai_key) return;
+    // Log de diagnóstico a cada 30s
+    const agora = Date.now();
+    if (!state.lastLog || agora - state.lastLog > 30000) {
+      console.log(`[IA Poll] ${slug} | iaOn=${iaOn} evoUrl=${!!evoUrl} evoKey=${!!evoKey} evoInst=${evoInst} numero=${numero} openai=${!!openai_key}`);
+      state.lastLog = agora;
+    }
 
-    // Busca mensagens recentes da instância
-    const r = await fetch(
-      `${evoUrl}/chat/findMessages/${evoInst}?where[key][fromMe]=false&limit=5`,
-      { headers: { 'apikey': evoKey }, signal: AbortSignal.timeout(8000) }
-    );
-    if (!r.ok) { state.errors++; return; }
+    if (!iaOn || !evoUrl || !evoKey || !evoInst || !numero || !openai_key) {
+      if (!state.lastLog || agora - state.lastLog > 30000) {
+        console.log(`[IA Poll] ${slug} INATIVO — falta: ${!iaOn?'ia_enabled ':''} ${!evoUrl?'evo_url ':''} ${!evoKey?'evo_key ':''} ${!evoInst?'evo_instance ':''} ${!numero?'numero ':''} ${!openai_key?'openai_key ':''}`);
+      }
+      return;
+    }
+
+    // Tenta buscar mensagens — loga URL e status
+    const fetchUrl = `${evoUrl}/chat/findMessages/${evoInst}?where[key][fromMe]=false&limit=5`;
+    console.log(`[IA Poll] ${slug} → GET ${fetchUrl}`);
+
+    const r = await fetch(fetchUrl, { headers: { 'apikey': evoKey }, signal: AbortSignal.timeout(8000) });
+
+    console.log(`[IA Poll] ${slug} ← HTTP ${r.status}`);
+
+    if (!r.ok) {
+      const errBody = await r.text().catch(()=>'');
+      console.error(`[IA Poll] ${slug} ERRO ${r.status}: ${errBody.slice(0,200)}`);
+      state.errors++;
+      return;
+    }
     state.errors = 0;
 
     const data = await r.json();
-    const msgs = Array.isArray(data) ? data : (data.messages || data.records || []);
+    console.log(`[IA Poll] ${slug} payload keys: ${Object.keys(data).join(',')} | Array=${Array.isArray(data)}`);
+
+    const msgs = Array.isArray(data) ? data : (data.messages || data.records || data.data || []);
+    console.log(`[IA Poll] ${slug} mensagens encontradas: ${msgs.length}`);
     if (!msgs.length) return;
 
     // Ordena do mais antigo para o mais novo
@@ -1628,6 +1651,58 @@ setInterval(async () => {
     }
   } catch(e){}
 }, 5000);
+
+// Teste manual do polling — executa agora e retorna diagnóstico completo
+app.get('/api/ia/poll-test', resolveDb, async (req, res) => {
+  const slug = req.gestor?.slug;
+  const db   = req.db;
+  const result = { slug, steps: [] };
+  const add = (ok, msg, data) => result.steps.push({ ok, msg, data });
+
+  try {
+    ensureIaConfigTable(db);
+    const evoUrl  = tenantIaGet(db,'evo_url');
+    const evoKey  = tenantIaGet(db,'evo_key');
+    const evoInst = tenantIaGet(db,'evo_instance');
+    const numero  = tenantIaGet(db,'numero');
+    const iaOn    = tenantIaGet(db,'ia_enabled') === '1';
+    const openai_key = iaConfigGet('openai_key');
+
+    add(!!evoUrl,  `evo_url: ${evoUrl||'NÃO CONFIGURADO'}`);
+    add(!!evoKey,  `evo_key: ${evoKey ? '***configurado***' : 'NÃO CONFIGURADO'}`);
+    add(!!evoInst, `evo_instance: ${evoInst||'NÃO CONFIGURADO'}`);
+    add(!!numero,  `numero: ${numero||'NÃO CONFIGURADO'}`);
+    add(iaOn,      `ia_enabled: ${iaOn}`);
+    add(!!openai_key, `openai_key: ${openai_key ? '***configurado***' : 'NÃO CONFIGURADO'}`);
+
+    if (!evoUrl || !evoKey || !evoInst) {
+      return res.json({ ...result, error: 'Configuração incompleta' });
+    }
+
+    // Testa conexão com Evolution
+    try {
+      const r1 = await fetch(`${evoUrl}/instance/connectionState/${evoInst}`,
+        { headers: { 'apikey': evoKey }, signal: AbortSignal.timeout(8000) });
+      const d1 = await r1.json();
+      add(r1.ok, `connectionState: HTTP ${r1.status}`, d1);
+    } catch(e) { add(false, `connectionState: ERRO — ${e.message}`); }
+
+    // Testa busca de mensagens
+    try {
+      const r2 = await fetch(
+        `${evoUrl}/chat/findMessages/${evoInst}?where[key][fromMe]=false&limit=3`,
+        { headers: { 'apikey': evoKey }, signal: AbortSignal.timeout(8000) }
+      );
+      const d2 = await r2.json();
+      const msgs = Array.isArray(d2) ? d2 : (d2.messages || d2.records || d2.data || []);
+      add(r2.ok, `findMessages: HTTP ${r2.status} — ${msgs.length} msgs`, 
+        msgs.length ? msgs[0] : d2);
+    } catch(e) { add(false, `findMessages: ERRO — ${e.message}`); }
+
+  } catch(e) { add(false, `Erro geral: ${e.message}`); }
+
+  res.json(result);
+});
 
 // Status do polling por tenant
 app.get('/api/ia/polling-status', resolveDb, (req, res) => {
