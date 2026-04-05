@@ -10,7 +10,11 @@ async function apiGet(url) {
 }
 async function apiPost(url, body) {
   const r = await fetch(url, { method: 'POST', headers: iaHeader(), body: JSON.stringify(body) });
-  if (!r.ok) throw new Error(await r.text());
+  if (!r.ok) {
+    let msg = await r.text();
+    try { msg = JSON.parse(msg).message || msg; } catch(e){}
+    throw new Error(msg);
+  }
   return r.json();
 }
 
