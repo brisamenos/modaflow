@@ -525,71 +525,47 @@ tbody td{padding:14px 20px;font-size:13.5px;vertical-align:middle}
 
 
       <!-- Webhook Setup Card -->
-      <div class="card" style="margin-bottom:24px">
-        <div class="card-header">
-          <div>
-            <div class="card-title" style="display:flex;align-items:center;gap:8px">
-              <span style="background:rgba(245,158,11,.12);border-radius:8px;padding:4px 8px;font-size:13px">🔗</span>
-              Webhook — Roteamento Multi-Tenant
-            </div>
-            <div class="card-subtitle">Registra o endpoint de recebimento na Evolution API</div>
+      <!-- Instruções + URL do Webhook -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+        <div style="background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.18);border-radius:14px;padding:18px 20px">
+          <div style="font-size:12px;font-weight:700;color:#6ee7b7;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">🛡️ Como funciona</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.8">
+            1. Gere uma <strong>API Key</strong> para o cliente<br>
+            2. Configure o webhook da Evolution API do cliente:<br>
+            <code style="background:var(--s3);padding:2px 8px;border-radius:6px;font-size:11px;color:var(--accent)">POST /api/ia/webhook/{API_KEY}</code><br>
+            3. Só aquela instância chega naquele cliente<br>
+            4. Sem varredura, sem cruzamento de dados
           </div>
-          <button class="btn btn-primary btn-sm" onclick="setupWebhook()">⚡ Registrar Webhook</button>
         </div>
-        <div style="padding:20px">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
-            <div style="background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.15);border-radius:10px;padding:14px 16px">
-              <div style="font-size:11px;font-weight:700;color:#6ee7b7;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🛡️ Como funciona o isolamento</div>
-              <div style="font-size:12px;color:var(--text2);line-height:1.7">
-                1. Mensagem chega no WhatsApp global<br>
-                2. Sistema varre todos os tenants ativos<br>
-                3. Compara número com os cadastrados<br>
-                4. Responde <strong>só</strong> ao tenant correto<br>
-                5. Usa dados exclusivos daquela loja
-              </div>
-            </div>
-            <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.15);border-radius:10px;padding:14px 16px">
-              <div style="font-size:11px;font-weight:700;color:#fca5a5;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🚫 Proteção garantida</div>
-              <div style="font-size:12px;color:var(--text2);line-height:1.7">
-                • Número não cadastrado → silêncio<br>
-                • IA desativada → silêncio<br>
-                • Tenant bloqueado → silêncio<br>
-                • Grupos → ignorados<br>
-                • Mensagens próprias → ignoradas
-              </div>
-            </div>
+        <div style="background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.18);border-radius:14px;padding:18px 20px">
+          <div style="font-size:12px;font-weight:700;color:#c4b5fd;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">⚡ Segurança</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.8">
+            • Key inválida → nenhuma resposta<br>
+            • IA desativada → nenhuma resposta<br>
+            • Gestor bloqueado → nenhuma resposta<br>
+            • Número não cadastrado → nenhuma resposta<br>
+            • Grupos / mensagens próprias → ignorados
           </div>
-          <div class="f-group" style="margin-bottom:0">
-            <label class="f-label">URL base do servidor (ex: https://seudominio.com)</label>
-            <div style="display:flex;gap:10px">
-              <input class="f-input" id="ia-base-url" placeholder="https://suainstancia.easypanel.host" style="flex:1">
-              <button class="btn btn-secondary" onclick="setupWebhook()">Registrar</button>
-            </div>
-            <span class="f-hint">O webhook será registrado em: {URL}/api/ia/webhook</span>
-          </div>
-          <div id="webhook-result" style="display:none;margin-top:12px;background:var(--s2);border-radius:10px;padding:12px 14px;font-size:12px;font-family:var(--mono);color:var(--text2)"></div>
         </div>
       </div>
 
-      <!-- Gestores IA Table -->
+      <!-- Tabela de Gestores com IA -->
       <div class="card">
         <div class="card-header">
           <div>
-            <div class="card-title">👥 Clientes com IA Habilitada</div>
-            <div class="card-subtitle">Ative ou desative a IA para cada gestor individualmente</div>
+            <div class="card-title">👥 Clientes com IA</div>
+            <div class="card-subtitle">Ative a IA e gerencie a API Key de cada gestor</div>
           </div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <span id="ia-count-badge" style="background:rgba(124,58,237,.15);color:#c4b5fd;border:1px solid rgba(124,58,237,.25);border-radius:99px;padding:3px 12px;font-size:11px;font-weight:700">0 ativos</span>
-          </div>
+          <span id="ia-count-badge" style="background:rgba(124,58,237,.15);color:#c4b5fd;border:1px solid rgba(124,58,237,.25);border-radius:99px;padding:4px 14px;font-size:11px;font-weight:700">0 ativos</span>
         </div>
         <div class="table-wrap">
           <table>
             <thead><tr>
               <th>Gestor</th>
-              <th>Slug</th>
-              <th>Plano</th>
+              <th>Slug / Plano</th>
               <th>Status</th>
-              <th style="text-align:center">IA Habilitada</th>
+              <th style="text-align:center">IA</th>
+              <th>API Key do Webhook</th>
               <th>Ações</th>
             </tr></thead>
             <tbody id="ia-gestores-table">
@@ -1059,31 +1035,6 @@ function toast(msg, type='success') {
 
 
 
-async function setupWebhook() {
-  const baseUrl = document.getElementById('ia-base-url').value.trim().replace(/\/$/,'');
-  const resultEl = document.getElementById('webhook-result');
-  try {
-    resultEl.style.display = 'block';
-    resultEl.textContent = '⏳ Registrando webhook...';
-    const r = await fetch('/api/admin/ia-webhook-setup', {
-      method: 'POST', headers: adminHeader(),
-      body: JSON.stringify({ base_url: baseUrl })
-    });
-    const d = await r.json();
-    if (d.ok) {
-      resultEl.style.color = '#34d399';
-      resultEl.textContent = '✅ Webhook registrado com sucesso!\n→ URL: ' + d.webhookUrl;
-      toast('Webhook registrado! A IA já pode receber mensagens.');
-    } else {
-      resultEl.style.color = '#f87171';
-      resultEl.textContent = '❌ Erro: ' + JSON.stringify(d.data || d.message);
-    }
-  } catch(e) {
-    resultEl.style.display = 'block';
-    resultEl.style.color = '#f87171';
-    resultEl.textContent = '❌ Erro: ' + e.message;
-  }
-}
 
 // ═══════════════════════════════════════════════════════
 //  IA — ADMIN PANEL JS
@@ -1169,35 +1120,56 @@ function renderIAGestoresTable() {
   const badge = document.getElementById('ia-count-badge');
   if (badge) badge.textContent = iaAtivos + ' ativo' + (iaAtivos !== 1 ? 's' : '');
 
+  const baseUrl = window.location.origin;
+
   tbody.innerHTML = _gestores.map(g => {
-    const s = statusGestor(g);
+    const s    = statusGestor(g);
     const iaOn = !!g.ia_enabled;
+    const key  = g.ia_api_key || '';
+    const webhookUrl = key ? `${baseUrl}/api/ia/webhook/${key}` : '';
+
     return `<tr>
       <td>
         <div style="font-weight:700;font-size:13.5px">${g.nome}</div>
         <div style="font-size:11px;color:var(--text3);margin-top:2px">${g.email}</div>
       </td>
-      <td><code style="font-size:11px;background:var(--s2);padding:2px 8px;border-radius:5px;color:var(--accent)">${g.slug}</code></td>
-      <td><span class="badge" style="background:rgba(59,130,246,.12);color:#93c5fd;border:1px solid rgba(59,130,246,.2)">${planos[g.plano] || g.plano}</span></td>
+      <td>
+        <code style="font-size:11px;background:var(--s2);padding:2px 8px;border-radius:5px;color:var(--accent)">${g.slug}</code>
+        <span class="badge" style="margin-left:6px;background:rgba(59,130,246,.12);color:#93c5fd;border:1px solid rgba(59,130,246,.2)">${planos[g.plano]||g.plano}</span>
+      </td>
       <td><span class="badge ${s.cls}">${s.label}</span></td>
       <td style="text-align:center">
         <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer">
-          <input type="checkbox" ${iaOn ? 'checked' : ''} onchange="toggleGestorIA('${g.id}', this.checked)"
+          <input type="checkbox" ${iaOn?'checked':''} onchange="toggleGestorIA('${g.id}',this.checked)"
             style="opacity:0;width:0;height:0;position:absolute">
-          <span style="
-            position:absolute;inset:0;border-radius:99px;transition:.25s;cursor:pointer;
-            background:${iaOn ? 'linear-gradient(135deg,#7c3aed,#4f46e5)' : 'rgba(255,255,255,.1)'};
-            box-shadow:${iaOn ? '0 0 12px rgba(124,58,237,.4)' : 'none'}
-          "></span>
-          <span style="
-            position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;
+          <span style="position:absolute;inset:0;border-radius:99px;transition:.25s;cursor:pointer;
+            background:${iaOn?'linear-gradient(135deg,#7c3aed,#4f46e5)':'rgba(255,255,255,.1)'};
+            box-shadow:${iaOn?'0 0 12px rgba(124,58,237,.4)':'none'}"></span>
+          <span style="position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;
             top:3px;transition:.25s;box-shadow:0 2px 6px rgba(0,0,0,.3);
-            left:${iaOn ? '23px' : '3px'}
-          "></span>
+            left:${iaOn?'23px':'3px'}"></span>
         </label>
       </td>
+      <td style="max-width:320px">
+        ${key ? `
+          <div style="display:flex;align-items:center;gap:6px">
+            <input readonly value="${webhookUrl}"
+              style="flex:1;background:var(--s2);border:1px solid var(--border);border-radius:8px;
+                     padding:6px 10px;font-size:10px;font-family:var(--mono);color:var(--text2);min-width:0;cursor:pointer"
+              onclick="this.select()" title="Clique para selecionar">
+            <button class="btn btn-secondary btn-sm" title="Copiar URL" onclick="copiarKey('${webhookUrl}')">📋</button>
+            <button class="btn btn-danger btn-sm" title="Revogar key" onclick="revogarKey('${g.id}')">🗑</button>
+          </div>
+          <div style="font-size:10px;color:var(--text3);margin-top:4px">
+            Configure esse URL como webhook na Evolution API do cliente
+          </div>
+        ` : `
+          <button class="btn btn-secondary btn-sm" onclick="gerarKey('${g.id}')">🔑 Gerar API Key</button>
+          <div style="font-size:10px;color:var(--text3);margin-top:4px">Nenhuma key gerada</div>
+        `}
+      </td>
       <td>
-        <button class="btn btn-secondary btn-sm" onclick="abrirEditarGestor('${g.id}')">✏️ Editar</button>
+        <button class="btn btn-secondary btn-sm" onclick="abrirEditarGestor('${g.id}')">✏️</button>
       </td>
     </tr>`;
   }).join('');
@@ -1206,16 +1178,46 @@ function renderIAGestoresTable() {
 async function toggleGestorIA(id, enabled) {
   try {
     const r = await fetch(`/api/admin/gestores/${id}/ia`, {
-      method: 'PATCH', headers: adminHeader(),
+      method:'PATCH', headers:adminHeader(),
       body: JSON.stringify({ ia_enabled: enabled })
     });
-    if (!r.ok) throw new Error('Erro');
-    // Update local state
+    if (!r.ok) throw new Error((await r.json()).message || 'Erro');
     const g = _gestores.find(x => String(x.id) === String(id));
     if (g) g.ia_enabled = enabled ? 1 : 0;
     renderIAGestoresTable();
-    toast(enabled ? '🤖 IA ativada para este gestor!' : 'IA desativada', enabled ? 'success' : 'info');
-  } catch(e) { toast('Erro: ' + e.message, 'error'); }
+    toast(enabled ? '🤖 IA ativada!' : 'IA desativada', enabled ? 'success' : 'info');
+  } catch(e) { toast('Erro: '+e.message,'error'); }
+}
+
+async function gerarKey(id) {
+  try {
+    const r = await fetch(`/api/admin/gestores/${id}/ia-key`, { method:'POST', headers:adminHeader() });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.message);
+    const g = _gestores.find(x => String(x.id) === String(id));
+    if (g) g.ia_api_key = d.ia_api_key;
+    renderIAGestoresTable();
+    toast('🔑 API Key gerada! Configure o webhook na Evolution API do cliente.');
+  } catch(e) { toast('Erro: '+e.message,'error'); }
+}
+
+async function revogarKey(id) {
+  if (!confirm('Revogar a API Key? O webhook parará de funcionar imediatamente.')) return;
+  try {
+    await fetch(`/api/admin/gestores/${id}/ia-key`, { method:'DELETE', headers:adminHeader() });
+    const g = _gestores.find(x => String(x.id) === String(id));
+    if (g) g.ia_api_key = null;
+    renderIAGestoresTable();
+    toast('Key revogada.','info');
+  } catch(e) { toast('Erro: '+e.message,'error'); }
+}
+
+function copiarKey(url) {
+  navigator.clipboard.writeText(url).then(()=>toast('URL copiada! ✅')).catch(()=>{
+    const el = document.createElement('textarea');
+    el.value = url; document.body.appendChild(el); el.select();
+    document.execCommand('copy'); el.remove(); toast('URL copiada! ✅');
+  });
 }
 
 function togglePwd(id) {
