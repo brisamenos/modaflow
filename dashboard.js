@@ -4,19 +4,18 @@ let dashPrivacy = false;
 
 // ─── Date helpers ────────────────────────────────────────────────────────────
 function getDashDateRange(period) {
-  const now  = new Date();
-  const today = now.toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'});
   let ini, fim = today;
   if (period === 'hoje')   { ini = today; }
   else if (period === 'ontem') {
-    const y = new Date(now); y.setDate(y.getDate() - 1);
-    ini = fim = y.toISOString().split('T')[0];
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    ini = fim = y.toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'});
   } else if (period === 'semana') {
-    const s = new Date(now); s.setDate(s.getDate() - 6);
-    ini = s.toISOString().split('T')[0];
+    const s = new Date(); s.setDate(s.getDate() - 6);
+    ini = s.toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'});
   } else {
-    const ano = now.getFullYear(), mes = now.getMonth() + 1;
-    ini = `${ano}-${String(mes).padStart(2,'0')}-01`;
+    const [ano, mes] = today.split('-');
+    ini = `${ano}-${mes}-01`;
   }
   return { ini, fim };
 }
@@ -130,7 +129,7 @@ async function buildDashboard() {
     sb.from('contas_receber').select('valor,status').eq('status','aberta'),
     sb.from('metas_vendas').select('valor_meta').eq('tipo','loja')
       .eq('mes', now.getMonth()+1).eq('ano', now.getFullYear()).limit(1),
-    sb.from('agenda_tarefas').select('*').gte('data_tarefa', now.toISOString().split('T')[0])
+    sb.from('agenda_tarefas').select('*').gte('data_tarefa', new Date().toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'}))
       .eq('concluida',false).order('data_tarefa').limit(6),
     sb.from('changelog').select('*').order('data_lancamento',{ascending:false}).limit(5),
     sb.from('configuracoes').select('chave,valor'),
@@ -197,9 +196,9 @@ async function buildDashboard() {
   const dayLabels = [], daySales = [];
   for (let i = days-1; i >= 0; i--) {
     const d = new Date(now); d.setDate(d.getDate() - i);
-    const ds = d.toISOString().split('T')[0];
-    dayLabels.push(d.getDate());
-    daySales.push(vendas.filter(v => v.created_at?.startsWith(ds)).reduce((a,v)=>a+parseFloat(v.total||0),0));
+    const ds = d.toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'});
+    dayLabels.push(d.toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo',day:'numeric'}));
+    daySales.push(vendas.filter(v => { if(!v.created_at) return false; const s=String(v.created_at).replace(' ','T'); const vd=new Date((/Z|[+-]\d{2}:?\d{2}$/.test(s)?s:s+'Z')).toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'}); return vd===ds; }).reduce((a,v)=>a+parseFloat(v.total||0),0));
   }
 
   // Privacy toggle button
@@ -734,7 +733,7 @@ async function openAgendaModal() {
     <div class="modal-body"><div class="form-grid">
       <div class="form-group"><label>Título *</label><input id="ag-titulo" placeholder="Ex: Ligar para fornecedor"></div>
       <div class="form-group"><label>Descrição</label><textarea id="ag-desc" placeholder="Detalhes..."></textarea></div>
-      <div class="form-group"><label>Data *</label><input id="ag-data" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
+      <div class="form-group"><label>Data *</label><input id="ag-data" type="date" value="${new Date().toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'})}"></div>
     </div></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModalDirect()">Cancelar</button>
@@ -767,7 +766,7 @@ async function openChangelogModal() {
     <div class="modal-header"><h3>Registrar Atualização</h3><button class="modal-close" onclick="closeModalDirect()"><i data-lucide="x"></i></button></div>
     <div class="modal-body"><div class="form-grid">
       <div class="form-group"><label>Descrição *</label><input id="cl-desc" placeholder="Ex: Nova funcionalidade adicionada..."></div>
-      <div class="form-group"><label>Data</label><input id="cl-data" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
+      <div class="form-group"><label>Data</label><input id="cl-data" type="date" value="${new Date().toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'})}"></div>
     </div></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModalDirect()">Cancelar</button>
