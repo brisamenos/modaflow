@@ -1188,6 +1188,18 @@ app.delete('/api/admin/gestores/:id/ia-key', adminAuth, (req, res) => {
   } catch(e) { res.status(500).json({ message: e.message }); }
 });
 
+
+// Enviar WhatsApp manual (pelo painel do cliente)
+app.post('/api/ia/send-whatsapp', resolveDb, async (req, res) => {
+  try {
+    const db = req.db;
+    const { numero, mensagem } = req.body;
+    if (!numero || !mensagem) return res.status(400).json({ message: 'numero e mensagem obrigatórios' });
+    await enviarWhatsApp(db, numero, mensagem);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ message: e.message }); }
+});
+
 // ─────────────────────────────────────────────────────────
 // POST /api/ia/webhook/:apiKey  — recebe mensagens
 // ─────────────────────────────────────────────────────────
