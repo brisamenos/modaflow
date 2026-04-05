@@ -1269,7 +1269,24 @@ app.post('/api/ia/send-whatsapp', resolveDb, async (req, res) => {
 // ─────────────────────────────────────────────────────────
 // POST /api/ia/webhook/:apiKey  — recebe mensagens
 // ─────────────────────────────────────────────────────────
+// Aceita com ou sem evento no final da URL
+// /api/ia/webhook/mf_xxx              (Webhook by Events = OFF)
+// /api/ia/webhook/mf_xxx/messages.upsert  (Webhook by Events = ON)
+app.get('/api/ia/webhook/:apiKey', (req, res) => {
+  res.json({ ok: true, status: 'ModaFlow IA webhook ativo', key: req.params.apiKey?.slice(0,8)+'...' });
+});
+app.get('/api/ia/webhook/:apiKey/:event', (req, res) => {
+  res.json({ ok: true, status: 'ModaFlow IA webhook ativo', key: req.params.apiKey?.slice(0,8)+'...' });
+});
+app.post('/api/ia/webhook/:apiKey/:event', async (req, res) => {
+  // "Webhook by Events" ON — redireciona para o handler principal
+  req.params.apiKey = req.params.apiKey;
+  return webhookHandler(req, res);
+});
 app.post('/api/ia/webhook/:apiKey', async (req, res) => {
+  return webhookHandler(req, res);
+});
+async function webhookHandler(req, res) {
   res.status(200).json({ ok: true });
 
   const log = (step, msg, data) => {
@@ -1423,7 +1440,7 @@ ${contexto}`;
   } catch(e) {
     console.error(`[IA WEBHOOK] ❌ ERRO GERAL: ${e.message}`, e.stack?.slice(0,300));
   }
-});
+}
 
 // GET /api/ia/webhook-log — endpoint de diagnóstico (últimos logs em memória)
 const _iaLogs = [];
