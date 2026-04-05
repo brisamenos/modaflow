@@ -525,28 +525,14 @@ tbody td{padding:14px 20px;font-size:13.5px;vertical-align:middle}
 
 
       <!-- Webhook Setup Card -->
-      <!-- Instruções + URL do Webhook -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
-        <div style="background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.18);border-radius:14px;padding:18px 20px">
-          <div style="font-size:12px;font-weight:700;color:#6ee7b7;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">🛡️ Como funciona</div>
-          <div style="font-size:12px;color:var(--text2);line-height:1.8">
-            1. Gere uma <strong>API Key</strong> para o cliente<br>
-            2. Configure o webhook da Evolution API do cliente:<br>
-            <code style="background:var(--s3);padding:2px 8px;border-radius:6px;font-size:11px;color:var(--accent)">POST /api/ia/webhook/{API_KEY}</code><br>
-            3. Só aquela instância chega naquele cliente<br>
-            4. Sem varredura, sem cruzamento de dados
-          </div>
+      <!-- URL do Webhook -->
+      <div style="background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.2);border-radius:14px;padding:18px 20px;margin-bottom:24px">
+        <div style="font-size:12px;font-weight:700;color:#6ee7b7;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">🔗 URL do Webhook — configure isso UMA VEZ na sua instância Evolution</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <code id="webhook-url-display" style="flex:1;background:var(--s3);padding:10px 14px;border-radius:8px;font-size:12px;color:var(--accent);word-break:break-all"></code>
+          <button class="btn btn-secondary btn-sm" onclick="copiarWebhookUrl()">📋 Copiar</button>
         </div>
-        <div style="background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.18);border-radius:14px;padding:18px 20px">
-          <div style="font-size:12px;font-weight:700;color:#c4b5fd;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">⚡ Segurança</div>
-          <div style="font-size:12px;color:var(--text2);line-height:1.8">
-            • Key inválida → nenhuma resposta<br>
-            • IA desativada → nenhuma resposta<br>
-            • Gestor bloqueado → nenhuma resposta<br>
-            • Número não cadastrado → nenhuma resposta<br>
-            • Grupos / mensagens próprias → ignorados
-          </div>
-        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:8px">Na Evolution API: Events → Webhook → cole essa URL → marque apenas MESSAGES_UPSERT → Webhook by Events OFF</div>
       </div>
 
       <!-- Tabela de Gestores com IA -->
@@ -652,32 +638,6 @@ tbody td{padding:14px 20px;font-size:13.5px;vertical-align:middle}
         </div>
       </div>
 
-      <!-- Seção IA — dentro do modal-body -->
-      <div style="border-top:1px solid var(--border);padding-top:16px">
-        <div style="font-size:11px;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;display:flex;align-items:center;gap:6px">
-          🤖 Configuração IA & WhatsApp
-        </div>
-        <div class="f-group">
-          <label class="f-label">URL da Evolution API</label>
-          <input class="f-input" id="g-evo-url" placeholder="https://evolution.seuservidor.com">
-        </div>
-        <div class="f-row">
-          <div class="f-group" style="margin-bottom:0">
-            <label class="f-label">API Key Evolution</label>
-            <input class="f-input" id="g-evo-key" type="password" placeholder="api-key da instância">
-          </div>
-          <div class="f-group" style="margin-bottom:0">
-            <label class="f-label">Nome da Instância</label>
-            <input class="f-input" id="g-evo-instance" placeholder="nome-da-instancia">
-          </div>
-        </div>
-        <div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <button class="btn btn-secondary btn-sm" onclick="registrarWebhookGestor()" id="btn-registrar-wh">
-            🔗 Registrar Webhook
-          </button>
-          <span id="wh-status" style="font-size:11px;color:var(--text3)">Configure as credenciais e clique para registrar</span>
-        </div>
-      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="fecharModal('modal-gestor')">Cancelar</button>
@@ -940,10 +900,7 @@ function abrirCriarGestor() {
   document.getElementById('g-expiry').value = '';
   document.getElementById('g-plano').value = 'basico';
   document.getElementById('g-ativo').value = '1';
-  document.getElementById('g-evo-url').value = '';
-  document.getElementById('g-evo-key').value = '';
-  document.getElementById('g-evo-instance').value = '';
-  document.getElementById('wh-status').textContent = 'Configure as credenciais e clique para registrar';
+
   document.getElementById('modal-gestor-title').textContent = 'Novo Gestor';
   document.getElementById('g-senha-label').textContent = 'Senha *';
   document.getElementById('g-senha-hint').textContent = '';
@@ -962,8 +919,6 @@ function abrirEditarGestor(id) {
   document.getElementById('g-expiry').value = g.expires_at || '';
   document.getElementById('g-plano').value = g.plano || 'basico';
   document.getElementById('g-ativo').value = g.ativo ? '1' : '0';
-  // Carregar credenciais IA do tenant
-  carregarEvoCredenciais(g.slug);
   document.getElementById('modal-gestor-title').textContent = 'Editar Gestor — '+g.nome;
   document.getElementById('g-senha-label').textContent = 'Nova senha';
   document.getElementById('g-senha-hint').textContent = 'Deixe em branco para não alterar';
@@ -1169,11 +1124,23 @@ async function registrarWebhookGestor() {
 // ═══════════════════════════════════════════════════════
 let _iaLoaded = false;
 
+function copiarWebhookUrl() {
+  const url = document.getElementById('webhook-url-display')?.textContent || '';
+  navigator.clipboard.writeText(url).then(()=>toast('URL copiada! ✅')).catch(()=>{
+    const el = document.createElement('textarea');
+    el.value = url; document.body.appendChild(el); el.select();
+    document.execCommand('copy'); el.remove(); toast('URL copiada! ✅');
+  });
+}
+
 async function iniciarSecIA() {
   if (!_iaLoaded) {
     await carregarIAConfig();
     _iaLoaded = true;
   }
+  // Mostra URL do webhook
+  const whu = document.getElementById('webhook-url-display');
+  if (whu) whu.textContent = window.location.origin + '/api/ia/webhook';
   checkWppStatus();
   renderIAGestoresTable();
 }
