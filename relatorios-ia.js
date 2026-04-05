@@ -175,6 +175,7 @@ const IAR = {
 async function renderRelatoriosIA() {
   await Promise.all([IAR.loadConfig(), IAR.loadResumo()]);
   IAR.connectSSE();
+  setTimeout(() => IAR.loadHistorico(), 300);
 
   const c = document.getElementById('content');
   const on = _iaConfig.ia_enabled === '1';
@@ -703,7 +704,7 @@ async function renderRelatoriosIA() {
             <div class="ia-card-sub">Eventos SSE desta sessão</div>
           </div>
         </div>
-        <button class="ia-btn ia-btn-ghost" style="padding:6px 12px;font-size:11px" onclick="document.getElementById('ia-feed').innerHTML='<div class=\\'ia-feed-empty\\'><div class=\\'ia-feed-empty-icon\\'>📭</div>Feed limpo</div>'">
+        <button class="ia-btn ia-btn-ghost" style="padding:6px 12px;font-size:11px" onclick="IAR.limparHistorico()">
           Limpar
         </button>
       </div>
@@ -807,3 +808,44 @@ async function renderRelatoriosIA() {
   IAR.updateStatus();
   setTimeout(() => { if (typeof lucide !== 'undefined') lucide.createIcons(); }, 50);
 }
+
+// ── HISTÓRICO DE CONVERSA ──────────────────────────────
+IAR.loadHistorico = async function() {
+  try {
+    const msgs = await apiGet('/api/ia/historico');
+    const feed = document.getElementById('ia-feed');
+    if (!feed || !msgs.length) return;
+
+    const empty = feed.querySelector('.ia-feed-empty');
+    if (empty) empty.remove();
+
+    // Renderiza do mais antigo para o mais recente
+    const fragment = document.createDocumentFragment();
+    for (const m of msgs) {
+      const item = document.createElement('div');
+      item.className = 'ia-feed-item';
+      const hora = new Date(m.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+      const isUser = m.role === 'user';
+      item.innerHTML = `
+        <div class="ia-feed-icon" style="background:${isUser?'rgba(59,130,246,.15)':'rgba(124,58,237,.15)'};color:${isUser?'#60a5fa':'#a78bfa'}">${isUser?'👤':'🤖'}</div>
+        <div class="ia-feed-body">
+          <div class="ia-feed-label" style="color:${isUser?'#60a5fa':'#a78bfa'}">${isUser?'Você':'IA ModaFlow'}</div>
+          <div class="ia-feed-msg">${m.content}</div>
+        </div>
+        <div class="ia-feed-time">${hora}</div>`;
+      fragment.appendChild(item);
+    }
+    feed.appendChild(fragment);
+    const container = feed.closest('.ia-feed-container');
+    if (container) container.scrollTop = container.scrollHeight;
+  } catch(e) {}
+};
+
+IAR.limparHistorico = async function() {
+  if (!confirm('Limpar todo o histórico de conversa com a IA?')) return;
+  try {
+    await fetch('/api/ia/historico', { method:'DELETE', headers: { 'Authorization':'Bearer '+_token } });
+    document.getElementById('ia-feed').innerHTML = '<div class="ia-feed-empty"><div class="ia-feed-empty-icon">📭</div>Histórico limpo</div>';
+    toast('Histórico apagado', 'info');
+  } catch(e) { toast('Erro: '+e.message,'error'); }
+};

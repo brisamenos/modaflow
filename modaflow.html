@@ -523,6 +523,54 @@ tbody td{padding:14px 20px;font-size:13.5px;vertical-align:middle}
         </div>
       </div>
 
+
+      <!-- Webhook Setup Card -->
+      <div class="card" style="margin-bottom:24px">
+        <div class="card-header">
+          <div>
+            <div class="card-title" style="display:flex;align-items:center;gap:8px">
+              <span style="background:rgba(245,158,11,.12);border-radius:8px;padding:4px 8px;font-size:13px">🔗</span>
+              Webhook — Roteamento Multi-Tenant
+            </div>
+            <div class="card-subtitle">Registra o endpoint de recebimento na Evolution API</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="setupWebhook()">⚡ Registrar Webhook</button>
+        </div>
+        <div style="padding:20px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+            <div style="background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.15);border-radius:10px;padding:14px 16px">
+              <div style="font-size:11px;font-weight:700;color:#6ee7b7;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🛡️ Como funciona o isolamento</div>
+              <div style="font-size:12px;color:var(--text2);line-height:1.7">
+                1. Mensagem chega no WhatsApp global<br>
+                2. Sistema varre todos os tenants ativos<br>
+                3. Compara número com os cadastrados<br>
+                4. Responde <strong>só</strong> ao tenant correto<br>
+                5. Usa dados exclusivos daquela loja
+              </div>
+            </div>
+            <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.15);border-radius:10px;padding:14px 16px">
+              <div style="font-size:11px;font-weight:700;color:#fca5a5;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🚫 Proteção garantida</div>
+              <div style="font-size:12px;color:var(--text2);line-height:1.7">
+                • Número não cadastrado → silêncio<br>
+                • IA desativada → silêncio<br>
+                • Tenant bloqueado → silêncio<br>
+                • Grupos → ignorados<br>
+                • Mensagens próprias → ignoradas
+              </div>
+            </div>
+          </div>
+          <div class="f-group" style="margin-bottom:0">
+            <label class="f-label">URL base do servidor (ex: https://seudominio.com)</label>
+            <div style="display:flex;gap:10px">
+              <input class="f-input" id="ia-base-url" placeholder="https://suainstancia.easypanel.host" style="flex:1">
+              <button class="btn btn-secondary" onclick="setupWebhook()">Registrar</button>
+            </div>
+            <span class="f-hint">O webhook será registrado em: {URL}/api/ia/webhook</span>
+          </div>
+          <div id="webhook-result" style="display:none;margin-top:12px;background:var(--s2);border-radius:10px;padding:12px 14px;font-size:12px;font-family:var(--mono);color:var(--text2)"></div>
+        </div>
+      </div>
+
       <!-- Gestores IA Table -->
       <div class="card">
         <div class="card-header">
@@ -1009,6 +1057,33 @@ function toast(msg, type='success') {
   setTimeout(()=>el.remove(), 3500);
 }
 
+
+
+async function setupWebhook() {
+  const baseUrl = document.getElementById('ia-base-url').value.trim().replace(/\/$/,'');
+  const resultEl = document.getElementById('webhook-result');
+  try {
+    resultEl.style.display = 'block';
+    resultEl.textContent = '⏳ Registrando webhook...';
+    const r = await fetch('/api/admin/ia-webhook-setup', {
+      method: 'POST', headers: adminHeader(),
+      body: JSON.stringify({ base_url: baseUrl })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      resultEl.style.color = '#34d399';
+      resultEl.textContent = '✅ Webhook registrado com sucesso!\n→ URL: ' + d.webhookUrl;
+      toast('Webhook registrado! A IA já pode receber mensagens.');
+    } else {
+      resultEl.style.color = '#f87171';
+      resultEl.textContent = '❌ Erro: ' + JSON.stringify(d.data || d.message);
+    }
+  } catch(e) {
+    resultEl.style.display = 'block';
+    resultEl.style.color = '#f87171';
+    resultEl.textContent = '❌ Erro: ' + e.message;
+  }
+}
 
 // ═══════════════════════════════════════════════════════
 //  IA — ADMIN PANEL JS
