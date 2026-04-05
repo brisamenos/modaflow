@@ -783,12 +783,16 @@ app.post('/api/:table', resolveDb, (req, res) => {
         try {
           if (table === 'vendas') {
             const v = results[0];
-            dispararNotificacaoIA(slug, 'nova_venda', {
-              id: v.id || v.numero_venda,
-              total: v.total,
-              forma: v.forma_pagamento,
-              cliente: v.cliente_id
-            });
+            // Aguarda 2s para os itens da venda serem salvos (chegam em request separado)
+            setTimeout(() => {
+              dispararNotificacaoIA(slug, 'nova_venda', {
+                id:      v.id || v.numero_venda,
+                venda_id: v.id,
+                total:   v.total,
+                forma:   v.forma_pagamento,
+                cliente: v.cliente_id
+              });
+            }, 2000);
           } else if (table === 'clientes') {
             const cli = results[0];
             dispararNotificacaoIA(slug, 'novo_cliente', {
@@ -1731,11 +1735,55 @@ async function dispararNotificacaoIA(slug, tipo, dados) {
     let msg = '';
 
     if (tipo === 'nova_venda') {
+      // Busca nome do cliente
       let clienteNome = 'Cliente avulso';
       if (dados.cliente) {
-        try { const c = db.prepare(`SELECT nome FROM clientes WHERE id=?`).get(dados.cliente); if(c) clienteNome=c.nome; } catch(e){}
+        try {
+          const c = db.prepare(`SELECT nome FROM clientes WHERE id=?`).get(dados.cliente);
+          if (c) clienteNome = c.nome;
+        } catch(e) {}
       }
-      msg = `🛍️ *Nova venda registrada!*\n\n💰 Valor: *${R(dados.total)}*\n👤 Cliente: ${clienteNome}\n💳 Pagamento: ${dados.forma||'—'}\n\n_${agoraBrasilia()}_`;
+
+      // Busca itens da venda
+      let itensTexto = '';
+      if (dados.venda_id) {
+        try {
+          const itens = db.prepare(`
+            SELECT p.nome, vi.quantidade, vi.preco_unit,
+                   pg.tamanho, pg.cor_descricao
+            FROM venda_itens vi
+            JOIN produtos p ON p.id = vi.produto_id
+            LEFT JOIN produto_grades pg ON pg.id = vi.produto_grade_id
+            WHERE vi.venda_id = ?
+            ORDER BY vi.id
+          `).all(dados.venda_id);
+
+          if (itens.length) {
+            itensTexto = '\n\n🛒 *Itens:*\n' + itens.map(i => {
+              const tam = i.tamanho ? ` (${i.tamanho})` : '';
+              const cor = i.cor_descricao ? ` ${i.cor_descricao}` : '';
+              return `• ${i.nome}${tam}${cor} — ${i.quantidade}x ${R(i.preco_unit)}`;
+            }).join('\n');
+          }
+        } catch(e) {}
+      }
+
+      // Busca número da venda e vendedor
+      let numVenda = dados.id || '';
+      let vendedorNome = '';
+      try {
+        const vd = db.prepare(`
+          SELECT v.numero_venda, vend.nome as vendedor_nome
+          FROM vendas v
+          LEFT JOIN vendedores vend ON vend.id = v.vendedor_id
+          WHERE v.id = ?
+        `).get(dados.venda_id);
+        if (vd?.numero_venda) numVenda = vd.numero_venda;
+        if (vd?.vendedor_nome) vendedorNome = vd.vendedor_nome;
+      } catch(e) {}
+
+      const vendedorLinha = vendedorNome ? `\n🧑‍💼 Vendedor: ${vendedorNome}` : '';
+      msg = `🛍 *Nova venda #${numVenda}*\n\n👤 Cliente: *${clienteNome}*${vendedorLinha}\n💳 Pagamento: ${dados.forma||'—'}\n💰 Total: *${R(dados.total)}*${itensTexto}\n\n_${agoraBrasilia()}_`;
     } else if (tipo === 'novo_cliente') {
       msg = `👤 *Novo cliente cadastrado!*\n\n📛 Nome: *${dados.nome}*\n📱 Tel: ${dados.telefone||'—'}\n\n_${agoraBrasilia()}_`;
     } else if (tipo === 'estoque') {
