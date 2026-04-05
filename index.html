@@ -241,6 +241,11 @@
             </div>
           </div>
 
+          <!-- IA Button -->
+          <button class="nav-dash-btn ia-nav-btn" id="nav-ia" onclick="navigate('relatorios-ia')" style="background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(79,70,229,.1));border:1px solid rgba(124,58,237,.25);color:#a78bfa">
+            <i data-lucide="bot"></i> IA & Relatórios
+          </button>
+
           <!-- PDV destacado -->
           <button class="btn-pdv-nav" id="nav-pdv" onclick="navigate('pdv')">
             <i data-lucide="shopping-cart"></i> Registrar Venda
@@ -638,6 +643,7 @@
   <div class="mobile-menu-item" onclick="navigate('dre');closeMobileMenu()"><i data-lucide="pie-chart"></i> Resultado — DRE</div>
 
   <div class="mobile-menu-section">Conta</div>
+  <div class="mobile-menu-item" onclick="navigate('relatorios-ia');closeMobileMenu()" style="color:#a78bfa"><i data-lucide="bot"></i> IA & Relatórios</div>
   <div class="mobile-menu-item" onclick="logout()"><i data-lucide="log-out"></i> Sair do Sistema</div>
 </div>
 
@@ -678,6 +684,7 @@
 <script src="compras.js"></script>
 <script src="financeiro.js"></script>
 <script src="estoque.js"></script>
+<script src="relatorios-ia.js"></script>
 <script>checkSession();</script>
 <!-- Registrar PWA Service Worker -->
 <script>

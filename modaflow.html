@@ -281,6 +281,17 @@ tbody td{padding:14px 20px;font-size:13.5px;vertical-align:middle}
   background:none;transition:all .15s;
 }
 .tab-btn.active{background:var(--s1);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.topbar-navbtn{
+  background:transparent;border:1px solid transparent;border-radius:8px;
+  padding:7px 13px;font-family:var(--font);font-size:12px;font-weight:600;
+  color:var(--text2);cursor:pointer;transition:all .2s;
+}
+.topbar-navbtn:hover{background:rgba(255,255,255,.06);color:var(--text);border-color:var(--border2)}
+.topbar-navbtn.active{background:var(--accent-dim);color:var(--accent);border-color:rgba(16,185,129,.25)}
+.ia-navbtn{color:#a78bfa !important}
+.ia-navbtn:hover{background:rgba(124,58,237,.1) !important;border-color:rgba(124,58,237,.25) !important}
+.ia-navbtn.active{background:rgba(124,58,237,.15) !important;color:#c4b5fd !important;border-color:rgba(124,58,237,.35) !important}
+
 
 /* ── RESPONSIVE ── */
 @media(max-width:600px){
@@ -321,6 +332,11 @@ tbody td{padding:14px 20px;font-size:13.5px;vertical-align:middle}
       Moda<span style="color:var(--accent)">Flow</span>
     </div>
     <span class="topbar-badge">ADMIN</span>
+    <nav style="display:flex;gap:4px;margin-left:28px">
+      <button class="topbar-navbtn" id="tnav-dashboard" onclick="navTo('dashboard')">📊 Dashboard</button>
+      <button class="topbar-navbtn" id="tnav-gestores"  onclick="navTo('gestores')">👥 Gestores</button>
+      <button class="topbar-navbtn ia-navbtn" id="tnav-ia" onclick="navTo('ia')">🤖 Inteligência Artificial</button>
+    </nav>
     <div class="topbar-spacer"></div>
     <div class="topbar-user" onclick="doLogout()">
       <div class="topbar-user-dot" id="adm-inicial">A</div>
@@ -407,6 +423,130 @@ tbody td{padding:14px 20px;font-size:13.5px;vertical-align:middle}
               <th>Gestor / Slug</th><th>E-mail</th><th>Status</th><th>Vencimento</th><th>Cadastro</th><th>Ações</th>
             </tr></thead>
             <tbody id="gestores-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ── IA & CONFIGURAÇÃO ── -->
+    <div id="sec-ia" class="section">
+      <div class="page-header">
+        <div>
+          <div class="page-title">🤖 Inteligência Artificial</div>
+          <div class="page-subtitle">Configurações globais de IA e WhatsApp para todos os clientes ModaFlow</div>
+        </div>
+        <button class="btn btn-primary" onclick="salvarIAConfig()">💾 Salvar configurações</button>
+      </div>
+
+      <!-- Status bar -->
+      <div id="ia-global-statusbar" style="
+        background:linear-gradient(135deg,rgba(124,58,237,.1),rgba(79,70,229,.07));
+        border:1px solid rgba(124,58,237,.2);border-radius:14px;
+        padding:16px 22px;margin-bottom:24px;
+        display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,rgba(124,58,237,.25),rgba(79,70,229,.2));display:flex;align-items:center;justify-content:center;font-size:22px">🔗</div>
+          <div>
+            <div style="font-size:14px;font-weight:700">Status da Conexão WhatsApp</div>
+            <div id="ia-wpp-status-label" style="font-size:12px;color:#64748b;margin-top:2px">Verificando...</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div id="ia-wpp-dot" style="width:10px;height:10px;border-radius:50%;background:#64748b;flex-shrink:0"></div>
+          <span id="ia-wpp-state" style="font-size:12px;font-weight:700;color:#64748b">—</span>
+          <button class="btn btn-secondary btn-sm" onclick="checkWppStatus()" style="margin-left:6px">🔄 Testar</button>
+        </div>
+      </div>
+
+      <!-- Cards grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">
+
+        <!-- OpenAI Config -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title" style="display:flex;align-items:center;gap:8px">
+                <span style="background:rgba(16,185,129,.12);border-radius:8px;padding:4px 8px;font-size:13px">🧠</span>
+                OpenAI — GPT
+              </div>
+              <div class="card-subtitle">Chave de API para o assistente de IA</div>
+            </div>
+          </div>
+          <div style="padding:20px">
+            <div class="f-group">
+              <label class="f-label">OpenAI API Key <span style="color:#ef4444">*</span></label>
+              <div style="position:relative">
+                <input class="f-input" id="ia-openai-key" type="password" placeholder="sk-...">
+                <button onclick="togglePwd('ia-openai-key')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px">👁</button>
+              </div>
+              <span class="f-hint">Usada para responder perguntas dos clientes via WhatsApp</span>
+            </div>
+            <div style="background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.15);border-radius:10px;padding:12px 14px;font-size:12px;color:#6ee7b7;line-height:1.6">
+              <strong>Modelo:</strong> GPT-4o-mini (custo baixo, alta velocidade)<br>
+              <strong>Uso:</strong> Análise de dados da loja + respostas via WhatsApp
+            </div>
+          </div>
+        </div>
+
+        <!-- Evolution API Config -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title" style="display:flex;align-items:center;gap:8px">
+                <span style="background:rgba(59,130,246,.12);border-radius:8px;padding:4px 8px;font-size:13px">📱</span>
+                Evolution API — WhatsApp
+              </div>
+              <div class="card-subtitle">Instância global para envio de mensagens</div>
+            </div>
+          </div>
+          <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
+            <div class="f-row">
+              <div class="f-group" style="margin-bottom:0">
+                <label class="f-label">URL da Evolution API</label>
+                <input class="f-input" id="ia-evo-url" placeholder="https://api.seuservidor.com">
+              </div>
+              <div class="f-group" style="margin-bottom:0">
+                <label class="f-label">API Key</label>
+                <div style="position:relative">
+                  <input class="f-input" id="ia-evo-key" type="password" placeholder="sua-api-key">
+                  <button onclick="togglePwd('ia-evo-key')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px">👁</button>
+                </div>
+              </div>
+            </div>
+            <div class="f-group" style="margin-bottom:0">
+              <label class="f-label">Nome da Instância</label>
+              <input class="f-input" id="ia-evo-instance" placeholder="modaflow-ia">
+              <span class="f-hint">Instância WhatsApp dedicada ao ModaFlow IA</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gestores IA Table -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">👥 Clientes com IA Habilitada</div>
+            <div class="card-subtitle">Ative ou desative a IA para cada gestor individualmente</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span id="ia-count-badge" style="background:rgba(124,58,237,.15);color:#c4b5fd;border:1px solid rgba(124,58,237,.25);border-radius:99px;padding:3px 12px;font-size:11px;font-weight:700">0 ativos</span>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Gestor</th>
+              <th>Slug</th>
+              <th>Plano</th>
+              <th>Status</th>
+              <th style="text-align:center">IA Habilitada</th>
+              <th>Ações</th>
+            </tr></thead>
+            <tbody id="ia-gestores-table">
+              <tr><td colspan="6" class="empty">Carregando...</td></tr>
+            </tbody>
           </table>
         </div>
       </div>
@@ -604,7 +744,13 @@ async function checkSavedSession() {
 function navTo(sec) {
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.getElementById('sec-'+sec)?.classList.add('active');
+  // Update nav button active states
+  document.querySelectorAll('.topbar-navbtn').forEach(b=>b.classList.remove('active'));
+  const navMap = {dashboard:'tnav-dashboard', gestores:'tnav-gestores', ia:'tnav-ia'};
+  const nb = document.getElementById(navMap[sec]);
+  if (nb) nb.classList.add('active');
   if (sec === 'gestores') renderGestoresTable(_gestores);
+  if (sec === 'ia') iniciarSecIA();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -617,6 +763,9 @@ async function carregarTudo() {
   atualizarStats();
   renderDashTable();
   renderGestoresTable(_gestores);
+  // Activate default nav
+  const nb = document.getElementById('tnav-dashboard');
+  if (nb) nb.classList.add('active');
 }
 
 function atualizarStats() {
@@ -858,6 +1007,145 @@ function toast(msg, type='success') {
   el.textContent = type==='success'?'✅ '+msg : type==='error'?'❌ '+msg : 'ℹ️ '+msg;
   document.getElementById('toast').appendChild(el);
   setTimeout(()=>el.remove(), 3500);
+}
+
+
+// ═══════════════════════════════════════════════════════
+//  IA — ADMIN PANEL JS
+// ═══════════════════════════════════════════════════════
+let _iaLoaded = false;
+
+async function iniciarSecIA() {
+  if (!_iaLoaded) {
+    await carregarIAConfig();
+    _iaLoaded = true;
+  }
+  checkWppStatus();
+  renderIAGestoresTable();
+}
+
+async function carregarIAConfig() {
+  try {
+    const r = await fetch('/api/admin/ia-config', { headers: adminHeader() });
+    if (!r.ok) return;
+    const d = await r.json();
+    document.getElementById('ia-openai-key').value  = d.openai_key   || '';
+    document.getElementById('ia-evo-url').value      = d.evo_url      || '';
+    document.getElementById('ia-evo-key').value      = d.evo_key      || '';
+    document.getElementById('ia-evo-instance').value = d.evo_instance || '';
+  } catch(e) { console.error(e); }
+}
+
+async function salvarIAConfig() {
+  const payload = {
+    openai_key:   document.getElementById('ia-openai-key').value.trim(),
+    evo_url:      document.getElementById('ia-evo-url').value.trim().replace(/\/$/,''),
+    evo_key:      document.getElementById('ia-evo-key').value.trim(),
+    evo_instance: document.getElementById('ia-evo-instance').value.trim(),
+  };
+  try {
+    const r = await fetch('/api/admin/ia-config', {
+      method: 'POST', headers: adminHeader(),
+      body: JSON.stringify(payload)
+    });
+    if (!r.ok) throw new Error('Erro ao salvar');
+    toast('Configurações IA salvas!');
+    _iaLoaded = false;
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function checkWppStatus() {
+  const dot   = document.getElementById('ia-wpp-dot');
+  const label = document.getElementById('ia-wpp-status-label');
+  const state = document.getElementById('ia-wpp-state');
+  if (!dot) return;
+  dot.style.background = '#f59e0b';
+  label.textContent = 'Verificando conexão...';
+  state.textContent = '...';
+  try {
+    const r = await fetch('/api/admin/ia-whatsapp-status', { headers: adminHeader() });
+    const d = await r.json();
+    if (d.connected) {
+      dot.style.background = '#10b981';
+      dot.style.boxShadow = '0 0 8px #10b981';
+      label.textContent = 'WhatsApp conectado e pronto para envio';
+      state.textContent = '✅ Online';
+      state.style.color = '#34d399';
+    } else {
+      dot.style.background = '#ef4444';
+      dot.style.boxShadow = '0 0 8px #ef4444';
+      label.textContent = d.reason || 'WhatsApp desconectado — verifique a instância';
+      state.textContent = '❌ Offline';
+      state.style.color = '#f87171';
+    }
+  } catch(e) {
+    dot.style.background = '#64748b';
+    label.textContent = 'Não foi possível verificar';
+    state.textContent = '— Erro';
+  }
+}
+
+function renderIAGestoresTable() {
+  const tbody = document.getElementById('ia-gestores-table');
+  if (!tbody || !_gestores.length) return;
+
+  const planos = { basico:'Básico', profissional:'Profissional', premium:'Premium' };
+  const iaAtivos = _gestores.filter(g => g.ia_enabled).length;
+  const badge = document.getElementById('ia-count-badge');
+  if (badge) badge.textContent = iaAtivos + ' ativo' + (iaAtivos !== 1 ? 's' : '');
+
+  tbody.innerHTML = _gestores.map(g => {
+    const s = statusGestor(g);
+    const iaOn = !!g.ia_enabled;
+    return `<tr>
+      <td>
+        <div style="font-weight:700;font-size:13.5px">${g.nome}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">${g.email}</div>
+      </td>
+      <td><code style="font-size:11px;background:var(--s2);padding:2px 8px;border-radius:5px;color:var(--accent)">${g.slug}</code></td>
+      <td><span class="badge" style="background:rgba(59,130,246,.12);color:#93c5fd;border:1px solid rgba(59,130,246,.2)">${planos[g.plano] || g.plano}</span></td>
+      <td><span class="badge ${s.cls}">${s.label}</span></td>
+      <td style="text-align:center">
+        <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer">
+          <input type="checkbox" ${iaOn ? 'checked' : ''} onchange="toggleGestorIA('${g.id}', this.checked)"
+            style="opacity:0;width:0;height:0;position:absolute">
+          <span style="
+            position:absolute;inset:0;border-radius:99px;transition:.25s;cursor:pointer;
+            background:${iaOn ? 'linear-gradient(135deg,#7c3aed,#4f46e5)' : 'rgba(255,255,255,.1)'};
+            box-shadow:${iaOn ? '0 0 12px rgba(124,58,237,.4)' : 'none'}
+          "></span>
+          <span style="
+            position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;
+            top:3px;transition:.25s;box-shadow:0 2px 6px rgba(0,0,0,.3);
+            left:${iaOn ? '23px' : '3px'}
+          "></span>
+        </label>
+      </td>
+      <td>
+        <button class="btn btn-secondary btn-sm" onclick="abrirEditarGestor('${g.id}')">✏️ Editar</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function toggleGestorIA(id, enabled) {
+  try {
+    const r = await fetch(`/api/admin/gestores/${id}/ia`, {
+      method: 'PATCH', headers: adminHeader(),
+      body: JSON.stringify({ ia_enabled: enabled })
+    });
+    if (!r.ok) throw new Error('Erro');
+    // Update local state
+    const g = _gestores.find(x => String(x.id) === String(id));
+    if (g) g.ia_enabled = enabled ? 1 : 0;
+    renderIAGestoresTable();
+    toast(enabled ? '🤖 IA ativada para este gestor!' : 'IA desativada', enabled ? 'success' : 'info');
+  } catch(e) { toast('Erro: ' + e.message, 'error'); }
+}
+
+function togglePwd(id) {
+  const el = document.getElementById(id);
+  if (el) el.type = el.type === 'password' ? 'text' : 'password';
 }
 
 // ═══════════════════════════════════════════════════════

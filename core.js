@@ -132,6 +132,8 @@ function navigate(page) {
   document.querySelectorAll('.nav-group-btn').forEach(b=>b.classList.remove('grp-active'));
   document.getElementById('nav-dash').classList.toggle('active', page==='dashboard');
   document.getElementById('nav-pdv').classList.toggle('active', page==='pdv');
+  const navIa = document.getElementById('nav-ia');
+  if (navIa) navIa.classList.toggle('active', page==='relatorios-ia');
   const grp = pageGroup[page];
   if(grp) {
     const btn = document.querySelector(`#${grp} .nav-group-btn`);
@@ -149,7 +151,7 @@ function navigate(page) {
     'crediario':'Crediário','caixa':'Caixa','financeiro':'Financeiro',
     'gestao-estoque':'Gestão de Estoque','visao-geral-estoque':'Estoque — Visão Geral',
     'importar-csv':'Importar Estoque CSV','cartoes-maquinas':'Cartões & Maquinetas',
-    'antecipar-parcelas':'Antecipar Parcelas',
+    'antecipar-parcelas':'Antecipar Parcelas','relatorios-ia':'IA & Relatórios',
   };
   const pt = document.getElementById('page-title');
   if(pt) pt.textContent = pageTitles[page] || titles[page] || page;
@@ -177,7 +179,8 @@ function navigate(page) {
     despesas:renderDespesas,'painel-despesas':renderPainelDespesas,'cadastrar-classificacao':renderCadastrarClassificacao,'contas-pagar':renderContasPagar,
     'conciliar-extrato':renderConciliarExtrato,'listar-conciliacao':renderListarConciliacao,'cadastrar-conta-corrente':renderCadastrarContaCorrente,
     dre:renderDRE,
-    'fluxo-caixa':renderFluxoCaixa,trocas:renderTrocas
+    'fluxo-caixa':renderFluxoCaixa,trocas:renderTrocas,
+    'relatorios-ia':renderRelatoriosIA
   };
   if(renders[page]) renders[page]();
   else renderDashboard();

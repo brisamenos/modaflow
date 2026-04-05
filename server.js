@@ -29,7 +29,14 @@ adminDb.exec(`
     nome TEXT NOT NULL, slug TEXT UNIQUE NOT NULL, email TEXT UNIQUE NOT NULL,
     senha_hash TEXT NOT NULL, plano TEXT DEFAULT 'basico',
     ativo INTEGER DEFAULT 1, expires_at DATE,
+    ia_enabled INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE TABLE IF NOT EXISTS ia_global_config (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    chave TEXT UNIQUE NOT NULL,
+    valor TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
 `);
 
@@ -96,6 +103,7 @@ function aplicarMigracoes(tdb) {
   sc(`CREATE TABLE IF NOT EXISTS agenda_tarefas (id INTEGER PRIMARY KEY AUTOINCREMENT, titulo TEXT, descricao TEXT, data_tarefa DATE, concluida INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
   sc(`CREATE TABLE IF NOT EXISTS changelog (id INTEGER PRIMARY KEY AUTOINCREMENT, descricao TEXT, data_lancamento DATE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
   sc(`CREATE TABLE IF NOT EXISTS configuracoes (id INTEGER PRIMARY KEY AUTOINCREMENT, chave TEXT UNIQUE, valor TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  sc(`CREATE TABLE IF NOT EXISTS ia_config (id INTEGER PRIMARY KEY AUTOINCREMENT, chave TEXT UNIQUE NOT NULL, valor TEXT, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
   sc(`CREATE TABLE IF NOT EXISTS contas_bancarias (id INTEGER PRIMARY KEY AUTOINCREMENT, nome TEXT, banco TEXT, agencia TEXT, conta TEXT, saldo REAL DEFAULT 0, ativo INTEGER DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
   sc(`CREATE TABLE IF NOT EXISTS metas_vendas (id INTEGER PRIMARY KEY AUTOINCREMENT, tipo TEXT DEFAULT 'loja', vendedor_id INTEGER, mes INTEGER, ano INTEGER, valor_meta REAL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
   sc(`CREATE TABLE IF NOT EXISTS bags (id INTEGER PRIMARY KEY AUTOINCREMENT, cliente_id INTEGER, vendedor_id INTEGER, total REAL NOT NULL, data_retorno DATE, status TEXT DEFAULT 'aberta', observacoes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
@@ -907,3 +915,153 @@ setInterval(() => {
     try { marcarParcelasAtrasadas(getTenantDb(g.slug)); } catch(e){}
   }
 }, 3600000);
+
+// =============================================
+// IA — ADMIN GLOBAL CONFIG
+// =============================================
+function iaConfigGet(key) {
+  const r = adminDb.prepare('SELECT valor FROM ia_global_config WHERE chave=?').get(key);
+  return r ? r.valor : null;
+}
+function iaConfigSet(key, val) {
+  adminDb.prepare('INSERT INTO ia_global_config (chave,valor,updated_at) VALUES (?,?,CURRENT_TIMESTAMP) ON CONFLICT(chave) DO UPDATE SET valor=excluded.valor,updated_at=CURRENT_TIMESTAMP').run(key, val);
+}
+
+app.get('/api/admin/ia-config', adminAuth, (req, res) => {
+  res.json({
+    openai_key:   iaConfigGet('openai_key')    || '',
+    evo_url:      iaConfigGet('evo_url')        || '',
+    evo_key:      iaConfigGet('evo_key')        || '',
+    evo_instance: iaConfigGet('evo_instance')   || ''
+  });
+});
+
+app.post('/api/admin/ia-config', adminAuth, (req, res) => {
+  const { openai_key, evo_url, evo_key, evo_instance } = req.body;
+  if (openai_key   !== undefined) iaConfigSet('openai_key',   openai_key);
+  if (evo_url      !== undefined) iaConfigSet('evo_url',      evo_url);
+  if (evo_key      !== undefined) iaConfigSet('evo_key',      evo_key);
+  if (evo_instance !== undefined) iaConfigSet('evo_instance', evo_instance);
+  res.json({ ok: true });
+});
+
+app.patch('/api/admin/gestores/:id/ia', adminAuth, (req, res) => {
+  const { ia_enabled } = req.body;
+  adminDb.prepare('UPDATE gestores SET ia_enabled=? WHERE id=?').run(ia_enabled ? 1 : 0, req.params.id);
+  res.json({ ok: true });
+});
+
+app.get('/api/admin/ia-whatsapp-status', adminAuth, async (req, res) => {
+  try {
+    const evo_url = iaConfigGet('evo_url'), evo_key = iaConfigGet('evo_key'), evo_inst = iaConfigGet('evo_instance');
+    if (!evo_url || !evo_key || !evo_inst) return res.json({ connected: false, reason: 'Não configurado' });
+    const r = await fetch(`${evo_url}/instance/connectionState/${evo_inst}`, { headers: { 'apikey': evo_key } });
+    const d = await r.json();
+    res.json({ connected: d?.instance?.state === 'open', state: d?.instance?.state });
+  } catch(e) { res.json({ connected: false, reason: e.message }); }
+});
+
+// =============================================
+// IA — TENANT CONFIG
+// =============================================
+function tenantIaGet(db, key) {
+  const r = db.prepare('SELECT valor FROM ia_config WHERE chave=?').get(key);
+  return r ? r.valor : null;
+}
+function tenantIaSet(db, key, val) {
+  db.prepare('INSERT INTO ia_config (chave,valor,updated_at) VALUES (?,?,CURRENT_TIMESTAMP) ON CONFLICT(chave) DO UPDATE SET valor=excluded.valor,updated_at=CURRENT_TIMESTAMP').run(key, val);
+}
+
+app.get('/api/ia/config', resolveDb, (req, res) => {
+  const db = req.db;
+  res.json({
+    numero:              tenantIaGet(db,'numero')              || '',
+    notify_nova_venda:   tenantIaGet(db,'notify_nova_venda')   ?? '1',
+    notify_estoque:      tenantIaGet(db,'notify_estoque')      ?? '1',
+    notify_novo_cliente: tenantIaGet(db,'notify_novo_cliente') ?? '1',
+    notify_relatorio:    tenantIaGet(db,'notify_relatorio')    ?? '0',
+    relatorio_horario:   tenantIaGet(db,'relatorio_horario')   || '08:00',
+    relatorio_periodo:   tenantIaGet(db,'relatorio_periodo')   || 'diario',
+    ia_enabled:          tenantIaGet(db,'ia_enabled')          ?? '0'
+  });
+});
+
+app.post('/api/ia/config', resolveDb, (req, res) => {
+  const db = req.db;
+  const fields = ['numero','notify_nova_venda','notify_estoque','notify_novo_cliente','notify_relatorio','relatorio_horario','relatorio_periodo','ia_enabled'];
+  for (const f of fields) { if (req.body[f] !== undefined) tenantIaSet(db, f, String(req.body[f])); }
+  res.json({ ok: true });
+});
+
+app.get('/api/ia/resumo', resolveDb, (req, res) => {
+  try {
+    const db = req.db;
+    const hoje = new Date().toISOString().slice(0,10);
+    const semana = new Date(Date.now()-7*86400000).toISOString().slice(0,10);
+    const mes = new Date().toISOString().slice(0,7);
+    const vendas_hoje   = db.prepare(`SELECT COUNT(*) as c,COALESCE(SUM(total),0) as t FROM vendas WHERE DATE(created_at)=? AND status!='cancelada'`).get(hoje);
+    const vendas_semana = db.prepare(`SELECT COUNT(*) as c,COALESCE(SUM(total),0) as t FROM vendas WHERE DATE(created_at)>=? AND status!='cancelada'`).get(semana);
+    const vendas_mes    = db.prepare(`SELECT COUNT(*) as c,COALESCE(SUM(total),0) as t FROM vendas WHERE strftime('%Y-%m',created_at)=? AND status!='cancelada'`).get(mes);
+    const estoque_baixo = db.prepare(`SELECT COUNT(*) as c FROM produto_grades pg JOIN produtos p ON p.id=pg.produto_id WHERE pg.estoque<=3 AND pg.estoque>=0 AND p.ativo=1`).get();
+    const clientes_mes  = db.prepare(`SELECT COUNT(*) as c FROM clientes WHERE strftime('%Y-%m',created_at)=?`).get(mes);
+    const ticket_medio  = db.prepare(`SELECT COALESCE(AVG(total),0) as t FROM vendas WHERE DATE(created_at)=? AND status!='cancelada'`).get(hoje);
+    res.json({ vendas_hoje:{qtd:vendas_hoje.c,total:vendas_hoje.t}, vendas_semana:{qtd:vendas_semana.c,total:vendas_semana.t}, vendas_mes:{qtd:vendas_mes.c,total:vendas_mes.t}, estoque_baixo:estoque_baixo.c, clientes_mes:clientes_mes.c, ticket_medio:ticket_medio.t });
+  } catch(e) { res.status(500).json({ message: e.message }); }
+});
+
+// SSE — notificações tempo real
+const iaClients = new Map();
+app.get('/api/ia/sse', resolveDb, (req, res) => {
+  const slug = req.headers['x-slug'] || req.query.slug || '';
+  res.setHeader('Content-Type','text/event-stream');
+  res.setHeader('Cache-Control','no-cache');
+  res.setHeader('Connection','keep-alive');
+  res.flushHeaders();
+  if (!iaClients.has(slug)) iaClients.set(slug, new Set());
+  iaClients.get(slug).add(res);
+  const ping = setInterval(()=>res.write(': ping\n\n'),25000);
+  req.on('close',()=>{ clearInterval(ping); iaClients.get(slug)?.delete(res); });
+});
+
+function emitIAEvent(slug, type, data) {
+  const clients = iaClients.get(slug);
+  if (!clients?.size) return;
+  const payload = JSON.stringify({ type, data, ts: Date.now() });
+  for (const r of clients) { try { r.write(`data: ${payload}\n\n`); } catch(e){} }
+}
+app._emitIAEvent = emitIAEvent;
+
+// Chat IA (conversa via WhatsApp com número cadastrado)
+app.post('/api/ia/chat', resolveDb, async (req, res) => {
+  try {
+    const db = req.db;
+    const { numero_remetente, mensagem } = req.body;
+    const numero_autorizado = tenantIaGet(db,'numero');
+    const ia_enabled = tenantIaGet(db,'ia_enabled');
+    if (!ia_enabled || ia_enabled === '0') return res.json({ ok: false, reason: 'IA desativada' });
+    // Verifica se número remetente é o autorizado (limpar formatação)
+    const clean = s => (s||'').replace(/\D/g,'');
+    if (clean(numero_remetente) !== clean(numero_autorizado)) return res.json({ ok: false, reason: 'Número não autorizado' });
+
+    // Busca contexto de dados da loja
+    const hoje = new Date().toISOString().slice(0,10);
+    const mes  = new Date().toISOString().slice(0,7);
+    const vd   = db.prepare(`SELECT COUNT(*) c,COALESCE(SUM(total),0) t FROM vendas WHERE DATE(created_at)=? AND status!='cancelada'`).get(hoje);
+    const vm   = db.prepare(`SELECT COUNT(*) c,COALESCE(SUM(total),0) t FROM vendas WHERE strftime('%Y-%m',created_at)=? AND status!='cancelada'`).get(mes);
+    const eb   = db.prepare(`SELECT COUNT(*) c FROM produto_grades pg JOIN produtos p ON p.id=pg.produto_id WHERE pg.estoque<=3 AND p.ativo=1`).get();
+
+    const openai_key = iaConfigGet('openai_key');
+    if (!openai_key) return res.json({ ok: false, reason: 'OpenAI não configurada' });
+
+    const systemPrompt = `Você é o assistente de IA do ModaFlow, sistema de gestão de loja de roupas. Responda de forma objetiva e profissional em português. Dados atuais da loja: Vendas hoje: ${vd.c} (R$${Number(vd.t).toFixed(2)}), Vendas no mês: ${vm.c} (R$${Number(vm.t).toFixed(2)}), Itens com estoque baixo (≤3): ${eb.c}. Ajude com análises, relatórios e perguntas sobre o negócio.`;
+
+    const oRes = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${openai_key}` },
+      body: JSON.stringify({ model:'gpt-4o-mini', max_tokens:500, messages:[ {role:'system',content:systemPrompt}, {role:'user',content:mensagem} ] })
+    });
+    const oData = await oRes.json();
+    const reply = oData.choices?.[0]?.message?.content || 'Não consegui processar sua mensagem.';
+    res.json({ ok: true, reply });
+  } catch(e) { res.status(500).json({ message: e.message }); }
+});
