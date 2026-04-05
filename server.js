@@ -1021,6 +1021,9 @@ app.get('/api/ia/config', resolveDb, (req, res) => {
     ensureIaConfigTable(db);
     res.json({
       numero:              tenantIaGet(db,'numero')              || '',
+      evo_url:             tenantIaGet(db,'evo_url')             || '',
+      evo_key:             tenantIaGet(db,'evo_key')             || '',
+      evo_instance:        tenantIaGet(db,'evo_instance')        || '',
       notify_nova_venda:   tenantIaGet(db,'notify_nova_venda')   ?? '1',
       notify_estoque:      tenantIaGet(db,'notify_estoque')      ?? '1',
       notify_novo_cliente: tenantIaGet(db,'notify_novo_cliente') ?? '1',
@@ -1039,7 +1042,7 @@ app.post('/api/ia/config', resolveDb, (req, res) => {
   try {
     const db = req.db;
     const slug = req.gestor?.slug || '?';
-    const fields = ['numero','notify_nova_venda','notify_estoque','notify_novo_cliente','notify_relatorio','relatorio_horario','relatorio_periodo','ia_enabled'];
+    const fields = ['numero','evo_url','evo_key','evo_instance','notify_nova_venda','notify_estoque','notify_novo_cliente','notify_relatorio','relatorio_horario','relatorio_periodo','ia_enabled'];
     for (const f of fields) {
       if (req.body[f] !== undefined) {
         tenantIaSet(db, f, String(req.body[f]));
@@ -1482,4 +1485,167 @@ app.delete('/api/ia/historico', resolveDb, (req, res) => {
     if (num) db.prepare(`DELETE FROM ia_conversas WHERE numero=?`).run(num);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ message: e.message }); }
+});
+
+// =============================================
+// IA — POLLING POR TENANT (sem webhook)
+// Cada tenant tem sua própria instância Evolution.
+// O servidor consulta cada instância a cada 5s.
+// =============================================
+
+const _pollingState = {}; // slug → { lastMsgId, errors }
+
+async function pollTenant(slug) {
+  const db = getTenantDb(slug);
+  const state = _pollingState[slug] || { lastMsgId: null, errors: 0 };
+  _pollingState[slug] = state;
+
+  try {
+    // Lê configurações do tenant
+    ensureIaConfigTable(db);
+    const evoUrl  = tenantIaGet(db,'evo_url');
+    const evoKey  = tenantIaGet(db,'evo_key');
+    const evoInst = tenantIaGet(db,'evo_instance');
+    const numero  = cleanNum(tenantIaGet(db,'numero') || '');
+    const iaOn    = tenantIaGet(db,'ia_enabled') === '1';
+    const openai_key = iaConfigGet('openai_key');
+
+    if (!iaOn || !evoUrl || !evoKey || !evoInst || !numero || !openai_key) return;
+
+    // Busca mensagens recentes da instância
+    const r = await fetch(
+      `${evoUrl}/chat/findMessages/${evoInst}?where[key][fromMe]=false&limit=5`,
+      { headers: { 'apikey': evoKey }, signal: AbortSignal.timeout(8000) }
+    );
+    if (!r.ok) { state.errors++; return; }
+    state.errors = 0;
+
+    const data = await r.json();
+    const msgs = Array.isArray(data) ? data : (data.messages || data.records || []);
+    if (!msgs.length) return;
+
+    // Ordena do mais antigo para o mais novo
+    msgs.sort((a,b) => (a.messageTimestamp||0) - (b.messageTimestamp||0));
+
+    for (const msg of msgs) {
+      const msgId  = msg.key?.id || msg.id;
+      const jid    = msg.key?.remoteJid || msg.remoteJid || '';
+      const fromMe = msg.key?.fromMe ?? msg.fromMe ?? false;
+
+      if (fromMe) continue;
+      if (jid.endsWith('@g.us')) continue;
+      if (msgId === state.lastMsgId) { state.lastMsgId = msgId; break; }
+      if (state.lastMsgId !== null) {
+        // Só processa mensagens DEPOIS da última vista
+        const idx = msgs.findIndex(m=>(m.key?.id||m.id)===state.lastMsgId);
+        if (idx !== -1 && msgs.indexOf(msg) <= idx) continue;
+      }
+
+      const remetente = cleanNum(jid);
+      if (!remetente) continue;
+
+      // Verifica se é o número autorizado
+      if (!isNumeroAutorizado(db, remetente)) continue;
+
+      // Extrai texto
+      const mc = msg.message || {};
+      const texto = (
+        mc.conversation ||
+        mc.extendedTextMessage?.text ||
+        mc.imageMessage?.caption || ''
+      ).trim();
+      if (!texto) continue;
+
+      // Evita processar a mesma msg duas vezes (salva no histórico)
+      try {
+        const jaProcessou = db.prepare(
+          `SELECT id FROM ia_conversas WHERE numero=? AND content=? AND role='user' AND created_at > datetime('now','-1 minute')`
+        ).get(remetente, texto);
+        if (jaProcessou) { state.lastMsgId = msgId; continue; }
+      } catch(e){}
+
+      console.log(`[IA Poll] ${slug} ← "${texto.slice(0,50)}" de ${remetente}`);
+
+      // Chama GPT
+      const nomeGestor = adminDb.prepare(`SELECT nome FROM gestores WHERE slug=?`).get(slug)?.nome || slug;
+      const contexto   = coletarContextoLoja(db, nomeGestor);
+      const historico  = getHistorico(db, remetente);
+
+      const systemPrompt = `Você é o assistente de IA do ModaFlow para a loja "${nomeGestor}".
+Responda sempre em português, de forma curta e direta (máx. 300 palavras — é WhatsApp).
+Foque em vendas, estoque, faturamento, clientes e relatórios desta loja.
+
+${contexto}`;
+
+      const messages = [
+        { role:'system', content: systemPrompt },
+        ...historico.map(h=>({ role:h.role, content:h.content })),
+        { role:'user', content: texto }
+      ];
+
+      salvarMensagem(db, remetente, 'user', texto);
+
+      const oRes = await fetch('https://api.openai.com/v1/chat/completions', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'Authorization': `Bearer ${openai_key}` },
+        body: JSON.stringify({ model:'gpt-4o-mini', max_tokens:500, temperature:0.7, messages }),
+        signal: AbortSignal.timeout(30000)
+      });
+      const oData = await oRes.json();
+      const resposta = oData.choices?.[0]?.message?.content?.trim();
+      if (!resposta) continue;
+
+      salvarMensagem(db, remetente, 'assistant', resposta);
+
+      // Envia resposta
+      await enviarWhatsApp(db, remetente, resposta);
+      console.log(`[IA Poll] ${slug} → resposta enviada para ${remetente}`);
+
+      emitIAEvent(slug, 'mensagem_ia', {
+        mensagem: `🤖 "${resposta.slice(0,80)}"`,
+        numero: remetente
+      });
+
+      state.lastMsgId = msgId;
+    }
+
+    // Atualiza lastMsgId com o mais recente
+    const ultimo = msgs[msgs.length-1];
+    if (ultimo) state.lastMsgId = ultimo.key?.id || ultimo.id;
+
+  } catch(e) {
+    state.errors++;
+    if (state.errors <= 3) console.error(`[IA Poll] ${slug} erro:`, e.message);
+  }
+}
+
+// Roda polling a cada 5 segundos para todos tenants com IA ativa
+setInterval(async () => {
+  try {
+    const ativos = adminDb.prepare(`SELECT slug FROM gestores WHERE ativo=1 AND ia_enabled=1`).all();
+    for (const g of ativos) {
+      pollTenant(g.slug).catch(()=>{});
+    }
+  } catch(e){}
+}, 5000);
+
+// Status do polling por tenant
+app.get('/api/ia/polling-status', resolveDb, (req, res) => {
+  const slug  = req.gestor?.slug;
+  const state = _pollingState[slug] || {};
+  const db    = req.db;
+  const cfg   = {
+    evo_url:      !!tenantIaGet(db,'evo_url'),
+    evo_key:      !!tenantIaGet(db,'evo_key'),
+    evo_instance: !!tenantIaGet(db,'evo_instance'),
+    numero:       !!tenantIaGet(db,'numero'),
+    ia_enabled:   tenantIaGet(db,'ia_enabled') === '1',
+  };
+  res.json({
+    slug,
+    configurado: Object.values(cfg).every(Boolean),
+    campos: cfg,
+    lastMsgId: state.lastMsgId,
+    errors: state.errors || 0,
+  });
 });
