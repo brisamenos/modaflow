@@ -149,7 +149,7 @@ const IAR = {
     } catch(e) {
       toast('Erro: '+e.message,'error');
     } finally {
-      if (btn) { btn.disabled = false; btn.innerHTML = '📱 Enviar Teste'; }
+      if (btn) { btn.disabled = false; btn.innerHTML = 'Enviar Teste'; }
     }
   },
 
@@ -158,40 +158,40 @@ const IAR = {
     const r = _iaResumo;
     return `
       <div class="ia-kpi-grid">
-        <div class="ia-kpi ia-kpi-green">
-          <div class="ia-kpi-icon">💰</div>
-          <div class="ia-kpi-val">${IAR.fmt(r.vendas_hoje?.total)}</div>
-          <div class="ia-kpi-label">Faturamento Hoje</div>
+        <div class="ia-kpi">
+          <div class="ia-kpi-stripe" style="background:var(--ia-green)"></div>
+          <div class="ia-kpi-label" style="margin-bottom:6px;margin-top:4px">Faturamento Hoje</div>
+          <div class="ia-kpi-val" style="color:var(--ia-green)">${IAR.fmt(r.vendas_hoje?.total)}</div>
           <div class="ia-kpi-sub">${IAR.fmtN(r.vendas_hoje?.qtd)} vendas</div>
         </div>
-        <div class="ia-kpi ia-kpi-blue">
-          <div class="ia-kpi-icon">📅</div>
-          <div class="ia-kpi-val">${IAR.fmt(r.vendas_mes?.total)}</div>
-          <div class="ia-kpi-label">Faturamento do Mês</div>
+        <div class="ia-kpi">
+          <div class="ia-kpi-stripe" style="background:var(--ia-blue)"></div>
+          <div class="ia-kpi-label" style="margin-bottom:6px;margin-top:4px">Faturamento do Mês</div>
+          <div class="ia-kpi-val" style="color:var(--ia-blue)">${IAR.fmt(r.vendas_mes?.total)}</div>
           <div class="ia-kpi-sub">${IAR.fmtN(r.vendas_mes?.qtd)} vendas</div>
         </div>
-        <div class="ia-kpi ia-kpi-purple">
-          <div class="ia-kpi-icon">🎯</div>
-          <div class="ia-kpi-val">${IAR.fmt(r.ticket_medio)}</div>
-          <div class="ia-kpi-label">Ticket Médio Hoje</div>
-          <div class="ia-kpi-sub">média por venda</div>
+        <div class="ia-kpi">
+          <div class="ia-kpi-stripe" style="background:var(--ia-accent)"></div>
+          <div class="ia-kpi-label" style="margin-bottom:6px;margin-top:4px">Ticket Médio</div>
+          <div class="ia-kpi-val" style="color:var(--ia-accent)">${IAR.fmt(r.ticket_medio)}</div>
+          <div class="ia-kpi-sub">média por venda hoje</div>
         </div>
-        <div class="ia-kpi ${r.estoque_baixo > 0 ? 'ia-kpi-amber' : 'ia-kpi-green'}">
-          <div class="ia-kpi-icon">${r.estoque_baixo > 0 ? '⚠️' : '✅'}</div>
-          <div class="ia-kpi-val">${IAR.fmtN(r.estoque_baixo)}</div>
-          <div class="ia-kpi-label">Estoque Crítico</div>
-          <div class="ia-kpi-sub">itens ≤ 3 unidades</div>
+        <div class="ia-kpi">
+          <div class="ia-kpi-stripe" style="background:${r.estoque_baixo > 0 ? 'var(--ia-amber)' : 'var(--ia-green)'}"></div>
+          <div class="ia-kpi-label" style="margin-bottom:6px;margin-top:4px">Estoque Crítico</div>
+          <div class="ia-kpi-val" style="color:${r.estoque_baixo > 0 ? 'var(--ia-amber)' : 'var(--ia-green)'}">${IAR.fmtN(r.estoque_baixo)}</div>
+          <div class="ia-kpi-sub">itens com ≤ 3 unidades</div>
         </div>
-        <div class="ia-kpi ia-kpi-teal">
-          <div class="ia-kpi-icon">👥</div>
-          <div class="ia-kpi-val">${IAR.fmtN(r.clientes_mes)}</div>
-          <div class="ia-kpi-label">Novos Clientes</div>
-          <div class="ia-kpi-sub">no mês atual</div>
+        <div class="ia-kpi">
+          <div class="ia-kpi-stripe" style="background:var(--ia-teal)"></div>
+          <div class="ia-kpi-label" style="margin-bottom:6px;margin-top:4px">Novos Clientes</div>
+          <div class="ia-kpi-val" style="color:var(--ia-teal)">${IAR.fmtN(r.clientes_mes)}</div>
+          <div class="ia-kpi-sub">neste mês</div>
         </div>
-        <div class="ia-kpi ia-kpi-indigo">
-          <div class="ia-kpi-icon">📈</div>
-          <div class="ia-kpi-val">${IAR.fmt(r.vendas_semana?.total)}</div>
-          <div class="ia-kpi-label">Faturamento Semana</div>
+        <div class="ia-kpi">
+          <div class="ia-kpi-stripe" style="background:#ff7eb3"></div>
+          <div class="ia-kpi-label" style="margin-bottom:6px;margin-top:4px">Faturamento Semana</div>
+          <div class="ia-kpi-val" style="color:#ff7eb3">${IAR.fmt(r.vendas_semana?.total)}</div>
           <div class="ia-kpi-sub">${IAR.fmtN(r.vendas_semana?.qtd)} vendas</div>
         </div>
       </div>`;
@@ -211,304 +211,308 @@ async function renderRelatoriosIA() {
 
   c.innerHTML = `
 <style>
-/* ── IA REPORTS PAGE ── */
-.ia-page { max-width: 1100px; margin: 0 auto; padding: 8px 0 40px; }
+/* ── IA REPORTS PAGE — HIGH CONTRAST REDESIGN ── */
+:root {
+  --ia-bg:       #0d0d1a;
+  --ia-s1:       #13132a;
+  --ia-s2:       #1a1a35;
+  --ia-s3:       #22224a;
+  --ia-border:   rgba(255,255,255,.1);
+  --ia-border2:  rgba(255,255,255,.16);
+  --ia-text:     #f0f0ff;
+  --ia-text2:    #b8b8d8;
+  --ia-text3:    #7878a8;
+  --ia-accent:   #6d5fff;
+  --ia-green:    #00d68f;
+  --ia-blue:     #4da6ff;
+  --ia-amber:    #ffb830;
+  --ia-red:      #ff5e7a;
+  --ia-teal:     #00c9c9;
+}
 
-/* Header hero */
+.ia-page { max-width: 1140px; margin: 0 auto; padding: 4px 0 48px; }
+
+/* ── Hero ── */
 .ia-hero {
-  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
-  border: 1px solid rgba(139,92,246,.2);
-  border-radius: 20px;
-  padding: 32px 36px;
-  margin-bottom: 28px;
-  position: relative;
-  overflow: hidden;
+  background: linear-gradient(135deg, #10103a 0%, #1a1060 60%, #10103a 100%);
+  border: 1px solid rgba(109,95,255,.25);
+  border-radius: 18px;
+  padding: 28px 32px;
+  margin-bottom: 24px;
+  position: relative; overflow: hidden;
 }
 .ia-hero::before {
   content: '';
-  position: absolute;
-  top: -60px; right: -60px;
-  width: 280px; height: 280px;
-  background: radial-gradient(circle, rgba(139,92,246,.15) 0%, transparent 70%);
+  position: absolute; top: -80px; right: -80px;
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(109,95,255,.18) 0%, transparent 70%);
   pointer-events: none;
 }
-.ia-hero::after {
-  content: '';
-  position: absolute;
-  bottom: -40px; left: 40px;
-  width: 200px; height: 200px;
-  background: radial-gradient(circle, rgba(59,130,246,.08) 0%, transparent 70%);
-  pointer-events: none;
-}
-.ia-hero-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-.ia-hero-left { display: flex; align-items: center; gap: 18px; }
+.ia-hero-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.ia-hero-left { display: flex; align-items: center; gap: 16px; }
 .ia-hero-orb {
-  width: 60px; height: 60px;
-  background: linear-gradient(135deg, #7c3aed, #4f46e5);
-  border-radius: 18px;
+  width: 52px; height: 52px;
+  background: linear-gradient(135deg, var(--ia-accent), #4f46e5);
+  border-radius: 15px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 28px;
-  box-shadow: 0 8px 32px rgba(124,58,237,.4);
+  box-shadow: 0 8px 28px rgba(109,95,255,.45);
   flex-shrink: 0;
 }
-.ia-hero-title { font-size: 22px; font-weight: 800; letter-spacing: -.5px; }
-.ia-hero-sub { font-size: 13px; color: #94a3b8; margin-top: 3px; }
+.ia-hero-title { font-size: 20px; font-weight: 800; color: #fff; letter-spacing: -.4px; }
+.ia-hero-sub   { font-size: 13px; color: #9898cc; margin-top: 3px; }
+
 .ia-status-pill {
   display: inline-flex; align-items: center; gap: 7px;
-  padding: 7px 14px; border-radius: 99px;
-  font-size: 12px; font-weight: 700; letter-spacing: .5px;
-  transition: all .3s;
+  padding: 6px 14px; border-radius: 99px;
+  font-size: 12px; font-weight: 700;
 }
-.ia-status-on  { background: rgba(16,185,129,.15); color: #34d399; border: 1px solid rgba(16,185,129,.3); }
-.ia-status-off { background: rgba(100,116,139,.12); color: #64748b;  border: 1px solid rgba(100,116,139,.2); }
-.ia-dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: currentColor;
-  animation: iaPulse 2s infinite;
-}
-@keyframes iaPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+.ia-status-on  { background: rgba(0,214,143,.15); color: #00d68f; border: 1px solid rgba(0,214,143,.3); }
+.ia-status-off { background: rgba(120,120,168,.12); color: #9898cc; border: 1px solid rgba(120,120,168,.2); }
+.ia-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: iaPulse 2s infinite; }
+@keyframes iaPulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
-/* KPI Cards */
-.ia-kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 14px;
-  margin-bottom: 28px;
-}
+/* ── KPI Grid ── */
+.ia-kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-bottom: 24px; }
 .ia-kpi {
-  background: var(--s2, #141420);
-  border: 1px solid var(--border, rgba(255,255,255,.06));
-  border-radius: 16px;
-  padding: 18px 16px;
-  transition: transform .2s, box-shadow .2s;
+  background: var(--ia-s1);
+  border: 1px solid var(--ia-border2);
+  border-radius: 14px; padding: 18px 16px;
+  transition: transform .2s, border-color .2s;
   position: relative; overflow: hidden;
 }
-.ia-kpi::before {
-  content: '';
-  position: absolute; inset: 0;
-  background: radial-gradient(circle at 80% 20%, var(--ia-kpi-glow, transparent) 0%, transparent 60%);
-  pointer-events: none;
-}
-.ia-kpi:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,.4); }
-.ia-kpi-green  { --ia-kpi-glow: rgba(16,185,129,.08); }
-.ia-kpi-blue   { --ia-kpi-glow: rgba(59,130,246,.08); }
-.ia-kpi-purple { --ia-kpi-glow: rgba(139,92,246,.08); }
-.ia-kpi-amber  { --ia-kpi-glow: rgba(245,158,11,.08); }
-.ia-kpi-teal   { --ia-kpi-glow: rgba(20,184,166,.08); }
-.ia-kpi-indigo { --ia-kpi-glow: rgba(99,102,241,.08); }
-.ia-kpi-icon { font-size: 22px; margin-bottom: 10px; }
-.ia-kpi-val  { font-size: 18px; font-weight: 800; letter-spacing: -.5px; margin-bottom: 4px; }
-.ia-kpi-label{ font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
-.ia-kpi-sub  { font-size: 11px; color: #475569; margin-top: 3px; }
+.ia-kpi:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.22); }
+.ia-kpi-val   { font-size: 19px; font-weight: 800; color: #fff; letter-spacing: -.5px; margin-bottom: 5px; }
+.ia-kpi-label { font-size: 11px; color: var(--ia-text3); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+.ia-kpi-sub   { font-size: 11px; color: var(--ia-text3); margin-top: 3px; }
+.ia-kpi-icon  { font-size: 20px; margin-bottom: 10px; }
+.ia-kpi-stripe { position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 14px 14px 0 0; }
 
-/* Two column layout */
-.ia-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-@media(max-width:800px){ .ia-cols { grid-template-columns: 1fr; } }
+/* ── Two-col grid ── */
+.ia-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+@media(max-width: 760px) { .ia-cols { grid-template-columns: 1fr; } }
 
-/* Cards */
+/* ── Cards ── */
 .ia-card {
-  background: var(--s2, #141420);
-  border: 1px solid var(--border, rgba(255,255,255,.06));
-  border-radius: 18px;
-  overflow: hidden;
+  background: var(--ia-s1);
+  border: 1px solid var(--ia-border);
+  border-radius: 16px; overflow: hidden;
+  margin-bottom: 18px;
 }
 .ia-card-head {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 18px 22px;
-  border-bottom: 1px solid var(--border, rgba(255,255,255,.06));
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--ia-border);
+  background: rgba(255,255,255,.02);
 }
 .ia-card-head-left { display: flex; align-items: center; gap: 10px; }
 .ia-card-head-icon {
-  width: 36px; height: 36px; border-radius: 10px;
+  width: 34px; height: 34px; border-radius: 9px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 16px;
+  font-size: 15px;
 }
-.ia-card-title { font-size: 14px; font-weight: 700; }
-.ia-card-sub   { font-size: 11px; color: #64748b; margin-top: 2px; }
-.ia-card-body  { padding: 22px; }
+.ia-card-title { font-size: 13px; font-weight: 700; color: var(--ia-text); }
+.ia-card-sub   { font-size: 11px; color: var(--ia-text3); margin-top: 2px; }
+.ia-card-body  { padding: 20px; }
 
-/* Form elements */
-.ia-field { margin-bottom: 18px; }
-.ia-label { display: block; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .8px; margin-bottom: 8px; }
+/* ── Form ── */
+.ia-field { margin-bottom: 16px; }
+.ia-label {
+  display: block; font-size: 11px; font-weight: 700;
+  color: var(--ia-text2); text-transform: uppercase;
+  letter-spacing: .7px; margin-bottom: 7px;
+}
 .ia-input {
   width: 100%;
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.1);
-  border-radius: 10px;
-  padding: 12px 14px;
-  color: var(--text, #f0f0fa);
-  font-family: inherit; font-size: 14px;
+  background: var(--ia-s2);
+  border: 1px solid var(--ia-border2);
+  border-radius: 9px;
+  padding: 11px 14px;
+  color: var(--ia-text); font-family: inherit; font-size: 14px;
   outline: none; transition: all .2s;
 }
-.ia-input:focus { border-color: #7c3aed; background: rgba(124,58,237,.05); box-shadow: 0 0 0 3px rgba(124,58,237,.12); }
-.ia-input::placeholder { color: #475569; }
+.ia-input:focus { border-color: var(--ia-accent); background: rgba(109,95,255,.07); box-shadow: 0 0 0 3px rgba(109,95,255,.15); }
+.ia-input::placeholder { color: var(--ia-text3); }
 .ia-select {
   width: 100%;
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.1);
-  border-radius: 10px;
-  padding: 12px 14px;
-  color: var(--text, #f0f0fa);
-  font-family: inherit; font-size: 14px;
-  outline: none; cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 14px center;
-  padding-right: 36px;
+  background: var(--ia-s2);
+  border: 1px solid var(--ia-border2);
+  border-radius: 9px; padding: 11px 14px;
+  color: var(--ia-text); font-family: inherit; font-size: 14px;
+  outline: none; cursor: pointer; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237878a8' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px;
 }
-.ia-select:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,.12); }
-.ia-select option { background: #1e1b4b; }
+.ia-select option { background: #1a1a35; }
 
-/* Toggle switches */
-.ia-toggle-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 0;
-  border-bottom: 1px solid rgba(255,255,255,.04);
-}
-.ia-toggle-row:last-child { border-bottom: none; }
-.ia-toggle-info { display: flex; align-items: center; gap: 10px; }
-.ia-toggle-emoji { font-size: 18px; width: 28px; text-align: center; }
-.ia-toggle-name  { font-size: 13px; font-weight: 600; }
-.ia-toggle-desc  { font-size: 11px; color: #64748b; margin-top: 2px; }
-.ia-switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
-.ia-switch input { opacity: 0; width: 0; height: 0; }
-.ia-switch-track {
-  position: absolute; inset: 0;
-  background: rgba(255,255,255,.1);
-  border-radius: 99px;
-  cursor: pointer;
-  transition: background .25s;
-}
-.ia-switch input:checked + .ia-switch-track { background: linear-gradient(135deg,#7c3aed,#4f46e5); }
-.ia-switch-track::after {
-  content: '';
-  position: absolute;
-  width: 18px; height: 18px;
-  background: #fff;
-  border-radius: 50%;
-  top: 3px; left: 3px;
-  transition: transform .25s;
-  box-shadow: 0 2px 6px rgba(0,0,0,.3);
-}
-.ia-switch input:checked + .ia-switch-track::after { transform: translateX(20px); }
-
-/* Main toggle */
+/* ── Master Toggle ── */
 .ia-master-toggle {
   display: flex; align-items: center; justify-content: space-between;
-  background: rgba(124,58,237,.07);
-  border: 1px solid rgba(124,58,237,.2);
-  border-radius: 14px;
-  padding: 16px 20px;
-  margin-bottom: 18px;
+  background: rgba(109,95,255,.08);
+  border: 1px solid rgba(109,95,255,.2);
+  border-radius: 12px; padding: 14px 18px; margin-bottom: 18px;
 }
 .ia-master-toggle-left { display: flex; align-items: center; gap: 12px; }
 .ia-master-icon {
-  width: 42px; height: 42px;
-  background: linear-gradient(135deg, rgba(124,58,237,.25), rgba(79,70,229,.25));
-  border: 1px solid rgba(124,58,237,.3);
-  border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px;
+  width: 40px; height: 40px; border-radius: 11px;
+  background: rgba(109,95,255,.18);
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
 }
-.ia-master-title { font-size: 14px; font-weight: 700; }
-.ia-master-desc  { font-size: 12px; color: #64748b; margin-top: 2px; }
-.ia-switch-lg { position: relative; width: 56px; height: 30px; }
+.ia-master-title { font-size: 14px; font-weight: 700; color: var(--ia-text); }
+.ia-master-desc  { font-size: 11px; color: var(--ia-text3); margin-top: 2px; }
+
+/* ── Switches ── */
+.ia-switch-lg { position: relative; width: 52px; height: 28px; }
 .ia-switch-lg input { opacity: 0; width: 0; height: 0; }
 .ia-switch-lg-track {
-  position: absolute; inset: 0;
-  background: rgba(255,255,255,.1);
-  border-radius: 99px;
-  cursor: pointer;
-  transition: background .25s;
+  position: absolute; inset: 0; border-radius: 99px; cursor: pointer;
+  background: var(--ia-s3); transition: background .25s;
 }
-.ia-switch-lg input:checked + .ia-switch-lg-track { background: linear-gradient(135deg,#7c3aed,#4f46e5); box-shadow: 0 0 16px rgba(124,58,237,.4); }
+.ia-switch-lg input:checked + .ia-switch-lg-track { background: var(--ia-accent); box-shadow: 0 0 14px rgba(109,95,255,.4); }
 .ia-switch-lg-track::after {
-  content: '';
-  position: absolute;
-  width: 22px; height: 22px;
-  background: #fff;
-  border-radius: 50%;
-  top: 4px; left: 4px;
-  transition: transform .25s;
-  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+  content: ''; position: absolute;
+  width: 20px; height: 20px; background: #fff; border-radius: 50%;
+  top: 4px; left: 4px; transition: transform .25s;
+  box-shadow: 0 2px 6px rgba(0,0,0,.3);
 }
-.ia-switch-lg input:checked + .ia-switch-lg-track::after { transform: translateX(26px); }
+.ia-switch-lg input:checked + .ia-switch-lg-track::after { transform: translateX(24px); }
 
-/* Buttons */
+.ia-switch { position: relative; width: 42px; height: 23px; }
+.ia-switch input { opacity: 0; width: 0; height: 0; }
+.ia-switch-track {
+  position: absolute; inset: 0; border-radius: 99px; cursor: pointer;
+  background: var(--ia-s3); transition: background .25s;
+}
+.ia-switch input:checked + .ia-switch-track { background: var(--ia-accent); }
+.ia-switch-track::after {
+  content: ''; position: absolute;
+  width: 17px; height: 17px; background: #fff; border-radius: 50%;
+  top: 3px; left: 3px; transition: transform .25s; box-shadow: 0 2px 4px rgba(0,0,0,.3);
+}
+.ia-switch input:checked + .ia-switch-track::after { transform: translateX(19px); }
+
+/* ── Toggle rows ── */
+.ia-toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,.05);
+}
+.ia-toggle-row:last-child { border-bottom: none; }
+.ia-toggle-info { display: flex; align-items: center; gap: 10px; }
+.ia-toggle-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.ia-toggle-name { font-size: 13px; font-weight: 600; color: var(--ia-text); }
+.ia-toggle-desc { font-size: 11px; color: var(--ia-text3); margin-top: 2px; }
+
+/* ── Numero display ── */
+.ia-numero-display {
+  background: var(--ia-s2);
+  border: 1px solid var(--ia-border2);
+  border-radius: 11px; padding: 13px 16px;
+  display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+}
+.ia-numero-label { font-size: 10px; color: var(--ia-text3); font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+.ia-numero-val   { font-size: 15px; font-weight: 700; color: var(--ia-text); }
+.ia-numero-val.empty { color: var(--ia-text3); font-size: 13px; font-style: italic; font-weight: 400; }
+
+/* ── Buttons ── */
 .ia-btn {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 11px 20px;
-  border: none; border-radius: 10px;
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 10px 18px; border: none; border-radius: 9px;
   font-family: inherit; font-size: 13px; font-weight: 700;
-  cursor: pointer; transition: all .2s;
+  cursor: pointer; transition: all .18s;
 }
 .ia-btn-primary {
-  background: linear-gradient(135deg, #7c3aed, #4f46e5);
-  color: #fff;
-  box-shadow: 0 4px 16px rgba(124,58,237,.35);
+  background: var(--ia-accent); color: #fff;
+  box-shadow: 0 4px 16px rgba(109,95,255,.35);
 }
-.ia-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(124,58,237,.5); }
+.ia-btn-primary:hover { background: #7c6fff; box-shadow: 0 6px 22px rgba(109,95,255,.5); transform: translateY(-1px); }
 .ia-btn-ghost {
-  background: rgba(255,255,255,.06);
-  color: #94a3b8;
-  border: 1px solid rgba(255,255,255,.1);
+  background: var(--ia-s2); color: var(--ia-text2);
+  border: 1px solid var(--ia-border2);
 }
-.ia-btn-ghost:hover { background: rgba(255,255,255,.1); color: #f0f0fa; }
-.ia-btn:disabled { opacity: .5; cursor: not-allowed; transform: none !important; }
-.ia-btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.ia-btn-ghost:hover { background: var(--ia-s3); color: var(--ia-text); border-color: rgba(255,255,255,.22); }
+.ia-btn:disabled { opacity: .45; cursor: not-allowed; transform: none !important; }
+.ia-btn-row { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 4px; }
 
-/* Number display */
-.ia-numero-display {
-  background: rgba(255,255,255,.03);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 12px;
-  padding: 14px 18px;
-  display: flex; align-items: center; gap: 12px;
-  margin-bottom: 18px;
+/* ── Status polling ── */
+#ia-polling-status {
+  display: flex; align-items: center; gap: 8px;
+  margin: 14px 0; padding: 11px 15px;
+  border-radius: 10px;
+  background: var(--ia-s2);
+  border: 1px solid var(--ia-border2);
 }
-.ia-numero-icon { font-size: 24px; }
-.ia-numero-label { font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
-.ia-numero-val { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.ia-numero-val.empty { color: #475569; font-size: 13px; font-style: italic; font-weight: 400; }
 
-/* SSE Feed */
+/* ── Feed / Chat ── */
 .ia-feed-container {
-  max-height: 360px; overflow-y: auto;
-  padding: 6px 4px;
+  max-height: 340px; overflow-y: auto;
+  padding: 4px;
 }
 .ia-feed-container::-webkit-scrollbar { width: 3px; }
-.ia-feed-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 99px; }
-.ia-feed-item {
-  display: flex; align-items: flex-start; gap: 12px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  margin-bottom: 6px;
-  background: rgba(255,255,255,.03);
-  border: 1px solid rgba(255,255,255,.05);
-  transition: all .4s;
-  animation: iaFeedIn .35s cubic-bezier(.16,1,.3,1);
-}
-@keyframes iaFeedIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:none} }
-.ia-feed-new { border-color: rgba(124,58,237,.3); background: rgba(124,58,237,.07); }
-.ia-feed-icon {
-  width: 36px; height: 36px; border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 17px; flex-shrink: 0;
-}
-.ia-feed-body { flex: 1; min-width: 0; }
-.ia-feed-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
-.ia-feed-msg   { font-size: 13px; color: #94a3b8; margin-top: 3px; line-height: 1.4; }
-.ia-feed-time  { font-size: 11px; color: #475569; white-space: nowrap; flex-shrink: 0; margin-top: 2px; }
-.ia-feed-empty { text-align: center; padding: 40px 20px; color: #475569; font-size: 13px; }
-.ia-feed-empty-icon { font-size: 36px; margin-bottom: 10px; opacity: .4; }
+.ia-feed-container::-webkit-scrollbar-thumb { background: var(--ia-s3); border-radius: 99px; }
 
+.ia-feed-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px; border-radius: 10px;
+  margin-bottom: 5px;
+  background: var(--ia-s2);
+  border: 1px solid var(--ia-border);
+}
+.ia-feed-icon {
+  width: 34px; height: 34px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; flex-shrink: 0;
+}
+.ia-feed-body  { flex: 1; min-width: 0; }
+.ia-feed-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+.ia-feed-msg   { font-size: 12px; color: var(--ia-text2); margin-top: 3px; line-height: 1.45; }
+.ia-feed-time  { font-size: 10px; color: var(--ia-text3); white-space: nowrap; flex-shrink: 0; margin-top: 2px; }
+.ia-feed-empty { text-align: center; padding: 36px 20px; color: var(--ia-text3); font-size: 13px; }
+.ia-feed-empty-icon { font-size: 32px; margin-bottom: 10px; opacity: .35; }
+
+/* ── Quick action buttons ── */
+.ia-quick-btn {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; padding: 12px 14px;
+  background: var(--ia-s2); border: 1px solid var(--ia-border2);
+  border-radius: 11px; cursor: pointer; transition: all .18s;
+  text-align: left;
+}
+.ia-quick-btn:hover { background: var(--ia-s3); border-color: rgba(255,255,255,.2); transform: translateX(2px); }
+.ia-quick-icon {
+  width: 38px; height: 38px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.ia-quick-title { font-size: 13px; font-weight: 700; color: var(--ia-text); }
+.ia-quick-sub   { font-size: 11px; color: var(--ia-text3); margin-top: 2px; }
+
+/* ── Info box ── */
+.ia-info-box {
+  background: rgba(77,166,255,.08);
+  border: 1px solid rgba(77,166,255,.2);
+  border-radius: 10px; padding: 12px 14px;
+  font-size: 12px; color: #90c8ff; line-height: 1.6;
+}
+.ia-info-box strong { color: #bddeff; }
+
+/* ── Rows ── */
+.ia-row   { display: flex; gap: 12px; }
+.ia-row > * { flex: 1; }
+@media(max-width: 560px) { .ia-row { flex-direction: column; } }
+
+/* ── Badge ── */
+.ia-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 99px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px;
+}
+.ia-badge-purple { background: rgba(109,95,255,.15); color: #b0a5ff; border: 1px solid rgba(109,95,255,.25); }
+
+/* ── Spinner ── */
+.ia-spinner {
+  display: inline-block; width: 12px; height: 12px;
 /* Spinner */
 .ia-spinner {
   display: inline-block; width: 12px; height: 12px;
@@ -554,10 +558,10 @@ async function renderRelatoriosIA() {
   <div class="ia-hero">
     <div class="ia-hero-top">
       <div class="ia-hero-left">
-        <div class="ia-hero-orb">🤖</div>
+        <div class="ia-hero-orb"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" width="26" height="26"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M12 11V7"/><circle cx="12" cy="5" r="2"/><path d="M8 15h.01M16 15h.01"/></svg></div>
         <div>
-          <div class="ia-hero-title">Relatórios & IA</div>
-          <div class="ia-hero-sub">Notificações inteligentes via WhatsApp + Assistente de IA</div>
+          <div class="ia-hero-title">IA & Relatórios</div>
+          <div class="ia-hero-sub">Assistente inteligente conectado à sua loja via WhatsApp</div>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
@@ -579,7 +583,7 @@ async function renderRelatoriosIA() {
     <div class="ia-card">
       <div class="ia-card-head">
         <div class="ia-card-head-left">
-          <div class="ia-card-head-icon" style="background:rgba(16,185,129,.12);color:#34d399">📱</div>
+          <div class="ia-card-head-icon" style="background:rgba(0,214,143,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#00d68f" stroke-width="2" width="17" height="17"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></div>
           <div>
             <div class="ia-card-title">Número WhatsApp</div>
             <div class="ia-card-sub">Número que recebe notificações e interage com a IA</div>
@@ -591,7 +595,7 @@ async function renderRelatoriosIA() {
         <!-- Toggle master -->
         <div class="ia-master-toggle">
           <div class="ia-master-toggle-left">
-            <div class="ia-master-icon">⚡</div>
+            <div class="ia-master-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#b0a5ff" stroke-width="2" width="20" height="20"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
             <div>
               <div class="ia-master-title">Ativar IA & Notificações</div>
               <div class="ia-master-desc">Ligar para começar a receber alertas</div>
@@ -605,7 +609,7 @@ async function renderRelatoriosIA() {
 
         <!-- Número atual -->
         <div class="ia-numero-display">
-          <div class="ia-numero-icon">📲</div>
+          <div style="width:36px;height:36px;border-radius:9px;background:rgba(0,214,143,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="#00d68f" stroke-width="2" width="18" height="18"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></div>
           <div>
             <div class="ia-numero-label">Número cadastrado</div>
             <div class="ia-numero-val ${num ? '' : 'empty'}">${num || 'Nenhum número cadastrado'}</div>
@@ -619,7 +623,7 @@ async function renderRelatoriosIA() {
         </div>
 
         <div class="ia-info-box" style="margin-bottom:18px">
-          <strong>🔒 Número exclusivo:</strong> apenas este número poderá conversar com a IA e receber notificações. Outros números serão ignorados automaticamente.
+          <strong>Número exclusivo:</strong> apenas este número poderá conversar com a IA e receber notificações. Outros números serão ignorados automaticamente.
         </div>
 
         <!-- Status da conexão (apenas leitura para o cliente) -->
@@ -630,7 +634,7 @@ async function renderRelatoriosIA() {
 
         <div class="ia-btn-row">
           <button class="ia-btn ia-btn-primary" id="ia-save-btn" onclick="IAR.save()">
-            💾 Salvar configuração
+            Salvar configuração
           </button>
           <button class="ia-btn ia-btn-ghost" id="ia-test-btn" onclick="IAR.sendTestMsg()">
             📱 Enviar Teste
@@ -646,7 +650,7 @@ async function renderRelatoriosIA() {
     <div class="ia-card">
       <div class="ia-card-head">
         <div class="ia-card-head-left">
-          <div class="ia-card-head-icon" style="background:rgba(139,92,246,.12);color:#a78bfa">🔔</div>
+          <div class="ia-card-head-icon" style="background:rgba(109,95,255,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#b0a5ff" stroke-width="2" width="17" height="17"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
           <div>
             <div class="ia-card-title">Notificações</div>
             <div class="ia-card-sub">Escolha o que deseja receber via WhatsApp</div>
@@ -656,7 +660,7 @@ async function renderRelatoriosIA() {
       <div class="ia-card-body">
         <div class="ia-toggle-row">
           <div class="ia-toggle-info">
-            <div class="ia-toggle-emoji">💰</div>
+            <div class="ia-toggle-icon" style="background:rgba(0,214,143,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#00d68f" stroke-width="2" width="16" height="16"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
             <div>
               <div class="ia-toggle-name">Nova venda realizada</div>
               <div class="ia-toggle-desc">Alerta imediato a cada venda</div>
@@ -669,7 +673,7 @@ async function renderRelatoriosIA() {
         </div>
         <div class="ia-toggle-row">
           <div class="ia-toggle-info">
-            <div class="ia-toggle-emoji">⚠️</div>
+            <div class="ia-toggle-icon" style="background:rgba(255,184,48,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#ffb830" stroke-width="2" width="16" height="16"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
             <div>
               <div class="ia-toggle-name">Estoque crítico</div>
               <div class="ia-toggle-desc">Itens com 3 ou menos unidades</div>
@@ -682,7 +686,7 @@ async function renderRelatoriosIA() {
         </div>
         <div class="ia-toggle-row">
           <div class="ia-toggle-info">
-            <div class="ia-toggle-emoji">👤</div>
+            <div class="ia-toggle-icon" style="background:rgba(77,166,255,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#4da6ff" stroke-width="2" width="16" height="16"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
             <div>
               <div class="ia-toggle-name">Novo cliente cadastrado</div>
               <div class="ia-toggle-desc">Quando um cliente é registrado</div>
@@ -695,7 +699,7 @@ async function renderRelatoriosIA() {
         </div>
         <div class="ia-toggle-row">
           <div class="ia-toggle-info">
-            <div class="ia-toggle-emoji">📊</div>
+            <div class="ia-toggle-icon" style="background:rgba(109,95,255,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#b0a5ff" stroke-width="2" width="16" height="16"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
             <div>
               <div class="ia-toggle-name">Relatório automático</div>
               <div class="ia-toggle-desc">Resumo programado de vendas</div>
@@ -750,7 +754,7 @@ async function renderRelatoriosIA() {
     <div class="ia-card">
       <div class="ia-card-head">
         <div class="ia-card-head-left">
-          <div class="ia-card-head-icon" style="background:rgba(124,58,237,.15);color:#a78bfa">💬</div>
+          <div class="ia-card-head-icon" style="background:rgba(109,95,255,.15)"><svg viewBox="0 0 24 24" fill="none" stroke="#b0a5ff" stroke-width="2" width="17" height="17"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
           <div>
             <div class="ia-card-title">Conversa com a IA</div>
             <div class="ia-card-sub">Histórico de mensagens via WhatsApp</div>
@@ -786,39 +790,27 @@ async function renderRelatoriosIA() {
       </div>
       <div class="ia-card-body">
         <div style="display:flex;flex-direction:column;gap:10px">
-          <button class="ia-btn ia-btn-ghost" style="justify-content:flex-start;width:100%" onclick="IAR.sendRelatorio('hoje')">
-            <span style="font-size:18px">📅</span>
-            <div style="text-align:left">
-              <div style="font-size:13px;font-weight:700;color:#f0f0fa">Resumo de hoje</div>
-              <div style="font-size:11px;color:#64748b;font-weight:400">Vendas, faturamento e ticket médio</div>
-            </div>
+          <button class="ia-quick-btn" onclick="IAR.sendRelatorio('hoje')">
+            <div class="ia-quick-icon" style="background:rgba(0,214,143,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#00d68f" stroke-width="2" width="18" height="18"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <div><div class="ia-quick-title">Resumo de hoje</div><div class="ia-quick-sub">Vendas, faturamento e ticket médio</div></div>
           </button>
-          <button class="ia-btn ia-btn-ghost" style="justify-content:flex-start;width:100%" onclick="IAR.sendRelatorio('semana')">
-            <span style="font-size:18px">📈</span>
-            <div style="text-align:left">
-              <div style="font-size:13px;font-weight:700;color:#f0f0fa">Resumo semanal</div>
-              <div style="font-size:11px;color:#64748b;font-weight:400">Desempenho dos últimos 7 dias</div>
-            </div>
+          <button class="ia-quick-btn" onclick="IAR.sendRelatorio('semana')">
+            <div class="ia-quick-icon" style="background:rgba(77,166,255,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#4da6ff" stroke-width="2" width="18" height="18"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+            <div><div class="ia-quick-title">Resumo semanal</div><div class="ia-quick-sub">Desempenho dos últimos 7 dias</div></div>
           </button>
-          <button class="ia-btn ia-btn-ghost" style="justify-content:flex-start;width:100%" onclick="IAR.sendRelatorio('mes')">
-            <span style="font-size:18px">🗓️</span>
-            <div style="text-align:left">
-              <div style="font-size:13px;font-weight:700;color:#f0f0fa">Resumo do mês</div>
-              <div style="font-size:11px;color:#64748b;font-weight:400">Faturamento mensal e novos clientes</div>
-            </div>
+          <button class="ia-quick-btn" onclick="IAR.sendRelatorio('mes')">
+            <div class="ia-quick-icon" style="background:rgba(109,95,255,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#b0a5ff" stroke-width="2" width="18" height="18"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+            <div><div class="ia-quick-title">Resumo do mês</div><div class="ia-quick-sub">Faturamento mensal e novos clientes</div></div>
           </button>
-          <button class="ia-btn ia-btn-ghost" style="justify-content:flex-start;width:100%" onclick="IAR.sendRelatorio('estoque')">
-            <span style="font-size:18px">📦</span>
-            <div style="text-align:left">
-              <div style="font-size:13px;font-weight:700;color:#f0f0fa">Alertas de estoque</div>
-              <div style="font-size:11px;color:#64748b;font-weight:400">Itens com estoque crítico</div>
-            </div>
+          <button class="ia-quick-btn" onclick="IAR.sendRelatorio('estoque')">
+            <div class="ia-quick-icon" style="background:rgba(255,184,48,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#ffb830" stroke-width="2" width="18" height="18"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>
+            <div><div class="ia-quick-title">Alertas de estoque</div><div class="ia-quick-sub">Itens com estoque crítico</div></div>
           </button>
         </div>
 
         <div style="margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,.06)">
           <div class="ia-info-box">
-            <strong>💬 Converse com a IA:</strong> salve seu número e envie uma mensagem. A IA acessa seus dados em tempo real e pode até alterar estoque.
+            <strong>Converse com a IA:</strong> salve seu número e envie uma mensagem. A IA acessa seus dados em tempo real e pode até alterar estoque.
           </div>
         </div>
       </div>
@@ -829,7 +821,7 @@ async function renderRelatoriosIA() {
   <div class="ia-card" style="margin-top:0">
     <div class="ia-card-head">
       <div class="ia-card-head-left">
-        <div class="ia-card-head-icon" style="background:rgba(16,185,129,.12);color:#34d399">📋</div>
+        <div class="ia-card-head-icon" style="background:rgba(0,214,143,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#00d68f" stroke-width="2" width="17" height="17"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
         <div>
           <div class="ia-card-title">Log de Ações da IA</div>
           <div class="ia-card-sub">Notificações enviadas, relatórios, alterações de estoque</div>
@@ -859,24 +851,24 @@ async function renderRelatoriosIA() {
       if (!d.campos.evo_url || !d.campos.evo_key || !d.campos.evo_instance) {
         dot.style.background = '#f59e0b';
         label.style.color = '#fbbf24';
-        label.textContent = '⚠️ Preencha URL, API Key e Instância acima e salve';
+        label.textContent = 'Preencha URL, API Key e Instância e salve';
       } else if (!d.campos.numero) {
         dot.style.background = '#f59e0b';
         label.style.color = '#fbbf24';
-        label.textContent = '⚠️ Cadastre o número WhatsApp acima e salve';
+        label.textContent = 'Cadastre o número WhatsApp e salve';
       } else if (!d.campos.ia_enabled) {
         dot.style.background = '#64748b';
         label.style.color = '#64748b';
-        label.textContent = '⏸ IA desativada — ligue o toggle para começar';
+        label.textContent = 'IA desativada — ative o toggle para começar';
       } else if (d.errors > 5) {
         dot.style.background = '#ef4444';
         label.style.color = '#f87171';
-        label.textContent = '❌ Erro ao conectar na Evolution API — verifique URL e Key';
+        label.textContent = 'Erro ao conectar na Evolution API — verifique URL e chave';
       } else {
         dot.style.background = '#10b981';
         dot.style.boxShadow = '0 0 8px #10b981';
         label.style.color = '#34d399';
-        label.textContent = '✅ Webhook registrado — IA ativa e respondendo mensagens';
+        label.textContent = 'Conectado — IA ativa e respondendo mensagens';
       }
     } catch(e) {
       label.textContent = 'Erro ao verificar status';
