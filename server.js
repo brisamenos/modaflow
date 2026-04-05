@@ -1345,103 +1345,101 @@ async function transcreverAudio(msgData, remetente, openai_key) {
   const evoKey  = iaConfigGet('evo_key');
   const evoInst = iaConfigGet('evo_instance');
 
-  if (!evoUrl || !evoKey || !evoInst) throw new Error('Evolution não configurada');
+  if (!evoUrl || !evoKey || !evoInst) throw new Error('Evolution nao configurada');
 
-  // 1. Baixa o áudio da Evolution API v2
-  // Evolution v2 fornece base64 diretamente no payload ou via endpoint de mídia
-  const mc = msgData.message || {};
+  const mc       = msgData.message || {};
   const audioMsg = mc.audioMessage || mc.pttMessage;
+  let   audioBuffer = null;
 
-  let audioBuffer = null;
-
-  // Tenta pegar base64 direto do payload (Evolution com webhook_base64=true)
+  // 1. Tenta base64 direto do payload (webhook_base64=true na Evolution)
   if (audioMsg?.base64) {
     audioBuffer = Buffer.from(audioMsg.base64, 'base64');
-    console.log(`[IA Whisper] Áudio via base64 do payload (${audioBuffer.length} bytes)`);
-  } else {
-    // Baixa via endpoint de mídia da Evolution
-    const msgId = msgData.key?.id || msgData.id;
-    if (!msgId) throw new Error('ID da mensagem não encontrado');
-
-    console.log(`[IA Whisper] Baixando áudio via Evolution (msgId: ${msgId})...`);
-
-    // Evolution API v2: GET /chat/getBase64FromMediaMessage/{instance}
-    const r = await fetch(`${evoUrl}/chat/getBase64FromMediaMessage/${evoInst}`, {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json', 'apikey': evoKey },
-      body: JSON.stringify({ message: { key: msgData.key }, convertToMp4: false }),
-      signal: AbortSignal.timeout(15000)
-    });
-
-    if (!r.ok) {
-      const err = await r.text();
-      throw new Error(`Evolution mídia ${r.status}: ${err.slice(0,100)}`);
-    }
-
-    const d = await r.json();
-    const b64 = d.base64 || d.data || d.media;
-    if (!b64) throw new Error('Base64 não retornado pela Evolution');
-    audioBuffer = Buffer.from(b64, 'base64');
-    console.log(`[IA Whisper] Áudio baixado (${audioBuffer.length} bytes)`);
+    console.log('[IA Whisper] Base64 no payload: ' + audioBuffer.length + ' bytes');
   }
 
-  if (!audioBuffer || audioBuffer.length < 100) throw new Error('Áudio muito pequeno ou vazio');
+  // 2. Se nao veio no payload, baixa via API da Evolution
+  if (!audioBuffer || audioBuffer.length < 100) {
+    const msgKey = msgData.key;
+    if (!msgKey) throw new Error('key da mensagem nao encontrada');
 
-  // 2. Envia para Whisper via FormData
-  const { FormData, Blob } = await import('node:buffer').catch(() => ({}));
+    console.log('[IA Whisper] Baixando midia da Evolution... id=' + msgKey.id);
 
-  // Cria FormData manualmente (multipart)
-  const boundary = '----WhisperBoundary' + Date.now();
-  const mimeType = 'audio/ogg; codecs=opus'; // formato padrão do WhatsApp
+    const endpoints = [
+      { url: evoUrl + '/chat/getBase64FromMediaMessage/' + evoInst, body: { message: { key: msgKey }, convertToMp4: false } },
+      { url: evoUrl + '/message/getBase64FromMediaMessage/' + evoInst, body: { message: { key: msgKey } } },
+    ];
 
-  const header = Buffer.from(
-    `--${boundary}
-` +
-    `Content-Disposition: form-data; name="file"; filename="audio.ogg"
-` +
-    `Content-Type: ${mimeType}
+    let b64 = null;
+    for (const ep of endpoints) {
+      try {
+        const r = await fetch(ep.url, {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json', 'apikey': evoKey },
+          body: JSON.stringify(ep.body),
+          signal: AbortSignal.timeout(12000)
+        });
+        const d = await r.json();
+        console.log('[IA Whisper] ' + ep.url.replace(evoUrl,'') + ' -> ' + r.status + ' ' + JSON.stringify(d).slice(0,80));
+        b64 = d.base64 || d.data?.base64 || d.media || d.audio;
+        if (b64) break;
+      } catch(e) {
+        console.log('[IA Whisper] endpoint erro: ' + e.message);
+      }
+    }
 
-`
-  );
-  const modelPart = Buffer.from(
-    `
---${boundary}
-` +
-    `Content-Disposition: form-data; name="model"
+    if (!b64) throw new Error('Evolution nao retornou audio em nenhum endpoint');
+    audioBuffer = Buffer.from(b64, 'base64');
+    console.log('[IA Whisper] Audio baixado: ' + audioBuffer.length + ' bytes');
+  }
 
-` +
-    `whisper-1` +
-    `
---${boundary}
-` +
-    `Content-Disposition: form-data; name="language"
+  if (!audioBuffer || audioBuffer.length < 100) {
+    throw new Error('Audio invalido (' + (audioBuffer?.length||0) + ' bytes)');
+  }
 
-` +
-    `pt` +
-    `
---${boundary}--
-`
-  );
+  // 3. Monta multipart/form-data com CRLF correto (padrao HTTP RFC 2046)
+  const CRLF     = '\r\n';
+  const boundary = 'ModaFlowAudio' + Date.now();
 
-  const body = Buffer.concat([header, audioBuffer, modelPart]);
+  const body = Buffer.concat([
+    Buffer.from('--' + boundary + CRLF
+      + 'Content-Disposition: form-data; name="file"; filename="audio.ogg"' + CRLF
+      + 'Content-Type: audio/ogg' + CRLF + CRLF),
+    audioBuffer,
+    Buffer.from(CRLF
+      + '--' + boundary + CRLF
+      + 'Content-Disposition: form-data; name="model"' + CRLF + CRLF
+      + 'whisper-1' + CRLF
+      + '--' + boundary + CRLF
+      + 'Content-Disposition: form-data; name="language"' + CRLF + CRLF
+      + 'pt' + CRLF
+      + '--' + boundary + '--' + CRLF)
+  ]);
 
-  console.log(`[IA Whisper] Enviando ${body.length} bytes para OpenAI Whisper...`);
+  console.log('[IA Whisper] Enviando para Whisper: ' + body.length + ' bytes');
 
   const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${openai_key}`,
-      'Content-Type': `multipart/form-data; boundary=${boundary}`,
+      'Authorization': 'Bearer ' + openai_key,
+      'Content-Type': 'multipart/form-data; boundary=' + boundary,
     },
     body,
-    signal: AbortSignal.timeout(30000)
+    signal: AbortSignal.timeout(60000)
   });
 
-  const whisperData = await whisperRes.json();
-  if (whisperData.error) throw new Error(`Whisper: ${whisperData.error.message}`);
+  const rawText = await whisperRes.text();
+  console.log('[IA Whisper] Whisper ' + whisperRes.status + ': ' + rawText.slice(0,200));
+
+  let whisperData;
+  try { whisperData = JSON.parse(rawText); }
+  catch(e) { throw new Error('Resposta invalida do Whisper: ' + rawText.slice(0,80)); }
+
+  if (whisperData.error) throw new Error('Whisper: ' + whisperData.error.message);
 
   const transcricao = (whisperData.text || '').trim();
-  console.log(`[IA Whisper] ✅ Transcrição: "${transcricao.slice(0,80)}"`);
+  if (!transcricao) throw new Error('Whisper retornou transcricao vazia');
+
+  console.log('[IA Whisper] OK: "' + transcricao.slice(0,80) + '"');
   return transcricao;
 }
 
@@ -1499,8 +1497,14 @@ app.post('/api/ia/webhook', async (req, res) => {
           await enviarMsg(remetente, '🎤 _Ouvi seu áudio, processando..._');
         }
       } catch(e) {
-        console.error('[IA] Erro ao transcrever:', e.message);
-        await enviarMsg(remetente, '❌ Não consegui entender o áudio. Tente digitar sua mensagem.');
+        console.error('[IA] Erro ao transcrever audio:', e.message);
+        // Tenta dar feedback util ao usuario
+        const msgErro = e.message.includes('Evolution') 
+          ? 'Problema ao baixar o audio. Tente novamente em alguns segundos.'
+          : e.message.includes('Whisper')
+          ? 'Nao foi possivel transcrever o audio. Tente digitar sua mensagem.'
+          : 'Nao consegui processar o audio. Tente novamente.';
+        await enviarMsg(remetente, msgErro);
         return;
       }
     }
