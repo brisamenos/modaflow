@@ -1154,15 +1154,157 @@ function dadosDaLoja(db, nome) {
     const hoje   = new Date().toISOString().slice(0,10);
     const semana = new Date(Date.now()-7*86400000).toISOString().slice(0,10);
     const mes    = new Date().toISOString().slice(0,7);
-    const R = v => 'R$'+Number(v||0).toFixed(2);
-    const vH = db.prepare(`SELECT COUNT(*) c,COALESCE(SUM(total),0) t FROM vendas WHERE DATE(created_at)=? AND status!='cancelada'`).get(hoje);
-    const vS = db.prepare(`SELECT COUNT(*) c,COALESCE(SUM(total),0) t FROM vendas WHERE DATE(created_at)>=? AND status!='cancelada'`).get(semana);
-    const vM = db.prepare(`SELECT COUNT(*) c,COALESCE(SUM(total),0) t FROM vendas WHERE strftime('%Y-%m',created_at)=? AND status!='cancelada'`).get(mes);
-    const tk = db.prepare(`SELECT COALESCE(AVG(total),0) t FROM vendas WHERE DATE(created_at)=? AND status!='cancelada'`).get(hoje);
-    const eb = db.prepare(`SELECT COUNT(*) c FROM produto_grades pg JOIN produtos p ON p.id=pg.produto_id WHERE pg.estoque<=3 AND p.ativo=1`).get();
-    const ct = db.prepare(`SELECT COUNT(*) c FROM clientes`).get();
-    return `Loja: ${nome} | Hoje: ${vH.c} vendas ${R(vH.t)} | Ticket médio: ${R(tk.t)} | Semana: ${vS.c} vendas ${R(vS.t)} | Mês: ${vM.c} vendas ${R(vM.t)} | Clientes: ${ct.c} | Estoque crítico (≤3): ${eb.c} itens`;
-  } catch(e) { return `Loja: ${nome}`; }
+    const R = v => 'R$ '+Number(v||0).toFixed(2);
+
+    // Vendas
+    const vH  = db.prepare(`SELECT COUNT(*) c,COALESCE(SUM(total),0) t FROM vendas WHERE DATE(created_at)=? AND status!='cancelada'`).get(hoje);
+    const vS  = db.prepare(`SELECT COUNT(*) c,COALESCE(SUM(total),0) t FROM vendas WHERE DATE(created_at)>=? AND status!='cancelada'`).get(semana);
+    const vM  = db.prepare(`SELECT COUNT(*) c,COALESCE(SUM(total),0) t FROM vendas WHERE strftime('%Y-%m',created_at)=? AND status!='cancelada'`).get(mes);
+    const tkt = db.prepare(`SELECT COALESCE(AVG(total),0) t FROM vendas WHERE DATE(created_at)=? AND status!='cancelada'`).get(hoje);
+
+    // Top 5 produtos mais vendidos hoje
+    let topHoje = '';
+    try {
+      const top = db.prepare(`
+        SELECT p.nome, SUM(vi.quantidade) q, SUM(vi.preco_unit*vi.quantidade) t
+        FROM venda_itens vi JOIN produtos p ON p.id=vi.produto_id JOIN vendas v ON v.id=vi.venda_id
+        WHERE DATE(v.created_at)=? AND v.status!='cancelada'
+        GROUP BY vi.produto_id ORDER BY q DESC LIMIT 5
+      `).all(hoje);
+      if (top.length) topHoje = top.map(x=>`${x.nome}(${x.q}un/${R(x.t)})`).join(', ');
+    } catch(e){}
+
+    // Estoque
+    const estTotal  = db.prepare(`SELECT COUNT(*) c FROM produto_grades pg JOIN produtos p ON p.id=pg.produto_id WHERE p.ativo=1`).get();
+    const estBaixo  = db.prepare(`SELECT COUNT(*) c FROM produto_grades pg JOIN produtos p ON p.id=pg.produto_id WHERE pg.estoque<=3 AND pg.estoque>0 AND p.ativo=1`).get();
+    const estZerado = db.prepare(`SELECT COUNT(*) c FROM produto_grades pg JOIN produtos p ON p.id=pg.produto_id WHERE pg.estoque=0 AND p.ativo=1`).get();
+
+    // Top 5 produtos com estoque crítico
+    let estCritico = '';
+    try {
+      const crit = db.prepare(`
+        SELECT p.nome, p.codigo, pg.tamanho, pg.estoque
+        FROM produto_grades pg JOIN produtos p ON p.id=pg.produto_id
+        WHERE pg.estoque<=3 AND p.ativo=1
+        ORDER BY pg.estoque ASC LIMIT 5
+      `).all();
+      if (crit.length) estCritico = crit.map(x=>`${x.nome} tam:${x.tamanho||'-'} qtd:${x.estoque}`).join('; ');
+    } catch(e){}
+
+    // Clientes
+    const cliTotal = db.prepare(`SELECT COUNT(*) c FROM clientes`).get();
+    const cliMes   = db.prepare(`SELECT COUNT(*) c FROM clientes WHERE strftime('%Y-%m',created_at)=?`).get(mes);
+
+    // Crediário em aberto
+    let crediario = '';
+    try {
+      const cr = db.prepare(`SELECT COUNT(*) c, COALESCE(SUM(valor_parcela),0) t FROM crediario_parcelas WHERE status='pendente'`).get();
+      const at = db.prepare(`SELECT COUNT(*) c, COALESCE(SUM(valor_parcela),0) t FROM crediario_parcelas WHERE status='atrasada'`).get();
+      crediario = `${cr.c} parcelas pendentes (${R(cr.t)}), ${at.c} atrasadas (${R(at.t)})`;
+    } catch(e){}
+
+    // Produtos cadastrados
+    const prodTotal = db.prepare(`SELECT COUNT(*) c FROM produtos WHERE ativo=1`).get();
+
+    return `=== DADOS DA LOJA "${nome}" ===
+VENDAS:
+- Hoje: ${vH.c} vendas | Faturamento: ${R(vH.t)} | Ticket médio: ${R(tkt.t)}
+- Semana: ${vS.c} vendas | ${R(vS.t)}
+- Mês: ${vM.c} vendas | ${R(vM.t)}
+${topHoje ? '- Mais vendidos hoje: '+topHoje : ''}
+
+ESTOQUE:
+- Total de variantes: ${estTotal.c} | Produtos ativos: ${prodTotal.c}
+- Estoque baixo (≤3): ${estBaixo.c} itens | Zerado: ${estZerado.c} itens
+${estCritico ? '- Críticos: '+estCritico : ''}
+
+CLIENTES:
+- Total: ${cliTotal.c} | Novos este mês: ${cliMes.c}
+
+CREDIÁRIO:
+- ${crediario || 'sem dados'}`;
+  } catch(e) {
+    console.error('[IA] dadosDaLoja erro:', e.message);
+    return `Loja: ${nome}`;
+  }
+}
+
+// Executa ações via IA (alterar estoque, buscar produto, etc.)
+async function executarAcaoIA(db, acao, params) {
+  const resultados = [];
+  try {
+    if (acao === 'buscar_produto') {
+      const termo = params.termo || '';
+      const rows = db.prepare(`
+        SELECT p.id, p.nome, p.codigo, p.preco_venda,
+               SUM(pg.estoque) as estoque_total,
+               COUNT(pg.id) as variantes
+        FROM produtos p LEFT JOIN produto_grades pg ON pg.produto_id=p.id
+        WHERE p.ativo=1 AND (LOWER(p.nome) LIKE ? OR p.codigo LIKE ?)
+        GROUP BY p.id ORDER BY p.nome LIMIT 10
+      `).all(`%${termo.toLowerCase()}%`, `%${termo}%`);
+      return rows.map(r => `${r.nome} | Cód: ${r.codigo||'-'} | Preço: R$${Number(r.preco_venda||0).toFixed(2)} | Estoque: ${r.estoque_total||0}un (${r.variantes} variantes)`).join('\n');
+    }
+
+    if (acao === 'ver_estoque_produto') {
+      const termo = params.produto || '';
+      const rows = db.prepare(`
+        SELECT p.nome, pg.tamanho, pg.cor_descricao, pg.estoque, pg.preco_venda, pg.ean
+        FROM produto_grades pg JOIN produtos p ON p.id=pg.produto_id
+        WHERE p.ativo=1 AND (LOWER(p.nome) LIKE ? OR p.codigo LIKE ?)
+        ORDER BY p.nome, pg.tamanho LIMIT 20
+      `).all(`%${termo.toLowerCase()}%`, `%${termo}%`);
+      if (!rows.length) return 'Produto não encontrado.';
+      const nome = rows[0].nome;
+      const grades = rows.map(r => `  Tam: ${r.tamanho||'-'} | Cor: ${r.cor_descricao||'-'} | Estoque: ${r.estoque} | Preço: R$${Number(r.preco_venda||0).toFixed(2)}`).join('\n');
+      return `Estoque de "${nome}":
+${grades}`;
+    }
+
+    if (acao === 'alterar_estoque') {
+      const produto = params.produto || '';
+      const tamanho = params.tamanho || '';
+      const qtd     = parseInt(params.quantidade);
+      const tipo    = params.tipo || 'definir'; // 'definir', 'adicionar', 'subtrair'
+      if (isNaN(qtd)) return 'Quantidade inválida.';
+
+      const grade = db.prepare(`
+        SELECT pg.id, pg.estoque, p.nome, pg.tamanho
+        FROM produto_grades pg JOIN produtos p ON p.id=pg.produto_id
+        WHERE p.ativo=1 AND LOWER(p.nome) LIKE ?
+        ${tamanho ? "AND (pg.tamanho=? OR LOWER(pg.tamanho) LIKE ?)" : ""}
+        LIMIT 1
+      `).get(...(tamanho ? [`%${produto.toLowerCase()}%`, tamanho, `%${tamanho.toLowerCase()}%`] : [`%${produto.toLowerCase()}%`]));
+
+      if (!grade) return `Produto "${produto}"${tamanho?' tamanho '+tamanho:''} não encontrado.`;
+
+      let novoEstoque;
+      if (tipo === 'adicionar') novoEstoque = grade.estoque + qtd;
+      else if (tipo === 'subtrair') novoEstoque = Math.max(0, grade.estoque - qtd);
+      else novoEstoque = qtd;
+
+      db.prepare(`UPDATE produto_grades SET estoque=? WHERE id=?`).run(novoEstoque, grade.id);
+      return `✅ Estoque de "${grade.nome}" (tam: ${grade.tamanho||'-'}) atualizado: ${grade.estoque} → ${novoEstoque}`;
+    }
+
+    if (acao === 'listar_clientes') {
+      const rows = db.prepare(`SELECT nome, telefone, email, created_at FROM clientes ORDER BY created_at DESC LIMIT 10`).all();
+      return rows.map(r => `${r.nome} | Tel: ${r.telefone||'-'} | ${new Date(r.created_at).toLocaleDateString('pt-BR')}`).join('\n');
+    }
+
+    if (acao === 'ultimas_vendas') {
+      const rows = db.prepare(`
+        SELECT v.id, v.total, v.forma_pagamento, v.created_at, c.nome as cliente
+        FROM vendas v LEFT JOIN clientes c ON c.id=v.cliente_id
+        WHERE v.status!='cancelada' ORDER BY v.created_at DESC LIMIT 10
+      `).all();
+      return rows.map(r => `Venda #${r.id} | ${r.cliente||'Avulso'} | R$${Number(r.total).toFixed(2)} | ${r.forma_pagamento||'-'} | ${new Date(r.created_at).toLocaleDateString('pt-BR')}`).join('\n');
+    }
+
+  } catch(e) {
+    return `Erro ao executar ação: ${e.message}`;
+  }
+  return 'Ação não reconhecida.';
 }
 
 // Envia mensagem pelo WhatsApp global
@@ -1228,24 +1370,101 @@ app.post('/api/ia/webhook', async (req, res) => {
     const historico = getHistorico(tenant.db, remetente);
     const dados     = dadosDaLoja(tenant.db, tenant.nome);
 
+    const systemPrompt = `Você é o assistente de IA do ModaFlow para a loja "${tenant.nome}".
+Responda SEMPRE em português, de forma curta e objetiva (mensagem de WhatsApp).
+Você tem acesso completo aos dados e pode executar ações na loja.
+
+AÇÕES DISPONÍVEIS — use as tools quando o cliente pedir:
+- buscar_produto: busca produtos por nome ou código
+- ver_estoque_produto: mostra estoque detalhado por tamanho/cor
+- alterar_estoque: altera quantidade em estoque (definir/adicionar/subtrair)
+- listar_clientes: lista clientes recentes
+- ultimas_vendas: mostra últimas vendas
+
+${dados}
+
+REGRAS:
+- Para alterar estoque, confirme com o cliente antes de executar se não ficou claro
+- Respostas curtas — máx 300 palavras
+- Nunca mencione outras lojas`;
+
+    const tools = [
+      {
+        type: 'function',
+        function: {
+          name: 'executar_acao',
+          description: 'Executa uma ação na loja: buscar produto, ver estoque, alterar estoque, listar clientes, ver vendas',
+          parameters: {
+            type: 'object',
+            properties: {
+              acao: {
+                type: 'string',
+                enum: ['buscar_produto','ver_estoque_produto','alterar_estoque','listar_clientes','ultimas_vendas'],
+                description: 'Qual ação executar'
+              },
+              produto:    { type:'string', description:'Nome ou código do produto' },
+              termo:      { type:'string', description:'Termo de busca' },
+              tamanho:    { type:'string', description:'Tamanho do produto (P, M, G, 38, etc)' },
+              quantidade: { type:'number', description:'Quantidade para alterar' },
+              tipo:       { type:'string', enum:['definir','adicionar','subtrair'], description:'Como alterar o estoque' }
+            },
+            required: ['acao']
+          }
+        }
+      }
+    ];
+
     const messages = [
-      { role:'system', content:`Você é o assistente de IA do ModaFlow para a loja "${tenant.nome}". Responda em português, de forma curta e direta (WhatsApp). Dados: ${dados}` },
+      { role:'system', content: systemPrompt },
       ...historico.map(h => ({ role:h.role, content:h.content })),
       { role:'user', content: texto }
     ];
 
     salvarMsg(tenant.db, remetente, 'user', texto);
 
+    // Primeira chamada ao GPT
     const gpt = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${openai_key}` },
-      body: JSON.stringify({ model:'gpt-4o-mini', max_tokens:500, temperature:0.7, messages }),
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${openai_key}` },
+      body: JSON.stringify({ model:'gpt-4o-mini', max_tokens:800, temperature:0.4, messages, tools, tool_choice:'auto' }),
       signal: AbortSignal.timeout(30000)
     });
     const gptData = await gpt.json();
     if (gptData.error) { console.error('[IA] GPT erro:', gptData.error.message); return; }
 
-    const resposta = gptData.choices?.[0]?.message?.content?.trim();
+    const choice   = gptData.choices?.[0];
+    const msgGpt   = choice?.message;
+
+    let resposta = '';
+
+    // Se GPT quer executar uma ação
+    if (choice?.finish_reason === 'tool_calls' && msgGpt?.tool_calls?.length) {
+      const toolCall = msgGpt.tool_calls[0];
+      const params   = JSON.parse(toolCall.function.arguments || '{}');
+      console.log(`[IA] Ação: ${params.acao}`, params);
+
+      const resultado = await executarAcaoIA(tenant.db, params.acao, params);
+      console.log(`[IA] Resultado: ${resultado.slice(0,100)}`);
+
+      // Segunda chamada com resultado da ação
+      const messages2 = [
+        ...messages,
+        { role:'assistant', content: null, tool_calls: msgGpt.tool_calls },
+        { role:'tool', tool_call_id: toolCall.id, content: resultado }
+      ];
+
+      const gpt2 = await fetch('https://api.openai.com/v1/chat/completions', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${openai_key}` },
+        body: JSON.stringify({ model:'gpt-4o-mini', max_tokens:500, temperature:0.4, messages: messages2 }),
+        signal: AbortSignal.timeout(30000)
+      });
+      const gptData2 = await gpt2.json();
+      resposta = gptData2.choices?.[0]?.message?.content?.trim() || resultado;
+    } else {
+      resposta = msgGpt?.content?.trim();
+    }
+
     if (!resposta) return;
 
     salvarMsg(tenant.db, remetente, 'assistant', resposta);
