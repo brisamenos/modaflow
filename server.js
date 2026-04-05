@@ -773,7 +773,31 @@ app.post('/api/:table', resolveDb, (req, res) => {
         try { const ins=db.prepare(`SELECT * FROM "${table}" WHERE rowid=?`).get(info.lastInsertRowid); if(ins){parseJsonFields([ins]);results.push(ins);} } catch(e){}
       }
     })(items);
-    res.json(Array.isArray(req.body)?results:(results[0]||{}));
+    const finalResult = Array.isArray(req.body)?results:(results[0]||{});
+    res.json(finalResult);
+
+    // Dispara notificações IA assíncronamente (não bloqueia a resposta)
+    if (results.length && req.gestor) {
+      const slug = req.gestor.slug;
+      setImmediate(() => {
+        try {
+          if (table === 'vendas') {
+            const v = results[0];
+            dispararNotificacaoIA(slug, 'nova_venda', {
+              id: v.id || v.numero_venda,
+              total: v.total,
+              forma: v.forma_pagamento,
+              cliente: v.cliente_id
+            });
+          } else if (table === 'clientes') {
+            dispararNotificacaoIA(slug, 'novo_cliente', {
+              nome: results[0].nome,
+              telefone: results[0].telefone
+            });
+          }
+        } catch(e) {}
+      });
+    }
   } catch(err) { console.error('POST error:',err.message); res.status(500).json({ message:err.message }); }
 });
 
@@ -1038,23 +1062,7 @@ app.get('/api/ia/config', resolveDb, (req, res) => {
   }
 });
 
-app.post('/api/ia/config', resolveDb, (req, res) => {
-  try {
-    const db = req.db;
-    const slug = req.gestor?.slug || '?';
-    const fields = ['numero','evo_url','evo_key','evo_instance','notify_nova_venda','notify_estoque','notify_novo_cliente','notify_relatorio','relatorio_horario','relatorio_periodo','ia_enabled'];
-    for (const f of fields) {
-      if (req.body[f] !== undefined) {
-        tenantIaSet(db, f, String(req.body[f]));
-        console.log(`[IA Config] ${slug} → ${f} = "${req.body[f]}"`);
-      }
-    }
-    res.json({ ok: true });
-  } catch(e) {
-    console.error('[IA Config] Erro ao salvar:', e.message);
-    res.status(500).json({ message: e.message });
-  }
-});
+// /api/ia/config POST → movido para seção de features abaixo
 
 app.get('/api/ia/resumo', resolveDb, (req, res) => {
   try {
@@ -1522,4 +1530,238 @@ console.error = (...a) => { _origErr(...a); const l='[ERR] '+a.join(' '); if(l.i
 
 app.get('/api/ia/webhook-log', adminAuth, (req, res) => {
   res.json(_iaLogs.slice(-50).reverse());
+});
+
+// =============================================
+// IA — NOTIFICAÇÕES AUTOMÁTICAS
+// =============================================
+
+// Verifica se está no horário permitido
+function dentroDoHorario(db) {
+  try {
+    const inicio = tenantIaGet(db,'horario_inicio') || '00:00';
+    const fim    = tenantIaGet(db,'horario_fim')    || '23:59';
+    const agora  = new Date();
+    const hm     = agora.getHours()*60 + agora.getMinutes();
+    const [hi,mi] = inicio.split(':').map(Number);
+    const [hf,mf] = fim.split(':').map(Number);
+    const start = hi*60+mi, end = hf*60+mf;
+    return hm >= start && hm <= end;
+  } catch(e) { return true; }
+}
+
+// Registra ação da IA no log de auditoria
+function logAcaoIA(db, tipo, descricao, dados) {
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS ia_log_acoes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tipo TEXT, descricao TEXT, dados TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+    db.prepare(`INSERT INTO ia_log_acoes (tipo,descricao,dados) VALUES (?,?,?)`)
+      .run(tipo, descricao, JSON.stringify(dados||{}));
+  } catch(e) {}
+}
+
+// Dispara notificação WhatsApp para o tenant
+async function dispararNotificacaoIA(slug, tipo, dados) {
+  try {
+    const db     = getTenantDb(slug);
+    const iaOn   = tenantIaGet(db,'ia_enabled') === '1';
+    const numero = cleanNum(tenantIaGet(db,'numero') || '');
+    if (!iaOn || !numero) return;
+
+    // Verifica horário
+    if (!dentroDoHorario(db)) return;
+
+    // Verifica preferências
+    const prefs = {
+      nova_venda:   tenantIaGet(db,'notify_nova_venda')   !== '0',
+      novo_cliente: tenantIaGet(db,'notify_novo_cliente') !== '0',
+      estoque:      tenantIaGet(db,'notify_estoque')      !== '0',
+    };
+    if (!prefs[tipo]) return;
+
+    const R = v => 'R$ '+Number(v||0).toFixed(2);
+    let msg = '';
+
+    if (tipo === 'nova_venda') {
+      let clienteNome = 'Cliente avulso';
+      if (dados.cliente) {
+        try { const c = db.prepare(`SELECT nome FROM clientes WHERE id=?`).get(dados.cliente); if(c) clienteNome=c.nome; } catch(e){}
+      }
+      msg = `🛍️ *Nova venda registrada!*\n\n💰 Valor: *${R(dados.total)}*\n👤 Cliente: ${clienteNome}\n💳 Pagamento: ${dados.forma||'—'}\n\n_${new Date().toLocaleString('pt-BR')}_`;
+    } else if (tipo === 'novo_cliente') {
+      msg = `👤 *Novo cliente cadastrado!*\n\n📛 Nome: *${dados.nome}*\n📱 Tel: ${dados.telefone||'—'}\n\n_${new Date().toLocaleString('pt-BR')}_`;
+    } else if (tipo === 'estoque') {
+      msg = `⚠️ *Alerta de estoque baixo!*\n\n${dados.itens}\n\n_${new Date().toLocaleString('pt-BR')}_`;
+    }
+
+    if (!msg) return;
+
+    await enviarMsg(numero, msg);
+    logAcaoIA(db, 'notificacao', tipo, dados);
+    console.log(`[IA Notif] ${slug} → ${tipo}`);
+
+    // SSE para o painel
+    emitIAEvent(slug, tipo, { mensagem: msg.slice(0,100), numero });
+  } catch(e) {
+    console.error(`[IA Notif] ${slug} erro:`, e.message);
+  }
+}
+
+// Mensagem de boas-vindas quando número é salvo pela primeira vez
+async function enviarBoasVindas(slug, numero) {
+  try {
+    const db = getTenantDb(slug);
+    const g  = adminDb.prepare(`SELECT nome FROM gestores WHERE slug=?`).get(slug);
+    const msg = `👋 *Olá! Sou a IA do ModaFlow!*\n\nEstou conectada à loja *${g?.nome||slug}* e pronta para te ajudar.\n\n📊 *O que posso fazer:*\n• Responder sobre vendas e faturamento\n• Verificar e alterar estoque\n• Buscar produtos e clientes\n• Enviar relatórios\n• Alertar sobre estoque baixo e novas vendas\n\n💡 *Experimente perguntar:*\n_"Quanto vendi hoje?"_\n_"Qual o estoque da camisa M?"_\n_"Adiciona 5 no estoque da calça 38"_\n\n_ModaFlow IA_ 🤖`;
+    await enviarMsg(numero, msg);
+    logAcaoIA(db, 'boas_vindas', 'Mensagem de boas-vindas enviada', { numero });
+    console.log(`[IA] Boas-vindas enviadas para ${slug}`);
+  } catch(e) {
+    console.error(`[IA] Boas-vindas erro:`, e.message);
+  }
+}
+
+// Verifica estoque crítico periodicamente e notifica
+setInterval(async () => {
+  try {
+    const ativos = adminDb.prepare(`SELECT slug FROM gestores WHERE ativo=1 AND ia_enabled=1`).all();
+    for (const g of ativos) {
+      try {
+        const db    = getTenantDb(g.slug);
+        const iaOn  = tenantIaGet(db,'ia_enabled') === '1';
+        const notif = tenantIaGet(db,'notify_estoque') !== '0';
+        if (!iaOn || !notif) continue;
+
+        // Só verifica uma vez por hora (controle por timestamp)
+        const ultimaVerif = tenantIaGet(db,'_ultima_verif_estoque');
+        const agora = Date.now();
+        if (ultimaVerif && agora - parseInt(ultimaVerif) < 3600000) continue;
+        tenantIaSet(db,'_ultima_verif_estoque', String(agora));
+
+        const criticos = db.prepare(`
+          SELECT p.nome, pg.tamanho, pg.estoque
+          FROM produto_grades pg JOIN produtos p ON p.id=pg.produto_id
+          WHERE pg.estoque=0 AND p.ativo=1
+          ORDER BY p.nome LIMIT 5
+        `).all();
+        if (!criticos.length) continue;
+
+        const itens = criticos.map(r=>`• ${r.nome} (${r.tamanho||'—'}): *zerado*`).join('\n');
+        await dispararNotificacaoIA(g.slug, 'estoque', { itens });
+      } catch(e) {}
+    }
+  } catch(e) {}
+}, 3600000); // a cada 1 hora
+
+// Relatório diário agendado
+setInterval(async () => {
+  try {
+    const agora  = new Date();
+    const horaAtual = `${String(agora.getHours()).padStart(2,'0')}:${String(agora.getMinutes()).padStart(2,'0')}`;
+
+    const ativos = adminDb.prepare(`SELECT slug FROM gestores WHERE ativo=1 AND ia_enabled=1`).all();
+    for (const g of ativos) {
+      try {
+        const db       = getTenantDb(g.slug);
+        const iaOn     = tenantIaGet(db,'ia_enabled') === '1';
+        const notif    = tenantIaGet(db,'notify_relatorio') === '1';
+        const horario  = tenantIaGet(db,'relatorio_horario') || '08:00';
+        const periodo  = tenantIaGet(db,'relatorio_periodo') || 'diario';
+        const numero   = cleanNum(tenantIaGet(db,'numero') || '');
+
+        if (!iaOn || !notif || !numero) continue;
+        if (horaAtual !== horario) continue;
+
+        // Evita disparar duas vezes no mesmo minuto
+        const ultimoEnvio = tenantIaGet(db,'_ultimo_relatorio');
+        const chave = `${agora.toISOString().slice(0,16)}`;
+        if (ultimoEnvio === chave) continue;
+        tenantIaSet(db,'_ultimo_relatorio', chave);
+
+        // Verifica período
+        const diaSemana = agora.getDay();
+        if (periodo === 'semanal' && diaSemana !== 1) continue; // só segunda
+        if (periodo === 'mensal' && agora.getDate() !== 1) continue; // só dia 1
+
+        const hoje   = new Date().toISOString().slice(0,10);
+        const mes    = new Date().toISOString().slice(0,7);
+        const semana = new Date(Date.now()-7*86400000).toISOString().slice(0,10);
+        const R = v => 'R$ '+Number(v||0).toFixed(2);
+
+        const vH  = db.prepare(`SELECT COUNT(*) c,COALESCE(SUM(total),0) t FROM vendas WHERE DATE(created_at)=? AND status!='cancelada'`).get(hoje);
+        const vM  = db.prepare(`SELECT COUNT(*) c,COALESCE(SUM(total),0) t FROM vendas WHERE strftime('%Y-%m',created_at)=? AND status!='cancelada'`).get(mes);
+        const vS  = db.prepare(`SELECT COUNT(*) c,COALESCE(SUM(total),0) t FROM vendas WHERE DATE(created_at)>=? AND status!='cancelada'`).get(semana);
+        const eb  = db.prepare(`SELECT COUNT(*) c FROM produto_grades pg JOIN produtos p ON p.id=pg.produto_id WHERE pg.estoque<=3 AND p.ativo=1`).get();
+        const tkt = db.prepare(`SELECT COALESCE(AVG(total),0) t FROM vendas WHERE DATE(created_at)=? AND status!='cancelada'`).get(hoje);
+
+        const nomeGestor = adminDb.prepare(`SELECT nome FROM gestores WHERE slug=?`).get(g.slug)?.nome || g.slug;
+
+        const msg = `📊 *Relatório ${periodo === 'diario' ? 'Diário' : periodo === 'semanal' ? 'Semanal' : 'Mensal'}*\n*${nomeGestor}* — ${new Date().toLocaleDateString('pt-BR')}\n\n🟢 *Hoje*\n• Vendas: ${vH.c} | ${R(vH.t)}\n• Ticket médio: ${R(tkt.t)}\n\n📅 *Semana*\n• ${vS.c} vendas | ${R(vS.t)}\n\n🗓️ *Mês*\n• ${vM.c} vendas | ${R(vM.t)}\n\n${eb.c > 0 ? `⚠️ ${eb.c} itens com estoque crítico` : '✅ Estoque ok'}\n\n_ModaFlow IA_ 🤖`;
+
+        await enviarMsg(numero, msg);
+        logAcaoIA(db, 'relatorio', `Relatório ${periodo} enviado`, {});
+        console.log(`[IA Relat] ${g.slug} → relatório ${periodo} enviado`);
+      } catch(e) {}
+    }
+  } catch(e) {}
+}, 60000); // verifica a cada 1 minuto
+
+// =============================================
+// IA — ROTAS DE LOG E AUDITORIA
+// =============================================
+
+// Log de ações da IA (para o cliente ver no painel)
+app.get('/api/ia/log-acoes', resolveDb, (req, res) => {
+  try {
+    const db = req.db;
+    db.exec(`CREATE TABLE IF NOT EXISTS ia_log_acoes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tipo TEXT, descricao TEXT, dados TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+    const logs = db.prepare(
+      `SELECT id,tipo,descricao,dados,created_at FROM ia_log_acoes ORDER BY created_at DESC LIMIT 50`
+    ).all();
+    res.json(logs);
+  } catch(e) { res.status(500).json({ message: e.message }); }
+});
+
+// Detecta se número é novo (para enviar boas-vindas)
+const _numerosConhecidos = new Set();
+
+app.post('/api/ia/config', resolveDb, (req, res) => {
+  try {
+    const db   = req.db;
+    const slug = req.gestor?.slug || '?';
+    const fields = ['numero','evo_url','evo_key','evo_instance','notify_nova_venda','notify_estoque',
+      'notify_novo_cliente','notify_relatorio','relatorio_horario','relatorio_periodo',
+      'ia_enabled','horario_inicio','horario_fim'];
+
+    const numeroAntigo = tenantIaGet(db,'numero');
+
+    for (const f of fields) {
+      if (req.body[f] !== undefined) {
+        tenantIaSet(db, f, String(req.body[f]));
+        console.log(`[IA Config] ${slug} → ${f} = "${req.body[f]}"`);
+      }
+    }
+
+    // Envia boas-vindas se número novo foi salvo com IA ativa
+    const numeroNovo = req.body.numero;
+    if (numeroNovo && numeroNovo !== numeroAntigo && req.body.ia_enabled === '1') {
+      const num = cleanNum(numeroNovo);
+      if (num && !_numerosConhecidos.has(slug+'_'+num)) {
+        _numerosConhecidos.add(slug+'_'+num);
+        setTimeout(() => enviarBoasVindas(slug, num), 2000);
+      }
+    }
+
+    res.json({ ok: true });
+  } catch(e) {
+    console.error('[IA Config] Erro ao salvar:', e.message);
+    res.status(500).json({ message: e.message });
+  }
 });

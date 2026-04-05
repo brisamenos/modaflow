@@ -381,6 +381,11 @@ tbody td{padding:14px 20px;font-size:13.5px;vertical-align:middle}
           <div class="stat-val" id="st-inativos" style="color:#f87171">—</div>
           <div class="stat-label">Bloqueados / Vencidos</div>
         </div>
+        <div class="stat-card" style="--card-color:rgba(124,58,237,.08)">
+          <div class="stat-icon" style="background:rgba(124,58,237,.1)">🤖</div>
+          <div class="stat-val" id="st-ia" style="color:#a78bfa">—</div>
+          <div class="stat-label">Com IA ativa</div>
+        </div>
       </div>
 
       <!-- Lista recente -->
@@ -809,10 +814,12 @@ function atualizarStats() {
     else if (exp && exp <= em7) vencendo++;
     else ativos++;
   }
+  const iaAtivos = _gestores.filter(g => g.ia_enabled).length;
   document.getElementById('st-total').textContent = _gestores.length;
   document.getElementById('st-ativos').textContent = ativos;
   document.getElementById('st-vencendo').textContent = vencendo;
   document.getElementById('st-inativos').textContent = inativos;
+  document.getElementById('st-ia').textContent = iaAtivos;
 }
 
 // ═══════════════════════════════════════════════════════

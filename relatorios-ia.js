@@ -84,9 +84,9 @@ const IAR = {
     feed.insertBefore(item, feed.firstChild);
     setTimeout(() => item.classList.remove('ia-feed-new'), 50);
 
-    // Limitar a 30 itens
-    const items = feed.querySelectorAll('.ia-feed-item');
-    if (items.length > 30) items[items.length-1].remove();
+    // Atualiza chat e log
+    setTimeout(() => IAR.loadHistorico(), 500);
+    setTimeout(() => IAR.loadLogAcoes && IAR.loadLogAcoes(), 800);
   },
 
   async save() {
@@ -104,6 +104,8 @@ const IAR = {
       notify_relatorio:    document.getElementById('ia-n-relatorio')?.checked ? '1':'0',
       relatorio_horario:   document.getElementById('ia-horario')?.value || '08:00',
       relatorio_periodo:   document.getElementById('ia-periodo')?.value || 'diario',
+      horario_inicio:      document.getElementById('ia-h-inicio')?.value || '00:00',
+      horario_fim:         document.getElementById('ia-h-fim')?.value    || '23:59',
       ia_enabled:          document.getElementById('ia-toggle')?.checked ? '1':'0',
     };
 
@@ -200,6 +202,7 @@ async function renderRelatoriosIA() {
   await Promise.all([IAR.loadConfig(), IAR.loadResumo()]);
   IAR.connectSSE();
   setTimeout(() => IAR.loadHistorico(), 300);
+  setTimeout(() => IAR.loadLogAcoes && IAR.loadLogAcoes(), 600);
   setTimeout(() => IAR.checkPollingStatus(), 800);
 
   const c = document.getElementById('content');
@@ -716,10 +719,25 @@ async function renderRelatoriosIA() {
               </select>
             </div>
             <div class="ia-field" style="margin-bottom:0">
-              <label class="ia-label">Horário</label>
+              <label class="ia-label">Horário de envio</label>
               <input class="ia-input" id="ia-horario" type="time" value="${_iaConfig.relatorio_horario || '08:00'}">
             </div>
           </div>
+        </div>
+
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.06)">
+          <div class="ia-label" style="margin-bottom:8px">🌙 Horário de atendimento da IA</div>
+          <div class="ia-row">
+            <div class="ia-field" style="margin-bottom:0">
+              <label class="ia-label">Das</label>
+              <input class="ia-input" id="ia-h-inicio" type="time" value="${_iaConfig.horario_inicio || '08:00'}">
+            </div>
+            <div class="ia-field" style="margin-bottom:0">
+              <label class="ia-label">Até</label>
+              <input class="ia-input" id="ia-h-fim" type="time" value="${_iaConfig.horario_fim || '22:00'}">
+            </div>
+          </div>
+          <div style="font-size:11px;color:#64748b;margin-top:6px">Fora deste horário a IA não responde nem envia notificações</div>
         </div>
       </div>
     </div>
@@ -728,26 +746,27 @@ async function renderRelatoriosIA() {
   <!-- Bottom row: Feed SSE + Quick actions -->
   <div class="ia-cols">
 
-    <!-- Feed tempo real -->
+    <!-- Conversa com a IA -->
     <div class="ia-card">
       <div class="ia-card-head">
         <div class="ia-card-head-left">
-          <div class="ia-card-head-icon" style="background:rgba(59,130,246,.12);color:#60a5fa">📡</div>
+          <div class="ia-card-head-icon" style="background:rgba(124,58,237,.15);color:#a78bfa">💬</div>
           <div>
-            <div class="ia-card-title">Atividade em Tempo Real</div>
-            <div class="ia-card-sub">Eventos SSE desta sessão</div>
+            <div class="ia-card-title">Conversa com a IA</div>
+            <div class="ia-card-sub">Histórico de mensagens via WhatsApp</div>
           </div>
         </div>
-        <button class="ia-btn ia-btn-ghost" style="padding:6px 12px;font-size:11px" onclick="IAR.limparHistorico()">
-          Limpar
-        </button>
+        <div style="display:flex;gap:6px">
+          <button class="ia-btn ia-btn-ghost" style="padding:5px 10px;font-size:11px" onclick="IAR.loadHistorico()">🔄</button>
+          <button class="ia-btn ia-btn-ghost" style="padding:5px 10px;font-size:11px" onclick="IAR.limparHistorico()">🗑</button>
+        </div>
       </div>
       <div class="ia-card-body" style="padding:12px">
-        <div class="ia-feed-container">
-          <div id="ia-feed">
+        <div class="ia-feed-container" id="ia-chat-container">
+          <div id="ia-feed" style="display:flex;flex-direction:column;gap:4px">
             <div class="ia-feed-empty">
-              <div class="ia-feed-empty-icon">📡</div>
-              Aguardando eventos em tempo real...
+              <div class="ia-feed-empty-icon">💬</div>
+              Nenhuma conversa ainda
             </div>
           </div>
         </div>
@@ -799,8 +818,30 @@ async function renderRelatoriosIA() {
 
         <div style="margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,.06)">
           <div class="ia-info-box">
-            <strong>💬 Converse com a IA:</strong> salve seu número e envie uma mensagem para o WhatsApp conectado. A IA responderá com dados da sua loja em tempo real.
+            <strong>💬 Converse com a IA:</strong> salve seu número e envie uma mensagem. A IA acessa seus dados em tempo real e pode até alterar estoque.
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log de ações da IA -->
+  <div class="ia-card" style="margin-top:0">
+    <div class="ia-card-head">
+      <div class="ia-card-head-left">
+        <div class="ia-card-head-icon" style="background:rgba(16,185,129,.12);color:#34d399">📋</div>
+        <div>
+          <div class="ia-card-title">Log de Ações da IA</div>
+          <div class="ia-card-sub">Notificações enviadas, relatórios, alterações de estoque</div>
+        </div>
+      </div>
+      <button class="ia-btn ia-btn-ghost" style="padding:5px 10px;font-size:11px" onclick="IAR.loadLogAcoes()">🔄 Atualizar</button>
+    </div>
+    <div class="ia-card-body" style="padding:8px">
+      <div id="ia-log-acoes" style="max-height:220px;overflow-y:auto">
+        <div class="ia-feed-empty" style="padding:24px">
+          <div class="ia-feed-empty-icon">📋</div>
+          Nenhuma ação registrada ainda
         </div>
       </div>
     </div>
@@ -882,31 +923,58 @@ IAR.loadHistorico = async function() {
   try {
     const msgs = await apiGet('/api/ia/historico');
     const feed = document.getElementById('ia-feed');
-    if (!feed || !msgs.length) return;
+    if (!feed) return;
 
-    const empty = feed.querySelector('.ia-feed-empty');
-    if (empty) empty.remove();
-
-    // Renderiza do mais antigo para o mais recente
-    const fragment = document.createDocumentFragment();
-    for (const m of msgs) {
-      const item = document.createElement('div');
-      item.className = 'ia-feed-item';
-      const hora = new Date(m.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-      const isUser = m.role === 'user';
-      item.innerHTML = `
-        <div class="ia-feed-icon" style="background:${isUser?'rgba(59,130,246,.15)':'rgba(124,58,237,.15)'};color:${isUser?'#60a5fa':'#a78bfa'}">${isUser?'👤':'🤖'}</div>
-        <div class="ia-feed-body">
-          <div class="ia-feed-label" style="color:${isUser?'#60a5fa':'#a78bfa'}">${isUser?'Você':'IA ModaFlow'}</div>
-          <div class="ia-feed-msg">${m.content}</div>
-        </div>
-        <div class="ia-feed-time">${hora}</div>`;
-      fragment.appendChild(item);
+    if (!msgs.length) {
+      feed.innerHTML = '<div class="ia-feed-empty"><div class="ia-feed-empty-icon">💬</div>Nenhuma conversa ainda</div>';
+      return;
     }
-    feed.appendChild(fragment);
-    const container = feed.closest('.ia-feed-container');
+
+    feed.innerHTML = msgs.map(m => {
+      const hora   = new Date(m.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+      const isUser = m.role === 'user';
+      const txt    = String(m.content).replace(/</g,'&lt;').replace(/\n/g,'<br>');
+      return `<div style="display:flex;flex-direction:column;align-items:${isUser?'flex-end':'flex-start'};margin-bottom:6px">
+        <div style="font-size:10px;color:#64748b;margin-bottom:3px;padding:0 4px">${isUser?'Você':'🤖 IA'}</div>
+        <div style="padding:10px 14px;border-radius:${isUser?'14px 14px 4px 14px':'14px 14px 14px 4px'};max-width:85%;font-size:12px;line-height:1.6;word-break:break-word;
+          background:${isUser?'linear-gradient(135deg,rgba(124,58,237,.25),rgba(79,70,229,.15))':'rgba(255,255,255,.06)'};
+          color:${isUser?'#e2d9ff':'#cbd5e1'}">${txt}</div>
+        <div style="font-size:10px;color:#475569;margin-top:3px;padding:0 4px">${hora}</div>
+      </div>`;
+    }).join('');
+
+    const container = document.getElementById('ia-chat-container');
     if (container) container.scrollTop = container.scrollHeight;
   } catch(e) {}
+};
+
+IAR.loadLogAcoes = async function() {
+  const el = document.getElementById('ia-log-acoes');
+  if (!el) return;
+  try {
+    const logs = await apiGet('/api/ia/log-acoes');
+    if (!logs.length) {
+      el.innerHTML = '<div class="ia-feed-empty" style="padding:24px"><div class="ia-feed-empty-icon">📋</div>Nenhuma ação ainda</div>';
+      return;
+    }
+    const cores = {
+      notificacao: { bg:'rgba(16,185,129,.15)', color:'#34d399', label:'Notificação' },
+      relatorio:   { bg:'rgba(99,102,241,.15)',  color:'#818cf8', label:'Relatório' },
+      boas_vindas: { bg:'rgba(245,158,11,.15)',  color:'#fbbf24', label:'Boas-vindas' },
+      acao_ia:     { bg:'rgba(239,68,68,.15)',   color:'#f87171', label:'Ação' },
+    };
+    el.innerHTML = logs.map(l => {
+      const c    = cores[l.tipo] || { bg:'rgba(255,255,255,.08)', color:'#94a3b8', label: l.tipo };
+      const hora = new Date(l.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      return `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="background:${c.bg};color:${c.color};font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;margin-top:2px">${c.label}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;color:#cbd5e1">${l.descricao}</div>
+        </div>
+        <div style="font-size:10px;color:#475569;white-space:nowrap">${hora}</div>
+      </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML = '<div style="padding:16px;color:#f87171;font-size:12px">Erro ao carregar</div>'; }
 };
 
 IAR.limparHistorico = async function() {
