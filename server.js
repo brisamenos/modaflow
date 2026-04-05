@@ -1524,27 +1524,47 @@ async function pollTenant(slug) {
       return;
     }
 
-    // Tenta buscar mensagens — loga URL e status
-    const fetchUrl = `${evoUrl}/chat/findMessages/${evoInst}?where[key][fromMe]=false&limit=5`;
-    console.log(`[IA Poll] ${slug} → GET ${fetchUrl}`);
+    // Busca mensagens — tenta endpoints v2 e v1 automaticamente
+    // Evolution API v2: POST /message/findMessages/{instance}
+    // Evolution API v1: GET  /chat/findMessages/{instance}
+    let msgs = [];
+    let fetchOk = false;
 
-    const r = await fetch(fetchUrl, { headers: { 'apikey': evoKey }, signal: AbortSignal.timeout(8000) });
+    const tryFetch = async (method, url, body) => {
+      const opts = { method, headers: { 'Content-Type':'application/json', 'apikey': evoKey }, signal: AbortSignal.timeout(8000) };
+      if (body) opts.body = JSON.stringify(body);
+      const r = await fetch(url, opts);
+      console.log(`[IA Poll] ${slug} ${method} ${url.replace(evoUrl,'')} → ${r.status}`);
+      if (!r.ok) return null;
+      return r.json();
+    };
 
-    console.log(`[IA Poll] ${slug} ← HTTP ${r.status}`);
+    // Tenta v2 primeiro: POST /message/findMessages
+    try {
+      const d = await tryFetch('POST', `${evoUrl}/message/findMessages/${evoInst}`, {
+        where: { key: { fromMe: false } }, limit: 10
+      });
+      if (d) {
+        msgs = Array.isArray(d) ? d : (d.messages || d.records || d.data || []);
+        fetchOk = true;
+      }
+    } catch(e) {}
 
-    if (!r.ok) {
-      const errBody = await r.text().catch(()=>'');
-      console.error(`[IA Poll] ${slug} ERRO ${r.status}: ${errBody.slice(0,200)}`);
-      state.errors++;
-      return;
+    // Se v2 falhou, tenta v1: GET /chat/findMessages
+    if (!fetchOk) {
+      try {
+        const d = await tryFetch('GET', `${evoUrl}/chat/findMessages/${evoInst}?where[key][fromMe]=false&limit=10`);
+        if (d) {
+          msgs = Array.isArray(d) ? d : (d.messages || d.records || d.data || []);
+          fetchOk = true;
+        }
+      } catch(e) {}
     }
+
+    if (!fetchOk) { state.errors++; return; }
     state.errors = 0;
 
-    const data = await r.json();
-    console.log(`[IA Poll] ${slug} payload keys: ${Object.keys(data).join(',')} | Array=${Array.isArray(data)}`);
-
-    const msgs = Array.isArray(data) ? data : (data.messages || data.records || data.data || []);
-    console.log(`[IA Poll] ${slug} mensagens encontradas: ${msgs.length}`);
+    console.log(`[IA Poll] ${slug} — ${msgs.length} mensagens encontradas`);
     if (!msgs.length) return;
 
     // Ordena do mais antigo para o mais novo
