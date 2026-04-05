@@ -1217,58 +1217,87 @@ app.post('/api/ia/send-whatsapp', resolveDb, async (req, res) => {
 // POST /api/ia/webhook/:apiKey  — recebe mensagens
 // ─────────────────────────────────────────────────────────
 app.post('/api/ia/webhook/:apiKey', async (req, res) => {
-  res.status(200).json({ ok: true }); // responde imediatamente
+  res.status(200).json({ ok: true });
+
+  const log = (step, msg, data) => {
+    const ts = new Date().toISOString().slice(11,23);
+    if (data !== undefined) console.log(`[IA ${ts}] [${step}] ${msg}`, JSON.stringify(data).slice(0,200));
+    else console.log(`[IA ${ts}] [${step}] ${msg}`);
+  };
 
   try {
     const { apiKey } = req.params;
+    log('WEBHOOK', `Requisição recebida — key: ${apiKey?.slice(0,12)}...`);
+    log('PAYLOAD', 'Body completo:', req.body);
 
-    // 1. Identifica o tenant pela API key — direto, sem varredura
+    // 1. Identifica tenant pela API key
     const tenant = getTenantByApiKey(apiKey);
     if (!tenant) {
-      console.log(`[IA Webhook] API key inválida ou IA desativada: ${apiKey}`);
+      log('KEY', `❌ Key inválida ou IA desativada: ${apiKey}`);
       return;
     }
     const { slug, nome, db } = tenant;
+    log('KEY', `✅ Tenant encontrado: ${slug} (${nome})`);
 
-    // 2. Extrai evento e mensagem do payload Evolution API
+    // 2. Extrai evento
     const body  = req.body;
     const event = body.event || body.type || '';
-    if (!['messages.upsert','MESSAGES_UPSERT','message'].includes(event)) return;
+    log('EVENT', `Tipo de evento: "${event}"`);
 
-    const msgData = body.data || body;
-    const msg     = msgData.message || msgData.messages?.[0] || msgData;
-    const key     = msg.key || {};
-    if (key.fromMe === true) return;                       // mensagem própria — ignora
-    const remoteJid = key.remoteJid || msg.remoteJid || '';
-    if (remoteJid.endsWith('@g.us')) return;               // grupo — ignora
-
-    const numeroRemetente = cleanNum(remoteJid || msgData.sender || '');
-    if (!numeroRemetente) return;
-
-    // 3. Verifica se o número remetente é o cadastrado no tenant
-    if (!isNumeroAutorizado(db, numeroRemetente)) {
-      console.log(`[IA Webhook] Número ${numeroRemetente} não autorizado para tenant ${slug}`);
+    if (!['messages.upsert','MESSAGES_UPSERT','message'].includes(event)) {
+      log('EVENT', `⏭ Ignorado — evento não é mensagem`);
       return;
     }
 
-    // 4. Extrai texto
+    // 3. Navega no payload (Evolution v1/v2 têm estruturas diferentes)
+    const msgData = body.data || body;
+    const msg     = msgData.message || msgData.messages?.[0] || msgData;
+    log('MSG_STRUCT', 'msgData keys:', Object.keys(msgData));
+    log('MSG_STRUCT', 'msg keys:', Object.keys(msg));
+
+    const key = msg.key || {};
+    log('MSG_KEY', `fromMe=${key.fromMe} remoteJid=${key.remoteJid}`);
+
+    if (key.fromMe === true) { log('MSG_KEY', '⏭ Ignorado — mensagem própria (fromMe)'); return; }
+
+    const remoteJid = key.remoteJid || msg.remoteJid || '';
+    if (remoteJid.endsWith('@g.us')) { log('MSG_KEY', '⏭ Ignorado — grupo'); return; }
+
+    const numeroRemetente = cleanNum(remoteJid || msgData.sender || '');
+    log('NUMERO', `Remetente extraído: "${numeroRemetente}" (de jid: "${remoteJid}")`);
+
+    if (!numeroRemetente) { log('NUMERO', '❌ Número vazio — ignorado'); return; }
+
+    // 4. Verifica autorização
+    const numCadastrado = db.prepare(`SELECT valor FROM ia_config WHERE chave='numero'`).get()?.valor || '';
+    log('AUTH', `Número cadastrado: "${numCadastrado}" | Remetente: "${numeroRemetente}"`);
+
+    if (!isNumeroAutorizado(db, numeroRemetente)) {
+      log('AUTH', `❌ Número não autorizado. Cadastrado: ${numCadastrado} | Recebido: ${numeroRemetente}`);
+      return;
+    }
+    log('AUTH', '✅ Número autorizado');
+
+    // 5. Extrai texto da mensagem
     const msgContent = msg.message || {};
+    log('TEXTO', 'msgContent keys:', Object.keys(msgContent));
     const texto = (
       msgContent.conversation ||
       msgContent.extendedTextMessage?.text ||
       msgContent.imageMessage?.caption || ''
     ).trim();
-    if (!texto) return;
+    log('TEXTO', `Texto extraído: "${texto}"`);
 
-    console.log(`[IA Webhook] "${texto.slice(0,40)}" → tenant: ${slug}`);
+    if (!texto) { log('TEXTO', '⏭ Sem texto — ignorado'); return; }
 
-    // 5. Checa OpenAI key
+    // 6. OpenAI
     const openai_key = iaConfigGet('openai_key');
-    if (!openai_key) return;
+    if (!openai_key) { log('OPENAI', '❌ OpenAI key não configurada'); return; }
+    log('OPENAI', '✅ OpenAI key presente, chamando GPT...');
 
-    // 6. Contexto isolado deste tenant + histórico
-    const contexto   = coletarContextoLoja(db, nome);
-    const historico  = getHistorico(db, numeroRemetente);
+    const contexto  = coletarContextoLoja(db, nome);
+    const historico = getHistorico(db, numeroRemetente);
+    log('HISTORICO', `${historico.length} mensagens no histórico`);
 
     const systemPrompt = `Você é o assistente de IA do ModaFlow para a loja "${nome}".
 Responda sempre em português, de forma curta e direta (máx. 300 palavras — é WhatsApp).
@@ -1285,33 +1314,46 @@ ${contexto}`;
 
     salvarMensagem(db, numeroRemetente, 'user', texto);
 
-    // 7. Chama GPT
     const oRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${openai_key}` },
       body: JSON.stringify({ model:'gpt-4o-mini', max_tokens:500, temperature:0.7, messages })
     });
     const oData = await oRes.json();
-    if (oData.error) { console.error('[IA] OpenAI erro:', oData.error.message); return; }
+    log('OPENAI', `Status: ${oRes.status}`, oData.error || oData.usage);
+
+    if (oData.error) { log('OPENAI', `❌ Erro: ${oData.error.message}`); return; }
 
     const resposta = oData.choices?.[0]?.message?.content?.trim();
-    if (!resposta) return;
+    log('OPENAI', `✅ Resposta: "${resposta?.slice(0,80)}"`);
+    if (!resposta) { log('OPENAI', '❌ Resposta vazia'); return; }
 
     salvarMensagem(db, numeroRemetente, 'assistant', resposta);
 
-    // 8. Envia resposta via WhatsApp
+    // 7. Envia via WhatsApp
+    log('WHATSAPP', `Enviando para ${numeroRemetente}...`);
     await enviarWhatsApp(db, numeroRemetente, resposta);
+    log('WHATSAPP', '✅ Mensagem enviada com sucesso!');
 
-    // 9. Emite evento SSE pro painel do tenant
     emitIAEvent(slug, 'mensagem_ia', {
-      mensagem: `🤖 IA respondeu: "${resposta.slice(0,80)}..."`,
+      mensagem: `🤖 IA respondeu: "${resposta.slice(0,80)}"`,
       numero: numeroRemetente
     });
 
-    console.log(`[IA Webhook] Resposta enviada → ${slug} / ${numeroRemetente}`);
   } catch(e) {
-    console.error('[IA Webhook] Erro:', e.message);
+    console.error(`[IA WEBHOOK] ❌ ERRO GERAL: ${e.message}`, e.stack?.slice(0,300));
   }
+});
+
+// GET /api/ia/webhook-log — endpoint de diagnóstico (últimos logs em memória)
+const _iaLogs = [];
+const _origLog = console.log.bind(console);
+const _origErr = console.error.bind(console);
+console.log = (...a) => { _origLog(...a); const line = a.join(' '); if (line.includes('[IA ')) { _iaLogs.push({ ts: Date.now(), line }); if (_iaLogs.length > 100) _iaLogs.shift(); } };
+console.error = (...a) => { _origErr(...a); const line = '[ERR] '+a.join(' '); if (line.includes('IA')) { _iaLogs.push({ ts: Date.now(), line }); if (_iaLogs.length > 100) _iaLogs.shift(); } };
+
+app.get('/api/ia/webhook-log', adminAuth, (req, res) => {
+  res.json(_iaLogs.slice(-50).reverse());
 });
 
 // ─────────────────────────────────────────────────────────
