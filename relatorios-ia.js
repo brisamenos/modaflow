@@ -97,9 +97,7 @@ const IAR = {
 
     const payload = {
       numero:              num,
-      evo_url:             (document.getElementById('ia-evo-url')?.value||'').trim().replace(/\/$/,''),
-      evo_key:             (document.getElementById('ia-evo-key')?.value||'').trim(),
-      evo_instance:        (document.getElementById('ia-evo-instance')?.value||'').trim(),
+
       notify_nova_venda:   document.getElementById('ia-n-venda')?.checked ? '1':'0',
       notify_estoque:      document.getElementById('ia-n-estoque')?.checked ? '1':'0',
       notify_novo_cliente: document.getElementById('ia-n-cliente')?.checked ? '1':'0',
@@ -112,22 +110,11 @@ const IAR = {
     try {
       await apiPost('/api/ia/config', payload);
       _iaConfig = { ..._iaConfig, ...payload };
-      toast('Configuração salva com sucesso!', 'success');
-      IAR.pollTest = async function() {
-    toast('Executando diagnóstico...', 'info');
-    try {
-      const d = await apiGet('/api/ia/poll-test');
-      let txt = `🔍 DIAGNÓSTICO — ${d.slug}\n\n`;
-      for (const s of d.steps) {
-        txt += `${s.ok ? '✅' : '❌'} ${s.msg}\n`;
-        if (!s.ok && s.data) txt += `   Detalhe: ${JSON.stringify(s.data).slice(0,150)}\n`;
-      }
-      if (d.error) txt += `\n⚠️ ${d.error}`;
-      alert(txt);
-    } catch(e) { toast('Erro: '+e.message, 'error'); }
-  };
 
-  IAR.updateStatus();
+      toast('Configuração salva! ✅', 'success');
+
+      IAR.updateStatus();
+      setTimeout(() => IAR.checkPollingStatus && IAR.checkPollingStatus(), 600);
     } catch(e) {
       toast('Erro ao salvar: ' + e.message, 'error');
     } finally {
@@ -632,29 +619,10 @@ async function renderRelatoriosIA() {
           <strong>🔒 Número exclusivo:</strong> apenas este número poderá conversar com a IA e receber notificações. Outros números serão ignorados automaticamente.
         </div>
 
-        <!-- Evolution API da instância do cliente -->
-        <div style="border-top:1px solid rgba(255,255,255,.06);margin:16px 0;padding-top:16px">
-          <div class="ia-label" style="margin-bottom:12px">⚡ Sua Instância Evolution API</div>
-
-          <div id="ia-polling-status" style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)">
-            <div id="ia-poll-dot" style="width:8px;height:8px;border-radius:50%;background:#64748b;flex-shrink:0"></div>
-            <span id="ia-poll-label" style="font-size:12px;color:#64748b">Verificando...</span>
-          </div>
-
-          <div class="ia-field">
-            <label class="ia-label">URL da Evolution API</label>
-            <input class="ia-input" id="ia-evo-url" placeholder="https://evolution.seuservidor.com" value="${_iaConfig.evo_url||''}">
-          </div>
-          <div class="ia-row">
-            <div class="ia-field" style="margin-bottom:0">
-              <label class="ia-label">API Key</label>
-              <input class="ia-input" id="ia-evo-key" type="password" placeholder="sua-api-key" value="${_iaConfig.evo_key||''}">
-            </div>
-            <div class="ia-field" style="margin-bottom:0">
-              <label class="ia-label">Nome da Instância</label>
-              <input class="ia-input" id="ia-evo-instance" placeholder="minha-instancia" value="${_iaConfig.evo_instance||''}">
-            </div>
-          </div>
+        <!-- Status da conexão (apenas leitura para o cliente) -->
+        <div id="ia-polling-status" style="display:flex;align-items:center;gap:8px;margin:16px 0;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)">
+          <div id="ia-poll-dot" style="width:8px;height:8px;border-radius:50%;background:#64748b;flex-shrink:0"></div>
+          <span id="ia-poll-label" style="font-size:12px;color:#64748b">Verificando conexão...</span>
         </div>
 
         <div class="ia-btn-row">
@@ -867,7 +835,7 @@ async function renderRelatoriosIA() {
         dot.style.background = '#10b981';
         dot.style.boxShadow = '0 0 8px #10b981';
         label.style.color = '#34d399';
-        label.textContent = '✅ Polling ativo — IA respondendo mensagens a cada 5 segundos';
+        label.textContent = '✅ Webhook registrado — IA ativa e respondendo mensagens';
       }
     } catch(e) {
       label.textContent = 'Erro ao verificar status';
