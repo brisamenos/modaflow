@@ -790,9 +790,10 @@ app.post('/api/:table', resolveDb, (req, res) => {
               cliente: v.cliente_id
             });
           } else if (table === 'clientes') {
+            const cli = results[0];
             dispararNotificacaoIA(slug, 'novo_cliente', {
-              nome: results[0].nome,
-              telefone: results[0].telefone
+              nome:     cli.nome,
+              telefone: cli.celular || cli.telefone || cli.whatsapp || '—'
             });
           }
         } catch(e) {}
@@ -1333,6 +1334,114 @@ async function enviarMsg(numero, texto) {
 }
 
 // ─────────────────────────────────────
+// Transcreve áudio via Whisper (OpenAI)
+// ─────────────────────────────────────
+async function transcreverAudio(msgData, remetente, openai_key) {
+  const evoUrl  = iaConfigGet('evo_url');
+  const evoKey  = iaConfigGet('evo_key');
+  const evoInst = iaConfigGet('evo_instance');
+
+  if (!evoUrl || !evoKey || !evoInst) throw new Error('Evolution não configurada');
+
+  // 1. Baixa o áudio da Evolution API v2
+  // Evolution v2 fornece base64 diretamente no payload ou via endpoint de mídia
+  const mc = msgData.message || {};
+  const audioMsg = mc.audioMessage || mc.pttMessage;
+
+  let audioBuffer = null;
+
+  // Tenta pegar base64 direto do payload (Evolution com webhook_base64=true)
+  if (audioMsg?.base64) {
+    audioBuffer = Buffer.from(audioMsg.base64, 'base64');
+    console.log(`[IA Whisper] Áudio via base64 do payload (${audioBuffer.length} bytes)`);
+  } else {
+    // Baixa via endpoint de mídia da Evolution
+    const msgId = msgData.key?.id || msgData.id;
+    if (!msgId) throw new Error('ID da mensagem não encontrado');
+
+    console.log(`[IA Whisper] Baixando áudio via Evolution (msgId: ${msgId})...`);
+
+    // Evolution API v2: GET /chat/getBase64FromMediaMessage/{instance}
+    const r = await fetch(`${evoUrl}/chat/getBase64FromMediaMessage/${evoInst}`, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'apikey': evoKey },
+      body: JSON.stringify({ message: { key: msgData.key }, convertToMp4: false }),
+      signal: AbortSignal.timeout(15000)
+    });
+
+    if (!r.ok) {
+      const err = await r.text();
+      throw new Error(`Evolution mídia ${r.status}: ${err.slice(0,100)}`);
+    }
+
+    const d = await r.json();
+    const b64 = d.base64 || d.data || d.media;
+    if (!b64) throw new Error('Base64 não retornado pela Evolution');
+    audioBuffer = Buffer.from(b64, 'base64');
+    console.log(`[IA Whisper] Áudio baixado (${audioBuffer.length} bytes)`);
+  }
+
+  if (!audioBuffer || audioBuffer.length < 100) throw new Error('Áudio muito pequeno ou vazio');
+
+  // 2. Envia para Whisper via FormData
+  const { FormData, Blob } = await import('node:buffer').catch(() => ({}));
+
+  // Cria FormData manualmente (multipart)
+  const boundary = '----WhisperBoundary' + Date.now();
+  const mimeType = 'audio/ogg; codecs=opus'; // formato padrão do WhatsApp
+
+  const header = Buffer.from(
+    `--${boundary}
+` +
+    `Content-Disposition: form-data; name="file"; filename="audio.ogg"
+` +
+    `Content-Type: ${mimeType}
+
+`
+  );
+  const modelPart = Buffer.from(
+    `
+--${boundary}
+` +
+    `Content-Disposition: form-data; name="model"
+
+` +
+    `whisper-1` +
+    `
+--${boundary}
+` +
+    `Content-Disposition: form-data; name="language"
+
+` +
+    `pt` +
+    `
+--${boundary}--
+`
+  );
+
+  const body = Buffer.concat([header, audioBuffer, modelPart]);
+
+  console.log(`[IA Whisper] Enviando ${body.length} bytes para OpenAI Whisper...`);
+
+  const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openai_key}`,
+      'Content-Type': `multipart/form-data; boundary=${boundary}`,
+    },
+    body,
+    signal: AbortSignal.timeout(30000)
+  });
+
+  const whisperData = await whisperRes.json();
+  if (whisperData.error) throw new Error(`Whisper: ${whisperData.error.message}`);
+
+  const transcricao = (whisperData.text || '').trim();
+  console.log(`[IA Whisper] ✅ Transcrição: "${transcricao.slice(0,80)}"`);
+  return transcricao;
+}
+
+// ─────────────────────────────────────
 // POST /api/ia/webhook  — recebe tudo
 // Configure esse URL na Evolution API
 // ─────────────────────────────────────
@@ -1357,14 +1466,14 @@ app.post('/api/ia/webhook', async (req, res) => {
     const remetente = cleanNum(jid);
     if (!remetente) return;
 
-    // Extrai texto
-    const mc    = data.message || {};
-    const texto = (mc.conversation || mc.extendedTextMessage?.text || mc.imageMessage?.caption || '').trim();
-    if (!texto) return;
+    // Extrai conteúdo da mensagem
+    const mc = data.message || {};
 
-    console.log(`[IA] Mensagem de ${remetente}: "${texto.slice(0,50)}"`);
+    // Verifica se é áudio (PTT = push to talk, ou audioMessage)
+    const isAudio = !!(mc.audioMessage || mc.pttMessage);
+    let texto = (mc.conversation || mc.extendedTextMessage?.text || mc.imageMessage?.caption || '').trim();
 
-    // Acha o tenant pelo número
+    // Acha o tenant antes de processar áudio (precisa da key OpenAI)
     const tenant = tenantPorNumero(remetente);
     if (!tenant) {
       console.log(`[IA] Número ${remetente} não cadastrado em nenhuma loja`);
@@ -1374,6 +1483,31 @@ app.post('/api/ia/webhook', async (req, res) => {
 
     const openai_key = iaConfigGet('openai_key');
     if (!openai_key) { console.log('[IA] OpenAI key não configurada'); return; }
+
+    // Transcreve áudio se for PTT/audio
+    if (isAudio && !texto) {
+      console.log(`[IA] Áudio detectado — transcrevendo via Whisper...`);
+      try {
+        texto = await transcreverAudio(data, remetente, openai_key);
+        if (texto) {
+          console.log(`[IA] Transcrição: "${texto.slice(0,80)}"`);
+          // Confirma recebimento enquanto processa
+          await enviarMsg(remetente, '🎤 _Ouvi seu áudio, processando..._');
+        }
+      } catch(e) {
+        console.error('[IA] Erro ao transcrever:', e.message);
+        await enviarMsg(remetente, '❌ Não consegui entender o áudio. Tente digitar sua mensagem.');
+        return;
+      }
+    }
+
+    if (!texto) return;
+    console.log(`[IA] Mensagem de ${remetente}: "${texto.slice(0,60)}"`);
+
+    // Registra transcrição no log se veio de áudio
+    if (isAudio) {
+      logAcaoIA(tenant.db, 'transcricao', `Áudio transcrito: "${texto.slice(0,60)}"`, { numero: remetente });
+    };
 
     const historico = getHistorico(tenant.db, remetente);
     const dados     = dadosDaLoja(tenant.db, tenant.nome);
@@ -1536,13 +1670,24 @@ app.get('/api/ia/webhook-log', adminAuth, (req, res) => {
 // IA — NOTIFICAÇÕES AUTOMÁTICAS
 // =============================================
 
+// Formata data/hora no fuso de Brasília
+function agoraBrasilia() {
+  return new Date().toLocaleString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+}
+
 // Verifica se está no horário permitido
 function dentroDoHorario(db) {
   try {
     const inicio = tenantIaGet(db,'horario_inicio') || '00:00';
     const fim    = tenantIaGet(db,'horario_fim')    || '23:59';
-    const agora  = new Date();
-    const hm     = agora.getHours()*60 + agora.getMinutes();
+    // Usa horário de Brasília (UTC-3)
+    const agoraBR = new Date().toLocaleTimeString('pt-BR', { timeZone:'America/Sao_Paulo', hour:'2-digit', minute:'2-digit' });
+    const [h,m]  = agoraBR.split(':').map(Number);
+    const hm     = h*60 + m;
     const [hi,mi] = inicio.split(':').map(Number);
     const [hf,mf] = fim.split(':').map(Number);
     const start = hi*60+mi, end = hf*60+mf;
@@ -1590,11 +1735,11 @@ async function dispararNotificacaoIA(slug, tipo, dados) {
       if (dados.cliente) {
         try { const c = db.prepare(`SELECT nome FROM clientes WHERE id=?`).get(dados.cliente); if(c) clienteNome=c.nome; } catch(e){}
       }
-      msg = `🛍️ *Nova venda registrada!*\n\n💰 Valor: *${R(dados.total)}*\n👤 Cliente: ${clienteNome}\n💳 Pagamento: ${dados.forma||'—'}\n\n_${new Date().toLocaleString('pt-BR')}_`;
+      msg = `🛍️ *Nova venda registrada!*\n\n💰 Valor: *${R(dados.total)}*\n👤 Cliente: ${clienteNome}\n💳 Pagamento: ${dados.forma||'—'}\n\n_${agoraBrasilia()}_`;
     } else if (tipo === 'novo_cliente') {
-      msg = `👤 *Novo cliente cadastrado!*\n\n📛 Nome: *${dados.nome}*\n📱 Tel: ${dados.telefone||'—'}\n\n_${new Date().toLocaleString('pt-BR')}_`;
+      msg = `👤 *Novo cliente cadastrado!*\n\n📛 Nome: *${dados.nome}*\n📱 Tel: ${dados.telefone||'—'}\n\n_${agoraBrasilia()}_`;
     } else if (tipo === 'estoque') {
-      msg = `⚠️ *Alerta de estoque baixo!*\n\n${dados.itens}\n\n_${new Date().toLocaleString('pt-BR')}_`;
+      msg = `⚠️ *Alerta de estoque baixo!*\n\n${dados.itens}\n\n_${agoraBrasilia()}_`;
     }
 
     if (!msg) return;
@@ -1660,7 +1805,8 @@ setInterval(async () => {
 setInterval(async () => {
   try {
     const agora  = new Date();
-    const horaAtual = `${String(agora.getHours()).padStart(2,'0')}:${String(agora.getMinutes()).padStart(2,'0')}`;
+    const horaBrasilia = new Date().toLocaleTimeString('pt-BR', { timeZone:'America/Sao_Paulo', hour:'2-digit', minute:'2-digit' });
+    const horaAtual = horaBrasilia;
 
     const ativos = adminDb.prepare(`SELECT slug FROM gestores WHERE ativo=1 AND ia_enabled=1`).all();
     for (const g of ativos) {
