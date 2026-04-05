@@ -1488,248 +1488,191 @@ app.delete('/api/ia/historico', resolveDb, (req, res) => {
 });
 
 // =============================================
-// IA — POLLING POR TENANT (sem webhook)
-// Cada tenant tem sua própria instância Evolution.
-// O servidor consulta cada instância a cada 5s.
+// =============================================
+// IA — RECEPÇÃO DE MENSAGENS VIA WEBHOOK POR TENANT
+// Cada cliente configura as credenciais da sua própria
+// instância Evolution. Ao salvar, o servidor registra
+// o webhook naquela instância automaticamente.
+// Mensagens chegam via: POST /api/ia/wh/{slug}
 // =============================================
 
-const _pollingState = {}; // slug → { lastMsgId, errors }
+// Registra webhook na instância do tenant
+async function registrarWebhookTenant(slug, db) {
+  const evoUrl  = tenantIaGet(db,'evo_url');
+  const evoKey  = tenantIaGet(db,'evo_key');
+  const evoInst = tenantIaGet(db,'evo_instance');
+  if (!evoUrl || !evoKey || !evoInst) return { ok:false, reason:'Credenciais incompletas' };
 
-async function pollTenant(slug) {
-  const db = getTenantDb(slug);
-  const state = _pollingState[slug] || { lastMsgId: null, errors: 0 };
-  _pollingState[slug] = state;
+  const webhookUrl = `${process.env.BASE_URL || ''}/api/ia/wh/${slug}`;
 
   try {
-    // Lê configurações do tenant
-    ensureIaConfigTable(db);
-    const evoUrl  = tenantIaGet(db,'evo_url');
-    const evoKey  = tenantIaGet(db,'evo_key');
-    const evoInst = tenantIaGet(db,'evo_instance');
-    const numero  = cleanNum(tenantIaGet(db,'numero') || '');
-    const iaOn    = tenantIaGet(db,'ia_enabled') === '1';
-    const openai_key = iaConfigGet('openai_key');
-
-    // Log de diagnóstico a cada 30s
-    const agora = Date.now();
-    if (!state.lastLog || agora - state.lastLog > 30000) {
-      console.log(`[IA Poll] ${slug} | iaOn=${iaOn} evoUrl=${!!evoUrl} evoKey=${!!evoKey} evoInst=${evoInst} numero=${numero} openai=${!!openai_key}`);
-      state.lastLog = agora;
-    }
-
-    if (!iaOn || !evoUrl || !evoKey || !evoInst || !numero || !openai_key) {
-      if (!state.lastLog || agora - state.lastLog > 30000) {
-        console.log(`[IA Poll] ${slug} INATIVO — falta: ${!iaOn?'ia_enabled ':''} ${!evoUrl?'evo_url ':''} ${!evoKey?'evo_key ':''} ${!evoInst?'evo_instance ':''} ${!numero?'numero ':''} ${!openai_key?'openai_key ':''}`);
-      }
-      return;
-    }
-
-    // Busca mensagens — tenta endpoints v2 e v1 automaticamente
-    // Evolution API v2: POST /message/findMessages/{instance}
-    // Evolution API v1: GET  /chat/findMessages/{instance}
-    let msgs = [];
-    let fetchOk = false;
-
-    const tryFetch = async (method, url, body) => {
-      const opts = { method, headers: { 'Content-Type':'application/json', 'apikey': evoKey }, signal: AbortSignal.timeout(8000) };
-      if (body) opts.body = JSON.stringify(body);
-      const r = await fetch(url, opts);
-      console.log(`[IA Poll] ${slug} ${method} ${url.replace(evoUrl,'')} → ${r.status}`);
-      if (!r.ok) return null;
-      return r.json();
-    };
-
-    // Tenta v2 primeiro: POST /message/findMessages
-    try {
-      const d = await tryFetch('POST', `${evoUrl}/message/findMessages/${evoInst}`, {
-        where: { key: { fromMe: false } }, limit: 10
-      });
-      if (d) {
-        msgs = Array.isArray(d) ? d : (d.messages || d.records || d.data || []);
-        fetchOk = true;
-      }
-    } catch(e) {}
-
-    // Se v2 falhou, tenta v1: GET /chat/findMessages
-    if (!fetchOk) {
-      try {
-        const d = await tryFetch('GET', `${evoUrl}/chat/findMessages/${evoInst}?where[key][fromMe]=false&limit=10`);
-        if (d) {
-          msgs = Array.isArray(d) ? d : (d.messages || d.records || d.data || []);
-          fetchOk = true;
-        }
-      } catch(e) {}
-    }
-
-    if (!fetchOk) { state.errors++; return; }
-    state.errors = 0;
-
-    console.log(`[IA Poll] ${slug} — ${msgs.length} mensagens encontradas`);
-    if (!msgs.length) return;
-
-    // Ordena do mais antigo para o mais novo
-    msgs.sort((a,b) => (a.messageTimestamp||0) - (b.messageTimestamp||0));
-
-    for (const msg of msgs) {
-      const msgId  = msg.key?.id || msg.id;
-      const jid    = msg.key?.remoteJid || msg.remoteJid || '';
-      const fromMe = msg.key?.fromMe ?? msg.fromMe ?? false;
-
-      if (fromMe) continue;
-      if (jid.endsWith('@g.us')) continue;
-      if (msgId === state.lastMsgId) { state.lastMsgId = msgId; break; }
-      if (state.lastMsgId !== null) {
-        // Só processa mensagens DEPOIS da última vista
-        const idx = msgs.findIndex(m=>(m.key?.id||m.id)===state.lastMsgId);
-        if (idx !== -1 && msgs.indexOf(msg) <= idx) continue;
-      }
-
-      const remetente = cleanNum(jid);
-      if (!remetente) continue;
-
-      // Verifica se é o número autorizado
-      if (!isNumeroAutorizado(db, remetente)) continue;
-
-      // Extrai texto
-      const mc = msg.message || {};
-      const texto = (
-        mc.conversation ||
-        mc.extendedTextMessage?.text ||
-        mc.imageMessage?.caption || ''
-      ).trim();
-      if (!texto) continue;
-
-      // Evita processar a mesma msg duas vezes (salva no histórico)
-      try {
-        const jaProcessou = db.prepare(
-          `SELECT id FROM ia_conversas WHERE numero=? AND content=? AND role='user' AND created_at > datetime('now','-1 minute')`
-        ).get(remetente, texto);
-        if (jaProcessou) { state.lastMsgId = msgId; continue; }
-      } catch(e){}
-
-      console.log(`[IA Poll] ${slug} ← "${texto.slice(0,50)}" de ${remetente}`);
-
-      // Chama GPT
-      const nomeGestor = adminDb.prepare(`SELECT nome FROM gestores WHERE slug=?`).get(slug)?.nome || slug;
-      const contexto   = coletarContextoLoja(db, nomeGestor);
-      const historico  = getHistorico(db, remetente);
-
-      const systemPrompt = `Você é o assistente de IA do ModaFlow para a loja "${nomeGestor}".
-Responda sempre em português, de forma curta e direta (máx. 300 palavras — é WhatsApp).
-Foque em vendas, estoque, faturamento, clientes e relatórios desta loja.
-
-${contexto}`;
-
-      const messages = [
-        { role:'system', content: systemPrompt },
-        ...historico.map(h=>({ role:h.role, content:h.content })),
-        { role:'user', content: texto }
-      ];
-
-      salvarMensagem(db, remetente, 'user', texto);
-
-      const oRes = await fetch('https://api.openai.com/v1/chat/completions', {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json', 'Authorization': `Bearer ${openai_key}` },
-        body: JSON.stringify({ model:'gpt-4o-mini', max_tokens:500, temperature:0.7, messages }),
-        signal: AbortSignal.timeout(30000)
-      });
-      const oData = await oRes.json();
-      const resposta = oData.choices?.[0]?.message?.content?.trim();
-      if (!resposta) continue;
-
-      salvarMensagem(db, remetente, 'assistant', resposta);
-
-      // Envia resposta
-      await enviarWhatsApp(db, remetente, resposta);
-      console.log(`[IA Poll] ${slug} → resposta enviada para ${remetente}`);
-
-      emitIAEvent(slug, 'mensagem_ia', {
-        mensagem: `🤖 "${resposta.slice(0,80)}"`,
-        numero: remetente
-      });
-
-      state.lastMsgId = msgId;
-    }
-
-    // Atualiza lastMsgId com o mais recente
-    const ultimo = msgs[msgs.length-1];
-    if (ultimo) state.lastMsgId = ultimo.key?.id || ultimo.id;
-
+    // Evolution API v2
+    const r = await fetch(`${evoUrl}/webhook/set/${evoInst}`, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'apikey': evoKey },
+      body: JSON.stringify({
+        url: webhookUrl,
+        webhook_by_events: false,
+        webhook_base64: false,
+        events: ['MESSAGES_UPSERT']
+      }),
+      signal: AbortSignal.timeout(8000)
+    });
+    const d = await r.json();
+    console.log(`[IA Webhook] ${slug} registrado: ${r.status}`, JSON.stringify(d).slice(0,100));
+    return { ok: r.ok, status: r.status, data: d, webhookUrl };
   } catch(e) {
-    state.errors++;
-    if (state.errors <= 3) console.error(`[IA Poll] ${slug} erro:`, e.message);
+    console.error(`[IA Webhook] ${slug} erro ao registrar:`, e.message);
+    return { ok:false, reason: e.message };
   }
 }
 
-// Roda polling a cada 5 segundos para todos tenants com IA ativa
-setInterval(async () => {
-  try {
-    const ativos = adminDb.prepare(`SELECT slug FROM gestores WHERE ativo=1 AND ia_enabled=1`).all();
-    for (const g of ativos) {
-      pollTenant(g.slug).catch(()=>{});
-    }
-  } catch(e){}
-}, 5000);
+// Endpoint de recepção por tenant: POST /api/ia/wh/:slug
+app.post('/api/ia/wh/:slug', async (req, res) => {
+  res.status(200).json({ ok: true });
 
-// Teste manual do polling — executa agora e retorna diagnóstico completo
-app.get('/api/ia/poll-test', resolveDb, async (req, res) => {
-  const slug = req.gestor?.slug;
-  const db   = req.db;
-  const result = { slug, steps: [] };
-  const add = (ok, msg, data) => result.steps.push({ ok, msg, data });
+  const { slug } = req.params;
+  const log = (step, msg, data) => {
+    const ts = new Date().toISOString().slice(11,19);
+    const line = `[IA ${ts}] [${step}] ${slug}: ${msg}`;
+    console.log(data !== undefined ? line + ' ' + JSON.stringify(data).slice(0,150) : line);
+  };
 
   try {
-    ensureIaConfigTable(db);
-    const evoUrl  = tenantIaGet(db,'evo_url');
-    const evoKey  = tenantIaGet(db,'evo_key');
-    const evoInst = tenantIaGet(db,'evo_instance');
-    const numero  = tenantIaGet(db,'numero');
-    const iaOn    = tenantIaGet(db,'ia_enabled') === '1';
+    // Verifica tenant
+    const g = adminDb.prepare(`SELECT nome, ia_enabled, ativo FROM gestores WHERE slug=?`).get(slug);
+    if (!g || !g.ativo || !g.ia_enabled) { log('SKIP','tenant inativo ou IA desligada'); return; }
+
+    const db = getTenantDb(slug);
+    log('RECV','payload recebido:', req.body);
+
+    // Extrai mensagem do payload Evolution v2
+    const body = req.body;
+    const event = body.event || body.type || '';
+    if (!['messages.upsert','MESSAGES_UPSERT'].includes(event)) { log('SKIP',`evento ignorado: ${event}`); return; }
+
+    const msgData = body.data || body;
+    const key = msgData.key || {};
+
+    if (key.fromMe === true) { log('SKIP','fromMe=true'); return; }
+    const jid = key.remoteJid || '';
+    if (jid.endsWith('@g.us')) { log('SKIP','grupo'); return; }
+
+    const remetente = cleanNum(jid);
+    if (!remetente) { log('SKIP','jid vazio'); return; }
+
+    // Verifica número autorizado
+    const numCad = cleanNum(tenantIaGet(db,'numero') || '');
+    log('AUTH',`cadastrado=${numCad} recebido=${remetente}`);
+    if (!isNumeroAutorizado(db, remetente)) { log('AUTH','❌ não autorizado'); return; }
+    log('AUTH','✅ autorizado');
+
+    // Extrai texto
+    const mc = msgData.message || {};
+    const texto = (mc.conversation || mc.extendedTextMessage?.text || mc.imageMessage?.caption || '').trim();
+    log('TEXTO',`"${texto}"`);
+    if (!texto) { log('SKIP','sem texto'); return; }
+
     const openai_key = iaConfigGet('openai_key');
+    if (!openai_key) { log('ERR','OpenAI key ausente'); return; }
 
-    add(!!evoUrl,  `evo_url: ${evoUrl||'NÃO CONFIGURADO'}`);
-    add(!!evoKey,  `evo_key: ${evoKey ? '***configurado***' : 'NÃO CONFIGURADO'}`);
-    add(!!evoInst, `evo_instance: ${evoInst||'NÃO CONFIGURADO'}`);
-    add(!!numero,  `numero: ${numero||'NÃO CONFIGURADO'}`);
-    add(iaOn,      `ia_enabled: ${iaOn}`);
-    add(!!openai_key, `openai_key: ${openai_key ? '***configurado***' : 'NÃO CONFIGURADO'}`);
+    const contexto = coletarContextoLoja(db, g.nome);
+    const historico = getHistorico(db, remetente);
 
-    if (!evoUrl || !evoKey || !evoInst) {
-      return res.json({ ...result, error: 'Configuração incompleta' });
-    }
+    const systemPrompt = `Você é o assistente de IA do ModaFlow para a loja "${g.nome}".
+Responda sempre em português, de forma curta e direta (máx. 300 palavras — é WhatsApp).
+Foque em vendas, estoque, faturamento e relatórios desta loja.
 
-    // Testa conexão com Evolution
-    try {
-      const r1 = await fetch(`${evoUrl}/instance/connectionState/${evoInst}`,
-        { headers: { 'apikey': evoKey }, signal: AbortSignal.timeout(8000) });
-      const d1 = await r1.json();
-      add(r1.ok, `connectionState: HTTP ${r1.status}`, d1);
-    } catch(e) { add(false, `connectionState: ERRO — ${e.message}`); }
+${contexto}`;
 
-    // Testa busca de mensagens
-    try {
-      const r2 = await fetch(
-        `${evoUrl}/chat/findMessages/${evoInst}?where[key][fromMe]=false&limit=3`,
-        { headers: { 'apikey': evoKey }, signal: AbortSignal.timeout(8000) }
-      );
-      const d2 = await r2.json();
-      const msgs = Array.isArray(d2) ? d2 : (d2.messages || d2.records || d2.data || []);
-      add(r2.ok, `findMessages: HTTP ${r2.status} — ${msgs.length} msgs`, 
-        msgs.length ? msgs[0] : d2);
-    } catch(e) { add(false, `findMessages: ERRO — ${e.message}`); }
+    const messages = [
+      { role:'system', content: systemPrompt },
+      ...historico.map(h => ({ role:h.role, content:h.content })),
+      { role:'user', content: texto }
+    ];
 
-  } catch(e) { add(false, `Erro geral: ${e.message}`); }
+    salvarMensagem(db, remetente, 'user', texto);
 
+    log('GPT','chamando GPT-4o-mini...');
+    const oRes = await fetch('https://api.openai.com/v1/chat/completions', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${openai_key}` },
+      body: JSON.stringify({ model:'gpt-4o-mini', max_tokens:500, temperature:0.7, messages }),
+      signal: AbortSignal.timeout(30000)
+    });
+    const oData = await oRes.json();
+    if (oData.error) { log('GPT','❌ erro: '+oData.error.message); return; }
+
+    const resposta = oData.choices?.[0]?.message?.content?.trim();
+    if (!resposta) { log('GPT','❌ resposta vazia'); return; }
+    log('GPT',`✅ "${resposta.slice(0,60)}"`);
+
+    salvarMensagem(db, remetente, 'assistant', resposta);
+
+    await enviarWhatsApp(db, remetente, resposta);
+    log('SEND','✅ mensagem enviada');
+
+    emitIAEvent(slug, 'mensagem_ia', { mensagem:`🤖 "${resposta.slice(0,80)}"`, numero: remetente });
+
+  } catch(e) {
+    console.error(`[IA WH] ${slug} ERRO:`, e.message);
+  }
+});
+
+
+// Admin lê config IA de qualquer tenant
+app.get('/api/ia/config-admin/:slug', adminAuth, (req, res) => {
+  try {
+    const db = getTenantDb(req.params.slug);
+    ensureIaConfigTable(db);
+    res.json({
+      evo_url:      tenantIaGet(db,'evo_url')      || '',
+      evo_key:      tenantIaGet(db,'evo_key')       || '',
+      evo_instance: tenantIaGet(db,'evo_instance')  || '',
+    });
+  } catch(e) { res.status(500).json({ message: e.message }); }
+});
+
+// Admin salva config IA de qualquer tenant
+app.post('/api/ia/config-admin/:slug', adminAuth, (req, res) => {
+  try {
+    const db = getTenantDb(req.params.slug);
+    ensureIaConfigTable(db);
+    const { evo_url, evo_key, evo_instance } = req.body;
+    if (evo_url      !== undefined) tenantIaSet(db,'evo_url',      evo_url);
+    if (evo_key      !== undefined) tenantIaSet(db,'evo_key',      evo_key);
+    if (evo_instance !== undefined) tenantIaSet(db,'evo_instance', evo_instance);
+    console.log(`[IA Admin] ${req.params.slug} → evo_url=${evo_url} evo_instance=${evo_instance}`);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ message: e.message }); }
+});
+
+// Admin registra webhook na instância do tenant
+app.post('/api/ia/registrar-webhook-admin/:slug', adminAuth, async (req, res) => {
+  const slug = req.params.slug;
+  const db   = getTenantDb(slug);
+  if (req.body.base_url) process.env.BASE_URL = req.body.base_url.replace(/\/$/,'');
+  const result = await registrarWebhookTenant(slug, db);
   res.json(result);
 });
 
-// Status do polling por tenant
+// Registrar webhook ao salvar config (chamado automaticamente)
+app.post('/api/ia/registrar-webhook', resolveDb, async (req, res) => {
+  const slug = req.gestor?.slug;
+  const db   = req.db;
+  const result = await registrarWebhookTenant(slug, db);
+  // Salva a BASE_URL se fornecida
+  if (req.body.base_url) {
+    process.env.BASE_URL = req.body.base_url.replace(/\/$/,'');
+  }
+  res.json(result);
+});
+
+// Status por tenant
 app.get('/api/ia/polling-status', resolveDb, (req, res) => {
-  const slug  = req.gestor?.slug;
-  const state = _pollingState[slug] || {};
-  const db    = req.db;
-  const cfg   = {
+  const slug = req.gestor?.slug;
+  const db   = req.db;
+  const cfg  = {
     evo_url:      !!tenantIaGet(db,'evo_url'),
     evo_key:      !!tenantIaGet(db,'evo_key'),
     evo_instance: !!tenantIaGet(db,'evo_instance'),
@@ -1740,7 +1683,6 @@ app.get('/api/ia/polling-status', resolveDb, (req, res) => {
     slug,
     configurado: Object.values(cfg).every(Boolean),
     campos: cfg,
-    lastMsgId: state.lastMsgId,
-    errors: state.errors || 0,
+    errors: 0,
   });
 });
