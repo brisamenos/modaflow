@@ -652,6 +652,33 @@ tbody td{padding:14px 20px;font-size:13.5px;vertical-align:middle}
         </div>
       </div>
     </div>
+      <!-- Seção IA -->
+      <div style="border-top:1px solid var(--border);margin-top:4px;padding-top:16px">
+        <div style="font-size:11px;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;display:flex;align-items:center;gap:6px">
+          🤖 Configuração IA & WhatsApp
+        </div>
+        <div class="f-group">
+          <label class="f-label">URL da Evolution API</label>
+          <input class="f-input" id="g-evo-url" placeholder="https://evolution.seuservidor.com">
+        </div>
+        <div class="f-row">
+          <div class="f-group" style="margin-bottom:0">
+            <label class="f-label">API Key Evolution</label>
+            <input class="f-input" id="g-evo-key" type="password" placeholder="api-key da instância">
+          </div>
+          <div class="f-group" style="margin-bottom:0">
+            <label class="f-label">Nome da Instância</label>
+            <input class="f-input" id="g-evo-instance" placeholder="nome-da-instancia">
+          </div>
+        </div>
+        <div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-secondary btn-sm" onclick="registrarWebhookGestor()" id="btn-registrar-wh">
+            🔗 Registrar Webhook
+          </button>
+          <span id="wh-status" style="font-size:11px;color:var(--text3)">Configure as credenciais e clique para registrar</span>
+        </div>
+      </div>
+    </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="fecharModal('modal-gestor')">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarGestor()">💾 Salvar gestor</button>
@@ -913,6 +940,10 @@ function abrirCriarGestor() {
   document.getElementById('g-expiry').value = '';
   document.getElementById('g-plano').value = 'basico';
   document.getElementById('g-ativo').value = '1';
+  document.getElementById('g-evo-url').value = '';
+  document.getElementById('g-evo-key').value = '';
+  document.getElementById('g-evo-instance').value = '';
+  document.getElementById('wh-status').textContent = 'Configure as credenciais e clique para registrar';
   document.getElementById('modal-gestor-title').textContent = 'Novo Gestor';
   document.getElementById('g-senha-label').textContent = 'Senha *';
   document.getElementById('g-senha-hint').textContent = '';
@@ -931,6 +962,8 @@ function abrirEditarGestor(id) {
   document.getElementById('g-expiry').value = g.expires_at || '';
   document.getElementById('g-plano').value = g.plano || 'basico';
   document.getElementById('g-ativo').value = g.ativo ? '1' : '0';
+  // Carregar credenciais IA do tenant
+  carregarEvoCredenciais(g.slug);
   document.getElementById('modal-gestor-title').textContent = 'Editar Gestor — '+g.nome;
   document.getElementById('g-senha-label').textContent = 'Nova senha';
   document.getElementById('g-senha-hint').textContent = 'Deixe em branco para não alterar';
@@ -1054,6 +1087,82 @@ function toast(msg, type='success') {
 
 
 
+
+
+async function carregarEvoCredenciais(slug) {
+  document.getElementById('g-evo-url').value = '';
+  document.getElementById('g-evo-key').value = '';
+  document.getElementById('g-evo-instance').value = '';
+  document.getElementById('wh-status').textContent = 'Carregando...';
+  try {
+    // Usa o token admin para buscar config do tenant via slug
+    const r = await fetch(`/api/ia/config-admin/${slug}`, { headers: adminHeader() });
+    if (!r.ok) { document.getElementById('wh-status').textContent = 'Sem configuração ainda'; return; }
+    const d = await r.json();
+    document.getElementById('g-evo-url').value      = d.evo_url      || '';
+    document.getElementById('g-evo-key').value      = d.evo_key      || '';
+    document.getElementById('g-evo-instance').value = d.evo_instance || '';
+    document.getElementById('wh-status').textContent = d.evo_url
+      ? (d.evo_instance ? `✅ Instância: ${d.evo_instance}` : 'Instância não configurada')
+      : 'Sem configuração ainda';
+  } catch(e) {
+    document.getElementById('wh-status').textContent = 'Erro ao carregar';
+  }
+}
+
+async function salvarEvoCredenciais(slug) {
+  const payload = {
+    evo_url:      document.getElementById('g-evo-url').value.trim().replace(/\/$/,''),
+    evo_key:      document.getElementById('g-evo-key').value.trim(),
+    evo_instance: document.getElementById('g-evo-instance').value.trim(),
+  };
+  await fetch(`/api/ia/config-admin/${slug}`, {
+    method: 'POST', headers: adminHeader(),
+    body: JSON.stringify(payload)
+  });
+}
+
+async function registrarWebhookGestor() {
+  const btn = document.getElementById('btn-registrar-wh');
+  const status = document.getElementById('wh-status');
+  const gestorId = document.getElementById('g-id').value;
+  if (!gestorId) { toast('Salve o gestor primeiro.', 'error'); return; }
+
+  const g = _gestores.find(x => String(x.id) === String(gestorId));
+  if (!g) return;
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Registrando...';
+  status.textContent = 'Salvando credenciais...';
+
+  try {
+    // 1. Salva as credenciais no banco do tenant
+    await salvarEvoCredenciais(g.slug);
+    status.textContent = 'Registrando webhook na Evolution...';
+
+    // 2. Registra webhook
+    const r = await fetch(`/api/ia/registrar-webhook-admin/${g.slug}`, {
+      method: 'POST', headers: adminHeader(),
+      body: JSON.stringify({ base_url: window.location.origin })
+    });
+    const d = await r.json();
+
+    if (d.ok) {
+      status.style.color = '#34d399';
+      status.textContent = `✅ Webhook registrado! URL: ${d.webhookUrl}`;
+      toast('Webhook registrado com sucesso!');
+    } else {
+      status.style.color = '#f87171';
+      status.textContent = `❌ Erro: ${d.reason || d.status || JSON.stringify(d.data).slice(0,80)}`;
+    }
+  } catch(e) {
+    status.style.color = '#f87171';
+    status.textContent = `❌ Erro: ${e.message}`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔗 Registrar Webhook';
+  }
+}
 
 // ═══════════════════════════════════════════════════════
 //  IA — ADMIN PANEL JS
