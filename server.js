@@ -40,6 +40,15 @@ adminDb.exec(`
   );
 `);
 
+// Migrações do adminDb — adiciona colunas que podem não existir em bancos antigos
+const adminMigrations = [
+  'ALTER TABLE gestores ADD COLUMN ia_enabled INTEGER DEFAULT 0',
+  'ALTER TABLE gestores ADD COLUMN ia_api_key TEXT',
+];
+for (const m of adminMigrations) {
+  try { adminDb.exec(m); } catch(e) { /* coluna já existe — ignora */ }
+}
+
 // Admin padrão
 if (!adminDb.prepare('SELECT id FROM admin_usuarios WHERE email=?').get('admin@modaflow.com')) {
   const h = crypto.createHash('sha256').update('admin123').digest('hex');
@@ -283,7 +292,7 @@ app.post('/api/admin/login', (req,res) => {
 app.get('/api/admin/me', adminAuth, (req,res) => res.json({ nome:req.admin.nome, email:req.admin.email }));
 
 app.get('/api/admin/gestores', adminAuth, (req,res) => {
-  res.json(adminDb.prepare('SELECT id,nome,slug,email,plano,ativo,expires_at,created_at FROM gestores ORDER BY created_at DESC').all());
+  res.json(adminDb.prepare('SELECT id,nome,slug,email,plano,ativo,expires_at,ia_enabled,ia_api_key,created_at FROM gestores ORDER BY created_at DESC').all());
 });
 
 app.post('/api/admin/gestores', adminAuth, (req,res) => {
@@ -1032,291 +1041,91 @@ function emitIAEvent(slug, type, data) {
 app._emitIAEvent = emitIAEvent;
 
 // Chat IA (conversa via WhatsApp com número cadastrado)
-// /api/ia/chat replaced by /api/ia/webhook below
 
 // =============================================
-// IA — ROTEAMENTO MULTI-TENANT (WEBHOOK)
+// IA — ROTEAMENTO POR API KEY (simples e seguro)
 // =============================================
 //
-// FLUXO DE SEGURANÇA:
-// 1. Evolution API recebe msg → chama POST /api/ia/webhook
-// 2. Webhook extrai o número remetente
-// 3. Varre TODOS os tenants ativos procurando quem tem esse número cadastrado
-// 4. Se encontrar: verifica ia_enabled=1 para aquele tenant
-// 5. Processa a IA com dados EXCLUSIVOS daquele tenant
-// 6. Responde só para aquele número
-// → Cliente A jamais acessa dados do cliente B
+// Cada gestor tem uma ia_api_key única gerada pelo painel admin.
+// A Evolution API daquele cliente aponta para:
+//   POST /api/ia/webhook/{ia_api_key}
+//
+// Quando a mensagem chega, a key já identifica o tenant direto.
+// Zero varredura, zero ambiguidade. Cliente A nunca interfere no B.
 
-// Normaliza número: remove tudo que não é dígito, remove prefixo 55 se tiver 13 dígitos
-function cleanNumber(n) {
+// Gera API key aleatória
+function gerarIaApiKey() {
+  return 'mf_' + crypto.randomBytes(20).toString('hex');
+}
+
+// Busca gestor pela ia_api_key
+function getTenantByApiKey(apiKey) {
+  if (!apiKey) return null;
+  const g = adminDb.prepare(
+    `SELECT id, slug, nome, ia_enabled, ativo FROM gestores WHERE ia_api_key=?`
+  ).get(apiKey);
+  if (!g) return null;
+  if (!g.ativo || !g.ia_enabled) return null;
+  return { slug: g.slug, nome: g.nome, db: getTenantDb(g.slug) };
+}
+
+// Normaliza número WhatsApp
+function cleanNum(n) {
   if (!n) return '';
-  let s = String(n).replace(/\D/g, '');
-  // Remove @s.whatsapp.net ou @g.us se vier colado
-  s = s.split('@')[0];
-  // Remove :N (timestamp de grupo)
-  s = s.split(':')[0];
-  return s;
+  return String(n).replace(/\D/g,'').split('@')[0].split(':')[0];
 }
 
-function numbersMatch(a, b) {
-  const ca = cleanNumber(a);
-  const cb = cleanNumber(b);
-  if (!ca || !cb) return false;
-  if (ca === cb) return true;
-  // Comparação sem código do país: últimos 11 dígitos (DDD + número)
-  const tail = s => s.slice(-11);
-  return tail(ca) === tail(cb);
+// Verifica se número remetente é o autorizado no tenant
+function isNumeroAutorizado(db, numeroRemetente) {
+  const row = db.prepare(`SELECT valor FROM ia_config WHERE chave='numero'`).get();
+  if (!row?.valor) return false;
+  const a = cleanNum(row.valor);
+  const b = cleanNum(numeroRemetente);
+  if (!a || !b) return false;
+  // Compara direto ou pelos últimos 11 dígitos (DDD+número)
+  return a === b || a.slice(-11) === b.slice(-11);
 }
 
-// Busca em TODOS os tenants ativos qual tem esse número cadastrado
-function encontrarTenantPorNumero(numeroRemetente) {
-  const gestoresAtivos = adminDb.prepare(`
-    SELECT slug, nome, ia_enabled FROM gestores WHERE ativo=1
-  `).all();
-
-  for (const g of gestoresAtivos) {
-    if (!g.ia_enabled) continue; // IA desligada neste tenant
-    try {
-      const db = getTenantDb(g.slug);
-      const row = db.prepare(`SELECT valor FROM ia_config WHERE chave='numero'`).get();
-      if (!row || !row.valor) continue;
-      if (numbersMatch(row.valor, numeroRemetente)) {
-        return { slug: g.slug, nome: g.nome, db };
-      }
-    } catch(e) {
-      // Tenant com DB ainda não iniciado — ignora
-      console.error(`[IA Webhook] erro ao verificar tenant ${g.slug}:`, e.message);
-    }
-  }
-  return null; // número não pertence a nenhum tenant
-}
-
-// Busca histórico de conversa (últimas N mensagens) para contexto do GPT
-function getHistorico(db, numero, limit = 10) {
+// Coleta contexto da loja para o GPT
+function coletarContextoLoja(db, nomeGestor) {
   try {
-    db.exec(`CREATE TABLE IF NOT EXISTS ia_conversas (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      numero TEXT NOT NULL,
-      role TEXT NOT NULL CHECK(role IN ('user','assistant')),
-      content TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )`);
-    return db.prepare(`
-      SELECT role, content FROM ia_conversas
-      WHERE numero=?
-      ORDER BY created_at DESC LIMIT ?
-    `).all(numero, limit).reverse();
-  } catch(e) { return []; }
-}
+    const hoje   = new Date().toISOString().slice(0,10);
+    const semana = new Date(Date.now()-7*86400000).toISOString().slice(0,10);
+    const mes    = new Date().toISOString().slice(0,7);
+    const fmt    = v => 'R$' + Number(v||0).toFixed(2);
 
-function salvarMensagem(db, numero, role, content) {
-  try {
-    db.prepare(`
-      INSERT INTO ia_conversas (numero, role, content) VALUES (?,?,?)
-    `).run(numero, role, content);
-    // Manter só as últimas 50 mensagens por número
-    db.prepare(`
-      DELETE FROM ia_conversas WHERE numero=? AND id NOT IN (
-        SELECT id FROM ia_conversas WHERE numero=? ORDER BY created_at DESC LIMIT 50
-      )
-    `).run(numero, numero);
-  } catch(e) {}
-}
+    const vH = db.prepare(`SELECT COUNT(*) c, COALESCE(SUM(total),0) t FROM vendas WHERE DATE(created_at)=? AND status!='cancelada'`).get(hoje);
+    const vS = db.prepare(`SELECT COUNT(*) c, COALESCE(SUM(total),0) t FROM vendas WHERE DATE(created_at)>=? AND status!='cancelada'`).get(semana);
+    const vM = db.prepare(`SELECT COUNT(*) c, COALESCE(SUM(total),0) t FROM vendas WHERE strftime('%Y-%m',created_at)=? AND status!='cancelada'`).get(mes);
+    const tk = db.prepare(`SELECT COALESCE(AVG(total),0) t FROM vendas WHERE DATE(created_at)=? AND status!='cancelada'`).get(hoje);
+    const eb = db.prepare(`SELECT COUNT(*) c FROM produto_grades pg JOIN produtos p ON p.id=pg.produto_id WHERE pg.estoque<=3 AND pg.estoque>=0 AND p.ativo=1`).get();
+    const ez = db.prepare(`SELECT COUNT(*) c FROM produto_grades pg JOIN produtos p ON p.id=pg.produto_id WHERE pg.estoque=0 AND p.ativo=1`).get();
+    const cm = db.prepare(`SELECT COUNT(*) c FROM clientes WHERE strftime('%Y-%m',created_at)=?`).get(mes);
+    const ct = db.prepare(`SELECT COUNT(*) c FROM clientes`).get();
 
-// Coleta contexto rico do tenant para o system prompt
-function coletarContextoLoja(db) {
-  try {
-    const hoje    = new Date().toISOString().slice(0,10);
-    const semana  = new Date(Date.now()-7*86400000).toISOString().slice(0,10);
-    const mes     = new Date().toISOString().slice(0,7);
-    const fmt     = v => 'R$' + Number(v||0).toFixed(2);
-
-    const vHoje   = db.prepare(`SELECT COUNT(*) c,COALESCE(SUM(total),0) t FROM vendas WHERE DATE(created_at)=? AND status!='cancelada'`).get(hoje);
-    const vSemana = db.prepare(`SELECT COUNT(*) c,COALESCE(SUM(total),0) t FROM vendas WHERE DATE(created_at)>=? AND status!='cancelada'`).get(semana);
-    const vMes    = db.prepare(`SELECT COUNT(*) c,COALESCE(SUM(total),0) t FROM vendas WHERE strftime('%Y-%m',created_at)=? AND status!='cancelada'`).get(mes);
-    const ticket  = db.prepare(`SELECT COALESCE(AVG(total),0) t FROM vendas WHERE DATE(created_at)=? AND status!='cancelada'`).get(hoje);
-    const estBaixo= db.prepare(`SELECT COUNT(*) c FROM produto_grades pg JOIN produtos p ON p.id=pg.produto_id WHERE pg.estoque<=3 AND pg.estoque>=0 AND p.ativo=1`).get();
-    const estZero = db.prepare(`SELECT COUNT(*) c FROM produto_grades pg JOIN produtos p ON p.id=pg.produto_id WHERE pg.estoque=0 AND p.ativo=1`).get();
-    const cliMes  = db.prepare(`SELECT COUNT(*) c FROM clientes WHERE strftime('%Y-%m',created_at)=?`).get(mes);
-    const cliTotal= db.prepare(`SELECT COUNT(*) c FROM clientes`).get();
-
-    // Top 3 produtos mais vendidos hoje
     let topProdutos = '';
     try {
       const top = db.prepare(`
-        SELECT p.nome, SUM(vi.quantidade) q, SUM(vi.preco_unit*vi.quantidade) t
-        FROM venda_itens vi
-        JOIN produtos p ON p.id=vi.produto_id
-        JOIN vendas v ON v.id=vi.venda_id
+        SELECT p.nome, SUM(vi.quantidade) q
+        FROM venda_itens vi JOIN produtos p ON p.id=vi.produto_id JOIN vendas v ON v.id=vi.venda_id
         WHERE DATE(v.created_at)=? AND v.status!='cancelada'
         GROUP BY vi.produto_id ORDER BY q DESC LIMIT 3
       `).all(hoje);
-      if (top.length) topProdutos = '\nTop produtos hoje: ' + top.map(x=>`${x.nome}(${x.q}un/${fmt(x.t)})`).join(', ');
+      if (top.length) topProdutos = '\nMais vendidos hoje: ' + top.map(x=>`${x.nome}(${x.q}un)`).join(', ');
     } catch(e){}
 
-    return `📊 DADOS DA LOJA EM TEMPO REAL:
-- Vendas hoje: ${vHoje.c} vendas | Faturamento: ${fmt(vHoje.t)} | Ticket médio: ${fmt(ticket.t)}
-- Vendas semana: ${vSemana.c} | ${fmt(vSemana.t)}
-- Vendas mês: ${vMes.c} | ${fmt(vMes.t)}
-- Estoque crítico (≤3un): ${estBaixo.c} itens | Sem estoque: ${estZero.c} itens
-- Clientes totais: ${cliTotal.c} | Novos este mês: ${cliMes.c}${topProdutos}`;
-  } catch(e) {
-    return 'Dados da loja temporariamente indisponíveis.';
-  }
+    return `DADOS DA LOJA "${nomeGestor}" — atualizado agora:
+• Hoje: ${vH.c} vendas / ${fmt(vH.t)} / ticket médio ${fmt(tk.t)}
+• Semana: ${vS.c} vendas / ${fmt(vS.t)}
+• Mês: ${vM.c} vendas / ${fmt(vM.t)}
+• Estoque crítico (≤3): ${eb.c} itens | Zerado: ${ez.c} itens
+• Clientes: ${ct.c} total / ${cm.c} novos este mês${topProdutos}`;
+  } catch(e) { return `Loja: ${nomeGestor} — dados temporariamente indisponíveis.`; }
 }
 
-// Envia mensagem via Evolution API
-async function enviarWhatsApp(numero, texto) {
-  const evo_url  = iaConfigGet('evo_url');
-  const evo_key  = iaConfigGet('evo_key');
-  const evo_inst = iaConfigGet('evo_instance');
-  if (!evo_url || !evo_key || !evo_inst) throw new Error('Evolution API não configurada');
-
-  const r = await fetch(`${evo_url}/message/sendText/${evo_inst}`, {
-    method: 'POST',
-    headers: { 'Content-Type':'application/json', 'apikey': evo_key },
-    body: JSON.stringify({ number: numero, text: texto })
-  });
-  if (!r.ok) {
-    const err = await r.text();
-    throw new Error(`Evolution API erro ${r.status}: ${err}`);
-  }
-  return await r.json();
-}
-
-// ──────────────────────────────────────────────────────
-// POST /api/ia/webhook  — recebe msgs da Evolution API
-// ──────────────────────────────────────────────────────
-app.post('/api/ia/webhook', async (req, res) => {
-  res.status(200).json({ ok: true }); // Responde imediatamente para a Evolution API não retentar
-
+// Histórico de conversa (últimas 10 msgs para contexto)
+function getHistorico(db, numero) {
   try {
-    const body = req.body;
-
-    // Suporta formato Evolution API v1 e v2
-    const event = body.event || body.type || '';
-
-    // Ignora eventos que não são mensagens recebidas
-    if (!['messages.upsert','MESSAGES_UPSERT','message'].includes(event)) return;
-
-    // Extrai a mensagem do payload
-    const msgData = body.data || body;
-    const msg     = msgData.message || msgData.messages?.[0] || msgData;
-
-    // Ignora mensagens enviadas pelo próprio bot ou grupos
-    const key = msg.key || {};
-    if (key.fromMe === true) return;
-    const remoteJid = key.remoteJid || msg.remoteJid || '';
-    if (remoteJid.endsWith('@g.us')) return; // grupo — ignora
-
-    // Extrai número remetente
-    const numeroRemetente = cleanNumber(remoteJid || msgData.sender || '');
-    if (!numeroRemetente) return;
-
-    // Extrai texto da mensagem
-    const msgContent = msg.message || {};
-    const texto = (
-      msgContent.conversation ||
-      msgContent.extendedTextMessage?.text ||
-      msgContent.imageMessage?.caption ||
-      msgContent.listResponseMessage?.singleSelectReply?.selectedRowId ||
-      ''
-    ).trim();
-
-    if (!texto) return; // Ignora mídia sem legenda, stickers, etc.
-
-    // ── ROTEAMENTO MULTI-TENANT ──────────────────────────
-    // Aqui está o coração da segurança: encontra QUAL tenant
-    // tem esse número cadastrado — e só ele recebe resposta
-    const tenant = encontrarTenantPorNumero(numeroRemetente);
-
-    if (!tenant) {
-      // Número não cadastrado em nenhum tenant — silêncio total
-      console.log(`[IA Webhook] Número ${numeroRemetente} não pertence a nenhum tenant ativo. Ignorando.`);
-      return;
-    }
-
-    const { slug, nome, db } = tenant;
-    console.log(`[IA Webhook] Mensagem de ${numeroRemetente} → Tenant: ${slug} (${nome})`);
-
-    // Verifica chave OpenAI
-    const openai_key = iaConfigGet('openai_key');
-    if (!openai_key) {
-      console.error('[IA Webhook] OpenAI key não configurada');
-      return;
-    }
-
-    // Coleta contexto da loja ESPECÍFICA deste tenant
-    const contextoLoja = coletarContextoLoja(db);
-
-    // Recupera histórico da conversa deste número neste tenant
-    const historico = getHistorico(db, numeroRemetente);
-
-    // System prompt isolado por tenant
-    const systemPrompt = `Você é o assistente de IA do ModaFlow para a loja "${nome}".
-Responda SEMPRE em português, de forma objetiva e profissional.
-Você tem acesso exclusivo aos dados desta loja — nunca mencione outras lojas ou clientes.
-Você pode responder perguntas sobre vendas, estoque, faturamento, clientes e relatórios desta loja.
-Para perguntas fora do contexto do negócio, redirecione gentilmente para tópicos relevantes.
-
-${contextoLoja}
-
-IMPORTANTE: Mantenha respostas curtas e diretas para WhatsApp (máx. 300 palavras).`;
-
-    // Monta histórico para o GPT (contexto da conversa)
-    const messages = [
-      { role: 'system', content: systemPrompt },
-      ...historico.map(h => ({ role: h.role, content: h.content })),
-      { role: 'user', content: texto }
-    ];
-
-    // Salva mensagem do usuário no histórico
-    salvarMensagem(db, numeroRemetente, 'user', texto);
-
-    // Chama GPT-4o-mini
-    const oRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${openai_key}` },
-      body: JSON.stringify({ model: 'gpt-4o-mini', max_tokens: 500, temperature: 0.7, messages })
-    });
-
-    const oData = await oRes.json();
-    if (oData.error) {
-      console.error('[IA Webhook] OpenAI erro:', oData.error);
-      return;
-    }
-
-    const resposta = oData.choices?.[0]?.message?.content?.trim();
-    if (!resposta) return;
-
-    // Salva resposta no histórico
-    salvarMensagem(db, numeroRemetente, 'assistant', resposta);
-
-    // Envia de volta para o número do remetente
-    await enviarWhatsApp(numeroRemetente, resposta);
-
-    // Emite evento SSE para o painel deste tenant
-    emitIAEvent(slug, 'mensagem_ia', {
-      mensagem: `IA respondeu para ${numeroRemetente}: "${resposta.slice(0,60)}..."`,
-      numero: numeroRemetente
-    });
-
-    console.log(`[IA Webhook] Resposta enviada para ${numeroRemetente} (tenant: ${slug})`);
-
-  } catch(e) {
-    console.error('[IA Webhook] Erro:', e.message);
-  }
-});
-
-// ──────────────────────────────────────────────────────
-// GET /api/ia/historico — histórico de conversa do tenant
-// ──────────────────────────────────────────────────────
-app.get('/api/ia/historico', resolveDb, (req, res) => {
-  try {
-    const db = req.db;
-    const numero = tenantIaGet(db, 'numero');
-    if (!numero) return res.json([]);
-
     db.exec(`CREATE TABLE IF NOT EXISTS ia_conversas (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       numero TEXT NOT NULL,
@@ -1324,55 +1133,189 @@ app.get('/api/ia/historico', resolveDb, (req, res) => {
       content TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`);
+    return db.prepare(
+      `SELECT role, content FROM ia_conversas WHERE numero=? ORDER BY created_at DESC LIMIT 10`
+    ).all(numero).reverse();
+  } catch(e) { return []; }
+}
 
-    const msgs = db.prepare(`
-      SELECT role, content, created_at FROM ia_conversas
-      WHERE numero=?
-      ORDER BY created_at DESC LIMIT 30
-    `).all(numero).reverse();
+function salvarMensagem(db, numero, role, content) {
+  try {
+    db.prepare(`INSERT INTO ia_conversas (numero,role,content) VALUES (?,?,?)`).run(numero,role,content);
+    // Mantém só as últimas 50 por número
+    db.prepare(`
+      DELETE FROM ia_conversas WHERE numero=? AND id NOT IN (
+        SELECT id FROM ia_conversas WHERE numero=? ORDER BY created_at DESC LIMIT 50
+      )
+    `).run(numero, numero);
+  } catch(e){}
+}
 
-    res.json(msgs);
+// Envia mensagem pela Evolution API do gestor
+async function enviarWhatsApp(db, numero, texto) {
+  // Pega credenciais específicas deste tenant (se tiver instância própria)
+  // Caso contrário usa a global do painel admin
+  const evoUrl  = tenantIaGet(db,'evo_url')  || iaConfigGet('evo_url');
+  const evoKey  = tenantIaGet(db,'evo_key')  || iaConfigGet('evo_key');
+  const evoInst = tenantIaGet(db,'evo_inst') || iaConfigGet('evo_instance');
+
+  if (!evoUrl || !evoKey || !evoInst) throw new Error('Evolution API não configurada');
+
+  const r = await fetch(`${evoUrl}/message/sendText/${evoInst}`, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'apikey': evoKey },
+    body: JSON.stringify({ number: numero, text: texto })
+  });
+  if (!r.ok) throw new Error(`Evolution erro ${r.status}`);
+  return r.json();
+}
+
+// ─────────────────────────────────────────────────────────
+// ADMIN — gerar / revogar API key de um gestor
+// ─────────────────────────────────────────────────────────
+app.post('/api/admin/gestores/:id/ia-key', adminAuth, (req, res) => {
+  try {
+    const novaKey = gerarIaApiKey();
+    adminDb.prepare(`UPDATE gestores SET ia_api_key=? WHERE id=?`).run(novaKey, req.params.id);
+    res.json({ ok: true, ia_api_key: novaKey });
   } catch(e) { res.status(500).json({ message: e.message }); }
 });
 
-// ──────────────────────────────────────────────────────
-// DELETE /api/ia/historico — limpa histórico
-// ──────────────────────────────────────────────────────
-app.delete('/api/ia/historico', resolveDb, (req, res) => {
+app.delete('/api/admin/gestores/:id/ia-key', adminAuth, (req, res) => {
   try {
-    const db  = req.db;
-    const num = tenantIaGet(db, 'numero');
-    if (!num) return res.json({ ok: true });
-    db.prepare(`DELETE FROM ia_conversas WHERE numero=?`).run(num);
+    adminDb.prepare(`UPDATE gestores SET ia_api_key=NULL WHERE id=?`).run(req.params.id);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ message: e.message }); }
 });
 
-// ──────────────────────────────────────────────────────
-// POST /api/ia/webhook/setup — registra webhook na Evolution API
-// ──────────────────────────────────────────────────────
-app.post('/api/admin/ia-webhook-setup', adminAuth, async (req, res) => {
+// ─────────────────────────────────────────────────────────
+// POST /api/ia/webhook/:apiKey  — recebe mensagens
+// ─────────────────────────────────────────────────────────
+app.post('/api/ia/webhook/:apiKey', async (req, res) => {
+  res.status(200).json({ ok: true }); // responde imediatamente
+
   try {
-    const evo_url  = iaConfigGet('evo_url');
-    const evo_key  = iaConfigGet('evo_key');
-    const evo_inst = iaConfigGet('evo_instance');
-    if (!evo_url || !evo_key || !evo_inst) return res.status(400).json({ message: 'Evolution API não configurada' });
+    const { apiKey } = req.params;
 
-    const webhookUrl = req.body.base_url
-      ? `${req.body.base_url}/api/ia/webhook`
-      : `${req.headers.origin || req.headers.host}/api/ia/webhook`;
+    // 1. Identifica o tenant pela API key — direto, sem varredura
+    const tenant = getTenantByApiKey(apiKey);
+    if (!tenant) {
+      console.log(`[IA Webhook] API key inválida ou IA desativada: ${apiKey}`);
+      return;
+    }
+    const { slug, nome, db } = tenant;
 
-    const r = await fetch(`${evo_url}/webhook/set/${evo_inst}`, {
+    // 2. Extrai evento e mensagem do payload Evolution API
+    const body  = req.body;
+    const event = body.event || body.type || '';
+    if (!['messages.upsert','MESSAGES_UPSERT','message'].includes(event)) return;
+
+    const msgData = body.data || body;
+    const msg     = msgData.message || msgData.messages?.[0] || msgData;
+    const key     = msg.key || {};
+    if (key.fromMe === true) return;                       // mensagem própria — ignora
+    const remoteJid = key.remoteJid || msg.remoteJid || '';
+    if (remoteJid.endsWith('@g.us')) return;               // grupo — ignora
+
+    const numeroRemetente = cleanNum(remoteJid || msgData.sender || '');
+    if (!numeroRemetente) return;
+
+    // 3. Verifica se o número remetente é o cadastrado no tenant
+    if (!isNumeroAutorizado(db, numeroRemetente)) {
+      console.log(`[IA Webhook] Número ${numeroRemetente} não autorizado para tenant ${slug}`);
+      return;
+    }
+
+    // 4. Extrai texto
+    const msgContent = msg.message || {};
+    const texto = (
+      msgContent.conversation ||
+      msgContent.extendedTextMessage?.text ||
+      msgContent.imageMessage?.caption || ''
+    ).trim();
+    if (!texto) return;
+
+    console.log(`[IA Webhook] "${texto.slice(0,40)}" → tenant: ${slug}`);
+
+    // 5. Checa OpenAI key
+    const openai_key = iaConfigGet('openai_key');
+    if (!openai_key) return;
+
+    // 6. Contexto isolado deste tenant + histórico
+    const contexto   = coletarContextoLoja(db, nome);
+    const historico  = getHistorico(db, numeroRemetente);
+
+    const systemPrompt = `Você é o assistente de IA do ModaFlow para a loja "${nome}".
+Responda sempre em português, de forma curta e direta (máx. 300 palavras — é WhatsApp).
+Você acessa dados exclusivos desta loja. Nunca mencione outras lojas.
+Foque em vendas, estoque, faturamento, clientes e relatórios.
+
+${contexto}`;
+
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...historico.map(h => ({ role: h.role, content: h.content })),
+      { role: 'user',   content: texto }
+    ];
+
+    salvarMensagem(db, numeroRemetente, 'user', texto);
+
+    // 7. Chama GPT
+    const oRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type':'application/json', 'apikey': evo_key },
-      body: JSON.stringify({
-        url: webhookUrl,
-        webhook_by_events: false,
-        webhook_base64: false,
-        events: ['MESSAGES_UPSERT']
-      })
+      headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${openai_key}` },
+      body: JSON.stringify({ model:'gpt-4o-mini', max_tokens:500, temperature:0.7, messages })
     });
-    const d = await r.json();
-    res.json({ ok: r.ok, data: d, webhookUrl });
+    const oData = await oRes.json();
+    if (oData.error) { console.error('[IA] OpenAI erro:', oData.error.message); return; }
+
+    const resposta = oData.choices?.[0]?.message?.content?.trim();
+    if (!resposta) return;
+
+    salvarMensagem(db, numeroRemetente, 'assistant', resposta);
+
+    // 8. Envia resposta via WhatsApp
+    await enviarWhatsApp(db, numeroRemetente, resposta);
+
+    // 9. Emite evento SSE pro painel do tenant
+    emitIAEvent(slug, 'mensagem_ia', {
+      mensagem: `🤖 IA respondeu: "${resposta.slice(0,80)}..."`,
+      numero: numeroRemetente
+    });
+
+    console.log(`[IA Webhook] Resposta enviada → ${slug} / ${numeroRemetente}`);
+  } catch(e) {
+    console.error('[IA Webhook] Erro:', e.message);
+  }
+});
+
+// ─────────────────────────────────────────────────────────
+// Histórico de conversa (painel do cliente)
+// ─────────────────────────────────────────────────────────
+app.get('/api/ia/historico', resolveDb, (req, res) => {
+  try {
+    const db = req.db;
+    const numero = tenantIaGet(db,'numero');
+    if (!numero) return res.json([]);
+    try {
+      db.exec(`CREATE TABLE IF NOT EXISTS ia_conversas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        numero TEXT NOT NULL, role TEXT NOT NULL, content TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`);
+    } catch(e){}
+    const msgs = db.prepare(
+      `SELECT role, content, created_at FROM ia_conversas WHERE numero=? ORDER BY created_at DESC LIMIT 30`
+    ).all(cleanNum(numero)).reverse();
+    res.json(msgs);
+  } catch(e) { res.status(500).json({ message: e.message }); }
+});
+
+app.delete('/api/ia/historico', resolveDb, (req, res) => {
+  try {
+    const db  = req.db;
+    const num = cleanNum(tenantIaGet(db,'numero') || '');
+    if (num) db.prepare(`DELETE FROM ia_conversas WHERE numero=?`).run(num);
+    res.json({ ok: true });
   } catch(e) { res.status(500).json({ message: e.message }); }
 });
