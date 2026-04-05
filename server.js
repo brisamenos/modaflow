@@ -973,33 +973,84 @@ app.get('/api/admin/ia-whatsapp-status', adminAuth, async (req, res) => {
 // =============================================
 // IA — TENANT CONFIG
 // =============================================
-function tenantIaGet(db, key) {
-  const r = db.prepare('SELECT valor FROM ia_config WHERE chave=?').get(key);
-  return r ? r.valor : null;
+function ensureIaConfigTable(db) {
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS ia_config (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      chave TEXT NOT NULL,
+      valor TEXT,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+    // Garante que não há duplicatas antes de criar o índice único
+    db.exec(`DELETE FROM ia_config WHERE id NOT IN (
+      SELECT MIN(id) FROM ia_config GROUP BY chave
+    )`);
+    try { db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_ia_config_chave ON ia_config(chave)`); } catch(e){}
+  } catch(e){}
 }
+
+function tenantIaGet(db, key) {
+  try {
+    ensureIaConfigTable(db);
+    const r = db.prepare('SELECT valor FROM ia_config WHERE chave=?').get(key);
+    return r ? r.valor : null;
+  } catch(e) {
+    console.error('[tenantIaGet] erro:', e.message);
+    return null;
+  }
+}
+
 function tenantIaSet(db, key, val) {
-  db.prepare('INSERT INTO ia_config (chave,valor,updated_at) VALUES (?,?,CURRENT_TIMESTAMP) ON CONFLICT(chave) DO UPDATE SET valor=excluded.valor,updated_at=CURRENT_TIMESTAMP').run(key, val);
+  try {
+    ensureIaConfigTable(db);
+    // SELECT + UPDATE/INSERT — não depende de constraint UNIQUE
+    const exists = db.prepare('SELECT id FROM ia_config WHERE chave=?').get(key);
+    if (exists) {
+      db.prepare('UPDATE ia_config SET valor=?, updated_at=CURRENT_TIMESTAMP WHERE chave=?').run(val, key);
+    } else {
+      db.prepare('INSERT INTO ia_config (chave, valor) VALUES (?, ?)').run(key, val);
+    }
+  } catch(e) {
+    console.error('[tenantIaSet] erro ao salvar chave', key, ':', e.message);
+  }
 }
 
 app.get('/api/ia/config', resolveDb, (req, res) => {
-  const db = req.db;
-  res.json({
-    numero:              tenantIaGet(db,'numero')              || '',
-    notify_nova_venda:   tenantIaGet(db,'notify_nova_venda')   ?? '1',
-    notify_estoque:      tenantIaGet(db,'notify_estoque')      ?? '1',
-    notify_novo_cliente: tenantIaGet(db,'notify_novo_cliente') ?? '1',
-    notify_relatorio:    tenantIaGet(db,'notify_relatorio')    ?? '0',
-    relatorio_horario:   tenantIaGet(db,'relatorio_horario')   || '08:00',
-    relatorio_periodo:   tenantIaGet(db,'relatorio_periodo')   || 'diario',
-    ia_enabled:          tenantIaGet(db,'ia_enabled')          ?? '0'
-  });
+  try {
+    const db = req.db;
+    ensureIaConfigTable(db);
+    res.json({
+      numero:              tenantIaGet(db,'numero')              || '',
+      notify_nova_venda:   tenantIaGet(db,'notify_nova_venda')   ?? '1',
+      notify_estoque:      tenantIaGet(db,'notify_estoque')      ?? '1',
+      notify_novo_cliente: tenantIaGet(db,'notify_novo_cliente') ?? '1',
+      notify_relatorio:    tenantIaGet(db,'notify_relatorio')    ?? '0',
+      relatorio_horario:   tenantIaGet(db,'relatorio_horario')   || '08:00',
+      relatorio_periodo:   tenantIaGet(db,'relatorio_periodo')   || 'diario',
+      ia_enabled:          tenantIaGet(db,'ia_enabled')          ?? '0'
+    });
+  } catch(e) {
+    console.error('[IA Config GET] Erro:', e.message);
+    res.status(500).json({ message: e.message });
+  }
 });
 
 app.post('/api/ia/config', resolveDb, (req, res) => {
-  const db = req.db;
-  const fields = ['numero','notify_nova_venda','notify_estoque','notify_novo_cliente','notify_relatorio','relatorio_horario','relatorio_periodo','ia_enabled'];
-  for (const f of fields) { if (req.body[f] !== undefined) tenantIaSet(db, f, String(req.body[f])); }
-  res.json({ ok: true });
+  try {
+    const db = req.db;
+    const slug = req.gestor?.slug || '?';
+    const fields = ['numero','notify_nova_venda','notify_estoque','notify_novo_cliente','notify_relatorio','relatorio_horario','relatorio_periodo','ia_enabled'];
+    for (const f of fields) {
+      if (req.body[f] !== undefined) {
+        tenantIaSet(db, f, String(req.body[f]));
+        console.log(`[IA Config] ${slug} → ${f} = "${req.body[f]}"`);
+      }
+    }
+    res.json({ ok: true });
+  } catch(e) {
+    console.error('[IA Config] Erro ao salvar:', e.message);
+    res.status(500).json({ message: e.message });
+  }
 });
 
 app.get('/api/ia/resumo', resolveDb, (req, res) => {
