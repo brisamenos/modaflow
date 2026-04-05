@@ -1153,20 +1153,33 @@ function salvarMensagem(db, numero, role, content) {
 
 // Envia mensagem pela Evolution API do gestor
 async function enviarWhatsApp(db, numero, texto) {
-  // Pega credenciais específicas deste tenant (se tiver instância própria)
-  // Caso contrário usa a global do painel admin
   const evoUrl  = tenantIaGet(db,'evo_url')  || iaConfigGet('evo_url');
   const evoKey  = tenantIaGet(db,'evo_key')  || iaConfigGet('evo_key');
   const evoInst = tenantIaGet(db,'evo_inst') || iaConfigGet('evo_instance');
 
   if (!evoUrl || !evoKey || !evoInst) throw new Error('Evolution API não configurada');
 
+  // Formata número: remove não-dígitos, garante código do Brasil
+  let num = String(numero).replace(/\D/g,'');
+  if (num.length === 11) num = '55' + num;           // DDD + 9 dígitos → adiciona 55
+  if (num.length === 10) num = '55' + num;           // DDD + 8 dígitos → adiciona 55
+
+  // Evolution API v2 usa { number, text }
+  // Evolution API v1 usa o mesmo formato — compatível com ambas
+  const payload = { number: num, text: texto };
+
   const r = await fetch(`${evoUrl}/message/sendText/${evoInst}`, {
     method: 'POST',
     headers: { 'Content-Type':'application/json', 'apikey': evoKey },
-    body: JSON.stringify({ number: numero, text: texto })
+    body: JSON.stringify(payload)
   });
-  if (!r.ok) throw new Error(`Evolution erro ${r.status}`);
+
+  if (!r.ok) {
+    const errBody = await r.text();
+    // Loga o corpo do erro para facilitar diagnóstico
+    console.error(`[Evolution] ${r.status}:`, errBody);
+    throw new Error(`Evolution erro ${r.status}: ${errBody}`);
+  }
   return r.json();
 }
 
