@@ -1079,11 +1079,13 @@ function cleanNum(n) {
 function isNumeroAutorizado(db, numeroRemetente) {
   const row = db.prepare(`SELECT valor FROM ia_config WHERE chave='numero'`).get();
   if (!row?.valor) return false;
-  const a = cleanNum(row.valor);
-  const b = cleanNum(numeroRemetente);
+  const a = cleanNum(row.valor);   // número salvo pelo cliente (ex: 85999999999)
+  const b = cleanNum(numeroRemetente); // número que chegou (ex: 5585999999999)
   if (!a || !b) return false;
-  // Compara direto ou pelos últimos 11 dígitos (DDD+número)
-  return a === b || a.slice(-11) === b.slice(-11);
+  // Compara: exato, últimos 11 dígitos (DDD+num), ou últimos 8 dígitos (num sem DDD)
+  return a === b
+    || a.slice(-11) === b.slice(-11)
+    || a.slice(-8)  === b.slice(-8);
 }
 
 // Coleta contexto da loja para o GPT
@@ -1249,45 +1251,72 @@ app.post('/api/ia/webhook/:apiKey', async (req, res) => {
       return;
     }
 
-    // 3. Navega no payload (Evolution v1/v2 têm estruturas diferentes)
-    const msgData = body.data || body;
-    const msg     = msgData.message || msgData.messages?.[0] || msgData;
-    log('MSG_STRUCT', 'msgData keys:', Object.keys(msgData));
-    log('MSG_STRUCT', 'msg keys:', Object.keys(msg));
+    // 3. Navega no payload — suporta Evolution API v1 e v2
+    //
+    // v2: body = { event, instance, data: { key, pushName, message, ... } }
+    // v1: body = { event, data: { messages: [{ key, message, ... }] } }
+    //
+    log('PAYLOAD_KEYS', 'body.keys:', Object.keys(body));
 
-    const key = msg.key || {};
-    log('MSG_KEY', `fromMe=${key.fromMe} remoteJid=${key.remoteJid}`);
+    // Normaliza: pega o objeto que contém { key, message }
+    let msgObj = null;
 
-    if (key.fromMe === true) { log('MSG_KEY', '⏭ Ignorado — mensagem própria (fromMe)'); return; }
+    if (body.data?.key?.remoteJid) {
+      // Evolution v2 — data já É a mensagem
+      msgObj = body.data;
+      log('VERSAO', 'Evolution API v2 detectado (body.data.key existe)');
+    } else if (body.data?.messages?.[0]?.key?.remoteJid) {
+      // Evolution v1 — messages array dentro de data
+      msgObj = body.data.messages[0];
+      log('VERSAO', 'Evolution API v1 detectado (body.data.messages[])');
+    } else if (body.messages?.[0]?.key?.remoteJid) {
+      msgObj = body.messages[0];
+      log('VERSAO', 'Evolution API v1 alternativo (body.messages[])');
+    } else {
+      // Fallback — loga estrutura completa para diagnóstico
+      log('VERSAO', '⚠️ Estrutura desconhecida — payload completo:', body);
+      msgObj = body.data || body;
+    }
 
-    const remoteJid = key.remoteJid || msg.remoteJid || '';
-    if (remoteJid.endsWith('@g.us')) { log('MSG_KEY', '⏭ Ignorado — grupo'); return; }
+    log('MSG_OBJ', 'msgObj keys:', Object.keys(msgObj));
 
-    const numeroRemetente = cleanNum(remoteJid || msgData.sender || '');
-    log('NUMERO', `Remetente extraído: "${numeroRemetente}" (de jid: "${remoteJid}")`);
+    const key = msgObj.key || {};
+    log('MSG_KEY', `fromMe=${key.fromMe} | remoteJid=${key.remoteJid}`);
 
-    if (!numeroRemetente) { log('NUMERO', '❌ Número vazio — ignorado'); return; }
+    if (key.fromMe === true) { log('MSG_KEY', '⏭ Ignorado — mensagem própria (fromMe=true)'); return; }
+
+    const remoteJid = key.remoteJid || '';
+    if (!remoteJid) { log('MSG_KEY', '❌ remoteJid vazio — ignorado'); return; }
+    if (remoteJid.endsWith('@g.us')) { log('MSG_KEY', '⏭ Ignorado — grupo (@g.us)'); return; }
+
+    const numeroRemetente = cleanNum(remoteJid);
+    log('NUMERO', `Remetente: "${numeroRemetente}" (jid: "${remoteJid}")`);
+    if (!numeroRemetente) { log('NUMERO', '❌ Número vazio'); return; }
 
     // 4. Verifica autorização
     const numCadastrado = db.prepare(`SELECT valor FROM ia_config WHERE chave='numero'`).get()?.valor || '';
-    log('AUTH', `Número cadastrado: "${numCadastrado}" | Remetente: "${numeroRemetente}"`);
+    const numCadLimpo   = cleanNum(numCadastrado);
+    log('AUTH', `Cadastrado: "${numCadLimpo}" | Recebido: "${numeroRemetente}"`);
 
     if (!isNumeroAutorizado(db, numeroRemetente)) {
-      log('AUTH', `❌ Número não autorizado. Cadastrado: ${numCadastrado} | Recebido: ${numeroRemetente}`);
+      log('AUTH', `❌ Não autorizado — cadastrado="${numCadLimpo}" recebido="${numeroRemetente}"`);
       return;
     }
     log('AUTH', '✅ Número autorizado');
 
-    // 5. Extrai texto da mensagem
-    const msgContent = msg.message || {};
+    // 5. Extrai texto
+    // v2: msgObj.message = { conversation: "..." }
+    // v1: msgObj.message = { conversation: "..." }  (igual)
+    const msgContent = msgObj.message || {};
     log('TEXTO', 'msgContent keys:', Object.keys(msgContent));
     const texto = (
       msgContent.conversation ||
       msgContent.extendedTextMessage?.text ||
-      msgContent.imageMessage?.caption || ''
+      msgContent.imageMessage?.caption ||
+      msgContent.buttonsResponseMessage?.selectedButtonId ||
+      msgContent.listResponseMessage?.singleSelectReply?.selectedRowId || ''
     ).trim();
-    log('TEXTO', `Texto extraído: "${texto}"`);
-
+    log('TEXTO', `Extraído: "${texto}"`);
     if (!texto) { log('TEXTO', '⏭ Sem texto — ignorado'); return; }
 
     // 6. OpenAI
