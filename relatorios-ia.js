@@ -35,11 +35,6 @@ const IAR = {
     try {
       const r = await apiGet('/api/ia/config');
       _iaConfig = r;
-      // Popula campos Evolution se existirem
-      const f = (id,v) => { const el=document.getElementById(id); if(el) el.value=v||''; };
-      f('ia-evo-url', r.evo_url);
-      f('ia-evo-key', r.evo_key);
-      f('ia-evo-instance', r.evo_instance);
     } catch(e) { _iaConfig = {}; }
   },
 
@@ -118,7 +113,21 @@ const IAR = {
       await apiPost('/api/ia/config', payload);
       _iaConfig = { ..._iaConfig, ...payload };
       toast('Configuração salva com sucesso!', 'success');
-      IAR.updateStatus();
+      IAR.pollTest = async function() {
+    toast('Executando diagnóstico...', 'info');
+    try {
+      const d = await apiGet('/api/ia/poll-test');
+      let txt = `🔍 DIAGNÓSTICO — ${d.slug}\n\n`;
+      for (const s of d.steps) {
+        txt += `${s.ok ? '✅' : '❌'} ${s.msg}\n`;
+        if (!s.ok && s.data) txt += `   Detalhe: ${JSON.stringify(s.data).slice(0,150)}\n`;
+      }
+      if (d.error) txt += `\n⚠️ ${d.error}`;
+      alert(txt);
+    } catch(e) { toast('Erro: '+e.message, 'error'); }
+  };
+
+  IAR.updateStatus();
     } catch(e) {
       toast('Erro ao salvar: ' + e.message, 'error');
     } finally {
@@ -634,16 +643,16 @@ async function renderRelatoriosIA() {
 
           <div class="ia-field">
             <label class="ia-label">URL da Evolution API</label>
-            <input class="ia-input" id="ia-evo-url" placeholder="https://evolution.seuservidor.com">
+            <input class="ia-input" id="ia-evo-url" placeholder="https://evolution.seuservidor.com" value="${_iaConfig.evo_url||''}">
           </div>
           <div class="ia-row">
             <div class="ia-field" style="margin-bottom:0">
               <label class="ia-label">API Key</label>
-              <input class="ia-input" id="ia-evo-key" type="password" placeholder="sua-api-key">
+              <input class="ia-input" id="ia-evo-key" type="password" placeholder="sua-api-key" value="${_iaConfig.evo_key||''}">
             </div>
             <div class="ia-field" style="margin-bottom:0">
               <label class="ia-label">Nome da Instância</label>
-              <input class="ia-input" id="ia-evo-instance" placeholder="minha-instancia">
+              <input class="ia-input" id="ia-evo-instance" placeholder="minha-instancia" value="${_iaConfig.evo_instance||''}">
             </div>
           </div>
         </div>
@@ -654,6 +663,9 @@ async function renderRelatoriosIA() {
           </button>
           <button class="ia-btn ia-btn-ghost" id="ia-test-btn" onclick="IAR.sendTestMsg()">
             📱 Enviar Teste
+          </button>
+          <button class="ia-btn ia-btn-ghost" onclick="IAR.pollTest()" title="Diagnóstico completo da conexão">
+            🔍 Diagnóstico
           </button>
         </div>
       </div>
